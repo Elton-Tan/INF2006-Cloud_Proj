@@ -1,565 +1,466 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Targeted e-commerce reviews scraper (Selenium)
-- Focus on Amazon by ASIN with robust anti-bot mitigations
-- Generic URL mode for other sites (best-effort)
+# scrap_reviews.py
+# Lazada PDP review scraper (Selenium) with:
+# - Empty-state detection (skip "This product has no reviews")
+# - Container-scoped extraction
+# - Optional "discover" mode to pull PDP URLs from Lazada search pages
+#
+# PowerShell examples:
+#  A) Scrape known PDP URLs:
+#     python .\scrap_reviews.py --urls (Get-Content .\lazada_pdp_urls.txt) --out .\out\lazada_reviews.jsonl --headless --lang en-SG --pages 3 --verbose
+#  B) Discover PDPs from search pages, then scrape:
+#     python .\scrap_reviews.py --discover "https://www.lazada.sg/catalog/?q=foot%20cream" --discover-limit 8 --out .\out\lazada_reviews.jsonl --headless --lang en-SG --pages 3 --verbose
+#  C) Discover from queries (builds the search URL for you):
+#     python .\scrap_reviews.py --discover "foot cream" "antifungal foot cream" --discover-limit 8 --out .\out\lazada_reviews.jsonl --headless --lang en-SG --pages 3 --verbose
 
-CLI examples:
-  pip install selenium webdriver-manager beautifulsoup4 undetected-chromedriver
-  python scrap_reviews.py --amazon B01J8LETQC --pages 3 --stealth --mobile --mobile-site --profile-dir ./chrome_profile_amz --verbose
-"""
-
-from __future__ import annotations
-
-import argparse
-import json
-import os
-import random
-import re
-import sys
-import time
+import argparse, json, random, re, sys, time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from typing import List, Optional, Iterable
+from urllib.parse import quote_plus
 
-from bs4 import BeautifulSoup
-
-# --- Selenium / Chrome ---
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException
-from webdriver_manager.chrome import ChromeDriverManager
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
-]
-MOBILE_USER_AGENTS = [
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
-]
-
-RAND = random.Random()
-
-# -----------------------------
-# Output sink
-# -----------------------------
-@dataclass
-class JsonlSink:
-    path: Path
-    def __post_init__(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._fp = None
-    def _ensure(self):
-        if self._fp is None:
-            self._fp = open(self.path, "a", encoding="utf-8")
-    def emit(self, row: dict):
-        self._ensure()
-        self._fp.write(json.dumps(row, ensure_ascii=False) + "\n")
-        self._fp.flush()
-    def close(self):
-        if self._fp:
-            self._fp.close()
-            self._fp = None
-
-# -----------------------------
-# Driver setup
-# -----------------------------
-def make_driver(
-    headless: bool = True,
-    lang: str = "en-SG",
-    stealth: bool = False,
-    mobile: bool = False,
-    profile_dir: Optional[str] = None,
-    proxy: Optional[str] = None,
-) -> webdriver.Chrome:
-    ua = RAND.choice(MOBILE_USER_AGENTS if mobile else USER_AGENTS)
-
-    if stealth:
-        # Prefer undetected_chromedriver if installed
-        try:
-            import undetected_chromedriver as uc  # type: ignore
-            opts = uc.ChromeOptions()
-            if headless:
-                opts.add_argument("--headless=new")
-            opts.add_argument("--no-sandbox")
-            opts.add_argument("--disable-dev-shm-usage")
-            opts.add_argument("--disable-blink-features=AutomationControlled")
-            opts.add_experimental_option("excludeSwitches", ["enable-automation"])
-            opts.add_experimental_option("useAutomationExtension", False)
-            opts.add_argument(f"--user-agent={ua}")
-            opts.add_argument(f"--lang={lang}")
-            opts.add_argument("--window-size=390,844" if mobile else "--window-size=1200,2000")
-            if profile_dir:
-                opts.add_argument(f"--user-data-dir={os.path.abspath(profile_dir)}")
-            if proxy:
-                opts.add_argument(f"--proxy-server={proxy}")
-            driver = uc.Chrome(options=opts)
-            try:
-                driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-                    "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
-                })
-            except Exception:
-                pass
-            return driver
-        except Exception:
-            # Fallback to regular driver if uc isn't available
-            pass
-
-    opts = ChromeOptions()
-    if headless:
-        opts.add_argument("--headless=new")
-    opts.add_argument("--no-sandbox")
-    opts.add_argument("--disable-dev-shm-usage")
-    opts.add_argument("--disable-blink-features=AutomationControlled")
-    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
-    opts.add_experimental_option("useAutomationExtension", False)
-    opts.add_argument(f"--user-agent={ua}")
-    opts.add_argument(f"--lang={lang}")
-    opts.add_argument("--window-size=390,844" if mobile else "--window-size=1200,2000")
-    if profile_dir:
-        opts.add_argument(f"--user-data-dir={os.path.abspath(profile_dir)}")
-    if proxy:
-        opts.add_argument(f"--proxy-server={proxy}")
-
-    svc = ChromeService(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=svc, options=opts)
-
-    try:
-        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
-        })
-    except Exception:
-        pass
-    return driver
-
-# -----------------------------
-# Anti-bot / consent helpers
-# -----------------------------
-def click_amazon_consent(driver) -> bool:
-    selectors = [
-        "#sp-cc-accept",
-        "input#sp-cc-accept",
-        "button[data-action='sp-cc-accept']",
-        "#sp-cc-accept-all",
-    ]
-    for sel in selectors:
-        try:
-            btn = WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, sel)))
-            btn.click()
-            time.sleep(0.3)
-            return True
-        except Exception:
-            pass
-    return False
-
-def is_bot_check(html: str) -> bool:
-    pat = (
-        "Robot Check",
-        "Enter the characters you see below",
-        "captchacharacters",
-        "To discuss automated access",
-    )
-    return any(s in html for s in pat)
-
-def gentle_scroll(driver, times: int = 3, wait: float = 0.5):
-    for _ in range(max(1, times)):
-        try:
-            driver.execute_script("window.scrollBy(0, document.body.scrollHeight);")
-            time.sleep(wait)
-        except Exception:
-            break
-
-# -----------------------------
-# Amazon helpers
-# -----------------------------
-AMAZON_HOST = "www.amazon.sg"
-AMAZON_LANG_PREFIX = "/-/en"  # helps avoid language/region redirects
-
-def amazon_reviews_url(asin: str, page: int) -> str:
-    return (
-        f"https://{AMAZON_HOST}{AMAZON_LANG_PREFIX}/product-reviews/{asin}/"
-        f"?reviewerType=all_reviews&sortBy=recent&pageNumber={page}&ie=UTF8"
-    )
-
-def amazon_mobile_reviews_url(asin: str, page: int) -> str:
-    # lighter mobile reviews endpoint that often avoids sign-in bumps
-    return f"https://{AMAZON_HOST}/gp/aw/cr/{asin}?pageNumber={page}&sort=recent&filterByStar=all_stars"
-
-def amazon_pdp_url(asin: str) -> str:
-    return f"https://{AMAZON_HOST}{AMAZON_LANG_PREFIX}/dp/{asin}"
-
-def parse_amazon_reviews(html: str) -> Tuple[Optional[str], List[dict]]:
-    soup = BeautifulSoup(html, "html.parser")
-    pname_el = soup.select_one('[data-hook="cr-title"], a[data-hook="product-link"], #cm_cr-product_info')
-    product_name = pname_el.get_text(" ", strip=True) if pname_el else None
-
-    out: List[dict] = []
-    for rev in soup.select('[data-hook="review"]'):
-        rid = rev.get("id")
-        title_el = rev.select_one('[data-hook="review-title"]')
-        body_el = rev.select_one('[data-hook="review-body"]')
-        rating_el = rev.select_one('.a-icon-alt')
-        author_el = rev.select_one('.a-profile-name')
-        date_el = rev.select_one('[data-hook="review-date"]')
-
-        title = title_el.get_text(" ", strip=True) if title_el else None
-        body = body_el.get_text(" ", strip=True) if body_el else None
-
-        rating = None
-        if rating_el:
-            txt = rating_el.get_text(" ", strip=True)
-            m = re.search(r"(\d(?:\.\d+)?)\s*out of\s*5", txt)
-            if m:
-                try:
-                    rating = float(m.group(1))
-                except Exception:
-                    rating = None
-
-        author = author_el.get_text(" ", strip=True) if author_el else None
-        date_txt = date_el.get_text(" ", strip=True) if date_el else None
-
-        if body or rating:
-            out.append({
-                "review_id": rid,
-                "review_title": title,
-                "review_text": body,
-                "rating": rating,
-                "author": author,
-                "review_date": date_txt,
-            })
-    return product_name, out
-
-class AmazonScraper:
-    def __init__(self, driver: webdriver.Chrome, out: JsonlSink, min_delay: float, max_delay: float, verbose: bool, use_mobile_site: bool = False):
-        self.driver = driver
-        self.out = out
-        self.min_delay = min_delay
-        self.max_delay = max_delay
-        self.verbose = verbose
-        self.use_mobile_site = use_mobile_site
-
-    def _sleep_a_bit(self):
-        time.sleep(RAND.uniform(self.min_delay, self.max_delay))
-
-    def _navigate_via_pdp(self, asin: str) -> bool:
-        """Open product page then click 'See all reviews' to look more human."""
-        try:
-            self.driver.get(amazon_pdp_url(asin))
-            click_amazon_consent(self.driver)
-            WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.CSS_SELECTOR, "body")))
-            gentle_scroll(self.driver, times=2, wait=0.6)
-            # Footer link
-            try:
-                link = WebDriverWait(self.driver, 6).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, "a[data-hook='see-all-reviews-link-foot']"))
-                )
-                link.click()
-                time.sleep(0.8)
-                return True
-            except TimeoutException:
-                try:
-                    link = self.driver.find_element(By.CSS_SELECTOR, "a[href*='product-reviews']")
-                    link.click()
-                    time.sleep(0.8)
-                    return True
-                except Exception:
-                    return False
-        except Exception:
-            return False
-
-    def scrape_asin(self, asin: str, pages: int):
-        # Try via PDP path once (reduces sign-in bumps)
-        self._navigate_via_pdp(asin)
-        for p in range(1, max(1, pages) + 1):
-            url = amazon_mobile_reviews_url(asin, p) if self.use_mobile_site else amazon_reviews_url(asin, p)
-            try:
-                self.driver.get(url)
-                if "/ap/signin" in (self.driver.current_url or ""):
-                    if self.verbose:
-                        print("Hit sign-in page; backing off and retrying via PDP path once…")
-                    self._sleep_a_bit()
-                    if not self._navigate_via_pdp(asin):
-                        self.driver.get(url)
-
-                click_amazon_consent(self.driver)
-                gentle_scroll(self.driver, times=2, wait=0.6)
-
-                try:
-                    WebDriverWait(self.driver, 20).until(
-                        EC.any_of(
-                            EC.presence_of_element_located((By.CSS_SELECTOR, "[data-hook='review']")),
-                            EC.presence_of_element_located((By.CSS_SELECTOR, "#cm_cr-review_list [data-hook='review']")),
-                            EC.presence_of_element_located((By.CSS_SELECTOR, "[id^='customer_review-']")),
-                            EC.presence_of_element_located((By.CSS_SELECTOR, "#noReviewsMessage")),
-                        )
-                    )
-                except TimeoutException:
-                    if self.verbose:
-                        print(f"Timeout waiting for reviews on p{p} of {asin}")
-
-                html = self.driver.page_source
-                if is_bot_check(html) or "/ap/signin" in (self.driver.current_url or ""):
-                    print("[Amazon] Sign-in or bot-check appeared. Do not log in. Try --mobile-site and/or --profile-dir (non-headless once).", file=sys.stderr)
-                    break
-
-                product_name, rows = parse_amazon_reviews(html)
-
-                emitted = 0
-                for r in rows:
-                    txt = (r.get("review_text") or "").strip()
-                    if not txt or len(txt) < 15:
-                        continue
-                    row = {
-                        "source_domain": AMAZON_HOST,
-                        "page_url": url,
-                        "product_name": product_name,
-                        **r,
-                        "page_num": p,
-                        "asin": asin.upper(),
-                        "ts_ingested": datetime.utcnow().isoformat() + "Z",
-                    }
-                    self.out.emit(row)
-                    emitted += 1
-
-                if self.verbose:
-                    print(f"ASIN {asin} p{p}: emitted {emitted} reviews • URL={url}")
-
-            except WebDriverException as e:
-                print(f"[Amazon] Error on ASIN {asin} p{p}: {e}", file=sys.stderr)
-
-            self._sleep_a_bit()
-
-# -----------------------------
-# Generic site (best-effort)
-# -----------------------------
-BOILERPLATE_PAT = re.compile(
-    r"(Terms of Service|Privacy Policy|Play Pass|Sign In|©\s*20\d{2}|To calculate the overall star rating)",
-    re.I,
-)
-REVIEW_HINTS = {
-    "wrap": re.compile(r"review|comment-list|ratings?", re.I),
-    "text": re.compile(r"review[-_\s]?text|content|comment|body", re.I),
-    "title": re.compile(r"review[-_\s]?title|headline|summary", re.I),
-    "rating": re.compile(r"rating|stars?", re.I),
-    "author": re.compile(r"author|user|profile|nickname|by[-_\s]?line", re.I),
-    "date": re.compile(r"date|time|posted|published", re.I),
-}
-
-def find_jsonld(soup: BeautifulSoup) -> List[dict]:
-    out: List[dict] = []
-    for tag in soup.find_all("script", {"type": "application/ld+json"}):
-        txt = (tag.string or tag.get_text() or "").strip()
-        if not txt:
-            continue
-        try:
-            data = json.loads(txt)
-            if isinstance(data, (dict, list)):
-                out.append(data)
-        except Exception:
-            pass
-    return out
-
-def walk_json(o) -> Iterable[dict]:
-    if isinstance(o, dict):
-        yield o
-        for v in o.values():
-            yield from walk_json(v)
-    elif isinstance(o, list):
-        for x in o:
-            yield from walk_json(x)
-
-def parse_schema_reviews(blocks: List[dict]) -> Tuple[Optional[str], List[dict]]:
-    name = None
-    rows: List[dict] = []
-    for node in walk_json(blocks):
-        if not isinstance(node, dict):
-            continue
-        t = node.get("@type")
-        if isinstance(t, list):
-            t = t[0] if t else None
-        if t == "Product":
-            if not name and isinstance(node.get("name"), str):
-                name = node.get("name").strip() or name
-            revs = node.get("review")
-            if isinstance(revs, list):
-                for r in revs:
-                    if not isinstance(r, dict):
-                        continue
-                    rows.append({
-                        "review_title": r.get("name"),
-                        "review_text": r.get("reviewBody"),
-                        "rating": (r.get("reviewRating") or {}).get("ratingValue") if isinstance(r.get("reviewRating"), dict) else None,
-                        "author": (r.get("author") or {}).get("name") if isinstance(r.get("author"), dict) else r.get("author"),
-                        "review_date": r.get("datePublished"),
-                    })
-        elif t == "Review":
-            rows.append({
-                "review_title": node.get("name"),
-                "review_text": node.get("reviewBody"),
-                "rating": (node.get("reviewRating") or {}).get("ratingValue") if isinstance(node.get("reviewRating"), dict) else None,
-                "author": (node.get("author") or {}).get("name") if isinstance(node.get("author"), dict) else node.get("author"),
-                "review_date": node.get("datePublished"),
-            })
-    out = []
-    seen = set()
-    for r in rows:
-        txt = (r.get("review_text") or "").strip()
-        key = ((r.get("author") or "").strip(), txt[:80])
-        if not txt or len(txt) < 15 or BOILERPLATE_PAT.search(txt) or key in seen:
-            continue
-        seen.add(key)
-        out.append(r)
-    return name, out
-
-class GenericUrlScraper:
-    def __init__(self, driver: webdriver.Chrome, out: JsonlSink, min_delay: float, max_delay: float, verbose: bool):
-        self.driver = driver
-        self.out = out
-        self.min_delay = min_delay
-        self.max_delay = max_delay
-        self.verbose = verbose
-
-    def _sleep_a_bit(self):
-        time.sleep(RAND.uniform(self.min_delay, self.max_delay))
-
-    def scrape_url(self, url: str):
-        try:
-            self.driver.get(url)
-            WebDriverWait(self.driver, 12).until(lambda d: d.execute_script("return document.readyState") == "complete")
-            html = self.driver.page_source
-            soup = BeautifulSoup(html, "html.parser")
-            name, rows = parse_schema_reviews(find_jsonld(soup))
-            if not rows:
-                rows = []
-                candidates = []
-                for el in soup.find_all(True):
-                    label = (" ".join(el.get("class", [])) + " " + (el.get("id") or "")).lower()
-                    if REVIEW_HINTS["wrap"].search(label):
-                        candidates.append(el)
-                if not candidates:
-                    candidates = [soup]
-                for container in candidates[:6]:
-                    for item in container.find_all(True, recursive=True):
-                        text = item.get_text(" ", strip=True)
-                        if not text or len(text) < 12:
-                            continue
-                        body_el = item.find(attrs={"class": REVIEW_HINTS["text"]})
-                        title_el = item.find(attrs={"class": REVIEW_HINTS["title"]}) or item.find(["h3", "h4"])
-                        rating_el = item.find(attrs={"class": REVIEW_HINTS["rating"]}) or item.find(
-                            attrs={"aria-label": re.compile(r"\d(\.\d+)? out of 5", re.I)}
-                        )
-                        author_el = item.find(attrs={"class": REVIEW_HINTS["author"]})
-                        date_el = item.find(attrs={"class": REVIEW_HINTS["date"]})
-                        body = body_el.get_text(" ", strip=True) if body_el else None
-                        title = title_el.get_text(" ", strip=True) if title_el else None
-                        rating = None
-                        if rating_el:
-                            label = rating_el.get("aria-label") or rating_el.get_text(" ", strip=True)
-                            m = re.search(r"(\d(?:\.\d+)?)\s*out of\s*5", label)
-                            if m:
-                                try:
-                                    rating = float(m.group(1))
-                                except Exception:
-                                    rating = None
-                        author = author_el.get_text(" ", strip=True) if author_el else None
-                        date_txt = date_el.get_text(" ", strip=True) if date_el else None
-                        txt_ok = body and len(body) >= 15 and not BOILERPLATE_PAT.search(body or "")
-                        if txt_ok or rating or title:
-                            rows.append({
-                                "review_title": title,
-                                "review_text": body,
-                                "rating": rating,
-                                "author": author,
-                                "review_date": date_txt,
-                            })
-            emitted = 0
-            seen = set()
-            for r in rows:
-                txt = (r.get("review_text") or "").strip()
-                if not txt or len(txt) < 15:
-                    continue
-                key = ((r.get("author") or "").strip(), txt[:80])
-                if key in seen:
-                    continue
-                seen.add(key)
-                row = {
-                    "source_domain": re.sub(r"^https?://", "", url).split("/")[0],
-                    "page_url": url,
-                    "product_name": name,
-                    **r,
-                    "ts_ingested": datetime.utcnow().isoformat() + "Z",
-                }
-                self.out.emit(row)
-                emitted += 1
-            if self.verbose:
-                print(f"URL scraped: {url} • emitted {emitted}")
-        except WebDriverException as e:
-            print(f"[Generic] Error on URL {url}: {e}", file=sys.stderr)
-        self._sleep_a_bit()
-
-# -----------------------------
-# CLI & main
-# -----------------------------
+# ---------------- CLI ----------------
 def parse_args():
-    ap = argparse.ArgumentParser(description="Targeted reviews scraper (Selenium)")
-    ap.add_argument("--amazon", nargs="*", help="ASIN list for Amazon.sg (e.g., B01J8LETQC B0C1234567)")
-    ap.add_argument("--urls", nargs="*", help="Specific product URLs to scrape (Guardian/Watsons/etc.)")
-    ap.add_argument("--pages", type=int, default=3, help="# of review pages per ASIN (Amazon only)")
-    ap.add_argument("--out", default="out/reviews.jsonl", help="JSONL output path")
-    ap.add_argument("--headless", action="store_true", help="Run headless Chrome")
-    ap.add_argument("--min-delay", type=float, default=0.8, help="Min delay between pages (s)")
-    ap.add_argument("--max-delay", type=float, default=1.8, help="Max delay between pages (s)")
-    ap.add_argument("--lang", default="en-SG", help="Accept-Language / UI language hint for sites")
-    ap.add_argument("--mobile", action="store_true", help="Use a mobile user agent (can reduce sign-in walls)")
-    ap.add_argument("--stealth", action="store_true", help="Use undetected_chromedriver for anti-bot")
-    ap.add_argument("--mobile-site", action="store_true", help="Use Amazon mobile reviews endpoint (gp/aw/cr/ASIN)")
-    ap.add_argument("--profile-dir", help="Persist Chrome profile at this path (keeps cookies)")
-    ap.add_argument("--proxy", help="HTTP proxy like http://host:port (optional)")
+    ap = argparse.ArgumentParser(description="Lazada PDP reviews scraper (Selenium)")
+    ap.add_argument("--urls", nargs="*", default=[], help="Lazada PDP URLs")
+    ap.add_argument("--discover", nargs="*", default=[], help="Lazada search URLs or plain queries (e.g., 'foot cream')")
+    ap.add_argument("--discover-limit", type=int, default=12, help="Max PDPs to collect from discovery")
+    ap.add_argument("--discover-scrolls", type=int, default=6, help="Scroll passes on search pages")
+    ap.add_argument("--pages", type=int, default=2, help="# of 'Load more reviews' clicks per PDP")
+    ap.add_argument("--out", default="out/lazada_reviews.jsonl", help="JSONL output path")
+    ap.add_argument("--headless", action="store_true", help="Headless Chrome")
+    ap.add_argument("--min-delay", type=float, default=0.5, help="Min delay between actions (s)")
+    ap.add_argument("--max-delay", type=float, default=1.2, help="Max delay between actions (s)")
+    ap.add_argument("--lang", default="en-SG", help="Accept-Language hint")
+    ap.add_argument("--mobile", action="store_true", help="Use a mobile UA (optional)")
+    ap.add_argument("--profile-dir", default=None, help="Chrome user-data-dir (optional)")
+    ap.add_argument("--proxy", default=None, help="http://host:port (optional)")
+    ap.add_argument("--dump-html", default=None, help="Directory to dump HTML when 0 reviews")
     ap.add_argument("--verbose", action="store_true", help="Verbose logs")
     return ap.parse_args()
 
+# ---------------- Helpers ----------------
+MOBILE_UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) "
+             "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/604.1")
+DESKTOP_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+
+EMPTY_PAT = re.compile(r"\bThis product has no reviews\b", re.I)
+BOILERPLATE_PAT = re.compile(
+    r"(log[\s-]?in|sign[\s-]?in|store locator|careers|privacy policy|terms & conditions|"
+    r"about guardian|categories|all brands|follow us on|©\s*20\d{2}|"
+    r"mobile number|log in with (apple|google|facebook))",
+    re.I
+)
+
+def jitter(a,b): time.sleep(random.uniform(a,b))
+def log(msg, v): 
+    if v: print(msg, flush=True)
+
+def ensure_outfile(p: Path):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if not p.exists(): p.touch()
+
+def ensure_dir(d: Optional[str]):
+    if d:
+        Path(d).mkdir(parents=True, exist_ok=True)
+
+def is_lazada_pdp(url: str) -> bool:
+    u = url.lower()
+    return "www.lazada.sg" in u and ("/products/" in u or "/product/" in u or "/pdp" in u)
+
+def is_search_like(s: str) -> bool:
+    s = s.lower().strip()
+    return s.startswith("https://www.lazada.sg/catalog/?q=") or s.startswith("http://www.lazada.sg/catalog/?q=")
+
+def build_search_url(term: str) -> str:
+    if is_search_like(term):
+        return term
+    return f"https://www.lazada.sg/catalog/?q={quote_plus(term)}"
+
+def get_driver(args):
+    opts = ChromeOptions()
+    if args.headless:
+        opts.add_argument("--headless=new")
+    opts.add_argument("--disable-gpu")
+    opts.add_argument("--disable-dev-shm-usage")
+    opts.add_argument("--no-sandbox")
+    opts.add_argument("--window-size=1400,2600")
+    opts.add_argument(f"--lang={args.lang}")
+    opts.add_argument(f"user-agent={(MOBILE_UA if args.mobile else DESKTOP_UA)}")
+    if args.profile_dir: opts.add_argument(f"--user-data-dir={Path(args.profile_dir).absolute()}")
+    if args.proxy: opts.add_argument(f"--proxy-server={args.proxy}")
+    drv = webdriver.Chrome(options=opts)
+    drv.set_page_load_timeout(45)
+    drv.implicitly_wait(0)
+    return drv
+
+def safe_text(el) -> Optional[str]:
+    try:
+        t = (el.text or "").strip()
+        return t if t else None
+    except Exception:
+        return None
+
+def write_dump(path_dir: Optional[str], name: str, content: str):
+    if not path_dir: return
+    ensure_dir(path_dir)
+    (Path(path_dir) / name).write_text(content, encoding="utf-8", errors="ignore")
+
+# ---------------- Discovery ----------------
+def discover_pdp_urls(driver, term_or_url: str, scrolls: int, limit: int, verbose: bool) -> List[str]:
+    """Open a Lazada search page and harvest PDP URLs."""
+    url = build_search_url(term_or_url)
+    log(f"[discover] open: {url}", verbose)
+    driver.get(url)
+    WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+    for _ in range(max(1, scrolls)):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(0.8)
+
+    # collect anchors that look like PDPs
+    hrefs = set()
+    for a in driver.find_elements(By.XPATH, "//a[contains(@href,'/products/') or contains(@href,'/pdp-')]"):
+        try:
+            href = a.get_attribute("href") or ""
+            if is_lazada_pdp(href):
+                hrefs.add(href.split("#")[0])
+                if len(hrefs) >= limit:
+                    break
+        except Exception:
+            continue
+
+    found = list(hrefs)[:limit]
+    log(f"[discover] found {len(found)} PDPs", verbose)
+    return found
+
+# ---------------- Lazada-specific helpers ----------------
+def close_login_overlays(driver, verbose):
+    """Dismiss login overlays; if a blocking login remains AND no review list is visible, we skip."""
+    try:
+        body = driver.find_element(By.TAG_NAME, "body")
+        body.send_keys(Keys.ESCAPE); time.sleep(0.2); body.send_keys(Keys.ESCAPE)
+    except Exception:
+        pass
+    for xp in [
+        "//button[contains(@aria-label,'close')]",
+        "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'close')]",
+        "//*[@class[contains(.,'dialog-close') or contains(.,'modal__close')]]",
+        "//div[contains(@class,'next-dialog-close')]",
+    ]:
+        try:
+            for b in driver.find_elements(By.XPATH, xp)[:3]:
+                driver.execute_script("arguments[0].click();", b)
+                log("Closed a modal", verbose)
+                time.sleep(0.2)
+        except Exception:
+            continue
+    try:
+        overlays = driver.find_elements(By.XPATH, "//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'log in') or contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'login')]")
+        if overlays:
+            lst = driver.find_elements(By.XPATH, "//*[@id='module_product_review'] | //*[contains(@data-qa-locator,'review-list')]")
+            if not lst:
+                return False
+    except Exception:
+        pass
+    return True
+
+def find_reviews_container(driver, verbose):
+    """Return the primary reviews container element if visible, else None."""
+    wait = WebDriverWait(driver, 12)
+    # Try clicking Reviews tab if present (desktop layout)
+    try:
+        tab = wait.until(EC.element_to_be_clickable(
+            (By.XPATH,
+             "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'review')]"
+             " | //button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'review')]"
+             " | //div[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'ratings')]")
+        ))
+        driver.execute_script("arguments[0].click();", tab)
+        log("Clicked reviews tab", verbose)
+        time.sleep(0.6)
+    except Exception:
+        log("Reviews tab not clickable (maybe already active or mobile layout)", verbose)
+
+    # Scroll a bit to trigger lazy load
+    for _ in range(5):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(0.7)
+
+    # Candidate containers
+    X_CONTAINERS = [
+        "//*[@id='module_product_review']",
+        "//*[@data-qa-locator='review-list']",
+        "//*[contains(@data-qa-locator,'review-list')]",
+        "//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'mod-reviews')]",
+    ]
+    for xp in X_CONTAINERS:
+        try:
+            el = driver.find_element(By.XPATH, xp)
+            if el.is_displayed():
+                return el
+        except Exception:
+            continue
+    return None
+
+def container_is_empty(container) -> bool:
+    """Detect 'This product has no reviews' empty state."""
+    try:
+        html = container.get_attribute("outerHTML") or ""
+        if EMPTY_PAT.search(html):
+            return True
+        # explicit empty markers found in Lazada DOM
+        if "mod-empty" in html or "empty-title" in html:
+            return True
+    except Exception:
+        pass
+    return False
+
+def click_load_more_in_container(container, pages, verbose, min_d, max_d):
+    """Click 'Load more' ONLY inside the review container."""
+    for i in range(max(0, pages)):
+        clicked = False
+        for xp in [
+            ".//button[contains(., 'Load more')]",
+            ".//a[contains(., 'Load more')]",
+            ".//*[contains(@data-qa-locator,'see-more')]",
+            ".//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'load more')]",
+        ]:
+            try:
+                btn = container.find_element(By.XPATH, xp)
+                container._parent.execute_script("arguments[0].click();", btn)
+                log(f"Clicked 'Load more' inside container ({i+1})", verbose)
+                clicked = True
+                jitter(min_d, max_d)
+                break
+            except Exception:
+                continue
+        if not clicked:
+            break
+
+def extract_product_name(driver) -> Optional[str]:
+    for xp in [
+        "//h1[contains(@class,'pdp-mod-product-badge-title')]",
+        "//h1[contains(@class,'pdp-mod-product-title')]",
+        "//h1"
+    ]:
+        try:
+            t = safe_text(driver.find_element(By.XPATH, xp))
+            if t: return t
+        except Exception:
+            continue
+    try:
+        return driver.title.split("|")[0].strip() or None
+    except Exception:
+        return None
+
+def parse_rating(label: str) -> Optional[float]:
+    if not label: return None
+    m = re.search(r"(\d(?:\.\d+)?)\s*out of\s*5", label, re.I)
+    if m:
+        try: return float(m.group(1))
+        except Exception: return None
+    return None
+
+def extract_reviews_from_container(container) -> List[dict]:
+    """
+    Extract reviews inside the given container.
+    Prefer explicit data-qa-locator nodes, then fall back heuristics.
+    """
+    reviews = []
+    items = container.find_elements(By.XPATH, ".//*[@data-qa-locator='review-item']")
+    if not items:
+        items = container.find_elements(By.XPATH, ".//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'review')]")
+        if not items:
+            items = container.find_elements(By.XPATH, ".//*")
+
+    for node in items:
+        try:
+            body = None
+            rating = None
+            author = None
+            date_txt = None
+
+            for xp in [
+                ".//*[@data-qa-locator='review-content']",
+                ".//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'content')]",
+                ".//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'review-body')]",
+                ".//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'comment')]",
+            ]:
+                try:
+                    body = safe_text(node.find_element(By.XPATH, xp))
+                    if body: break
+                except Exception:
+                    continue
+            if not body:
+                t = safe_text(node)
+                if t and len(t) > 60:
+                    body = t
+
+            for xp in [
+                ".//*[@data-qa-locator='review-star-rating']",
+                ".//*[contains(@aria-label,'out of 5') or contains(@alt,'out of 5') or contains(text(),'out of 5')]",
+            ]:
+                try:
+                    el = node.find_element(By.XPATH, xp)
+                    label = (el.get_attribute("aria-label") or el.get_attribute("alt") or safe_text(el) or "")
+                    rating = parse_rating(label or "")
+                    if rating is not None: break
+                except Exception:
+                    continue
+
+            for xp in [
+                ".//*[@data-qa-locator='review-user-name']",
+                ".//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'author')]",
+                ".//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'name')]",
+            ]:
+                try:
+                    author = safe_text(node.find_element(By.XPATH, xp))
+                    if author: break
+                except Exception:
+                    continue
+
+            for xp in [
+                ".//*[@data-qa-locator='review-time']",
+                ".//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'date')]",
+                ".//*[contains(translate(@class,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'time')]",
+            ]:
+                try:
+                    date_txt = safe_text(node.find_element(By.XPATH, xp))
+                    if date_txt: break
+                except Exception:
+                    continue
+
+            if body and len(body) >= 15 and not BOILERPLATE_PAT.search(body):
+                if (rating is not None) or re.search(r"\b(quality|texture|greasy|greasiness|smell|sticky|absorb|relief|worked|didn'?t work|crack|heel|itch|fungus)\b", body, re.I):
+                    reviews.append({
+                        "review_id": None,
+                        "title": None,
+                        "review_text": body,
+                        "rating": rating,
+                        "author": author,
+                        "review_date": date_txt
+                    })
+        except Exception:
+            continue
+
+    # de-dup
+    seen, out = set(), []
+    for r in reviews:
+        key = ((r.get("author") or "").strip(), (r.get("review_text") or "")[:100])
+        if key in seen: continue
+        seen.add(key); out.append(r)
+    return out
+
+# ---------------- Main flow ----------------
+@dataclass
+class Stats:
+    scanned:int=0; emitted:int=0; skipped:int=0; empty:int=0
+
+def scrape_lazada_pdp(driver, url, args) -> List[dict]:
+    driver.get(url)
+    WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+    jitter(args.min_delay, args.max_delay)
+
+    if not close_login_overlays(driver, args.verbose):
+        log("Login wall detected, skipping page", args.verbose)
+        return []
+
+    container = find_reviews_container(driver, args.verbose)
+    if not container:
+        log("No visible reviews container found", args.verbose)
+        if args.dump_html:
+            write_dump(args.dump_html, "page_source.html", driver.page_source)
+        return []
+
+    # NEW: fast path — detect empty-state and bail
+    if container_is_empty(container):
+        log("PDP has zero reviews (empty-state)", args.verbose)
+        return []
+
+    click_load_more_in_container(container, args.pages, args.verbose, args.min_delay, args.max_delay)
+
+    pname = extract_product_name(driver)
+    rows = extract_reviews_from_container(container)
+    if not rows and args.dump_html:
+        html = container.get_attribute("outerHTML") or ""
+        write_dump(args.dump_html, "reviews_container.html", html)
+
+    now = datetime.utcnow().isoformat() + "Z"
+    out=[]
+    for r in rows:
+        out.append({
+            "source_domain": "www.lazada.sg",
+            "page_url": url,
+            "product_name": pname,
+            "review_id": r.get("review_id"),
+            "review_title": r.get("title"),
+            "review_text": r.get("review_text"),
+            "rating": r.get("rating"),
+            "author": r.get("author"),
+            "review_date": r.get("review_date"),
+            "ts_ingested": now
+        })
+    return out
+
+def uniq_keep_order(xs: Iterable[str]) -> List[str]:
+    seen=set(); out=[]
+    for x in xs:
+        if x not in seen:
+            seen.add(x); out.append(x)
+    return out
+
 def main():
     args = parse_args()
-    if not args.amazon and not args.urls:
-        print("Nothing to do. Provide --amazon ASINs and/or --urls product pages.")
-        sys.exit(2)
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_outfile(out_path)
 
-    sink = JsonlSink(Path(args.out))
-    driver = make_driver(
-        headless=args.headless,
-        lang=args.lang,
-        stealth=args.stealth,
-        mobile=args.mobile,
-        profile_dir=args.profile_dir,
-        proxy=args.proxy,
-    )
+    # Build list of PDP URLs
+    urls = list(args.urls) if args.urls else []
+    driver = None
+    stats = Stats()
+
     try:
-        if args.amazon:
-            amz = AmazonScraper(driver, sink, args.min_delay, args.max_delay, args.verbose, use_mobile_site=args.mobile_site)
-            for asin in args.amazon:
-                asin = asin.strip().upper()
-                if not re.fullmatch(r"[A-Z0-9]{10}", asin):
-                    print(f"[Amazon] Skipping invalid ASIN: {asin}")
-                    continue
-                amz.scrape_asin(asin, args.pages)
-        if args.urls:
-            gen = GenericUrlScraper(driver, sink, args.min_delay, args.max_delay, args.verbose)
-            for url in args.urls:
-                gen.scrape_url(url)
+        driver = get_driver(args)
+
+        # Discover PDPs from search terms/URLs if requested
+        for term in args.discover:
+            urls.extend(discover_pdp_urls(driver, term, args.discover_scrolls, args.discover_limit, args.verbose))
+
+        urls = [u for u in uniq_keep_order(urls) if is_lazada_pdp(u)]
+        if not urls:
+            print("No PDP URLs to scrape. Use --urls or --discover.")
+            sys.exit(1)
+
+        with out_path.open("a", encoding="utf-8") as f:
+            for url in urls:
+                stats.scanned += 1
+                try:
+                    rows = scrape_lazada_pdp(driver, url, args)
+                    if not rows:
+                        # Count empty PDPs separately for visibility
+                        stats.empty += 1
+                    for row in rows:
+                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    stats.emitted += len(rows)
+                    log(f"URL scraped: {url} • emitted {len(rows)}", True)
+                except Exception as e:
+                    log(f"Error scraping {url}: {e}", True)
+                jitter(args.min_delay, args.max_delay)
     finally:
-        sink.close()
-        try:
-            driver.quit()
-        except Exception:
-            pass
+        if driver:
+            try: driver.quit()
+            except Exception: pass
+
+    print(f"Done. Scanned={stats.scanned} Emitted={stats.emitted} EmptyPDPs={stats.empty} Skipped=0")
 
 if __name__ == "__main__":
     main()
