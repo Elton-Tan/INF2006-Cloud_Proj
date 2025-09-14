@@ -1,4 +1,8 @@
-This project is about cloud computing INF2006. Require NODE JS 21 using tailwind and react
+This project is about cloud computing INF2006. Require NODE JS 21 using tailwind and react. Scraping using 
 
 Next steps:
 1. To solve scrapper bot issue by creating dummy amazon account and set up IP rotation to prevent IP ban
+2. Maybe we should skip amazon and go to lazada scrap. But current lazada scrape only manage to scrape 1 review. Progress nonetheless. Need to improve depth scraping
+
+to enter venv:
+python -m venv .venv
