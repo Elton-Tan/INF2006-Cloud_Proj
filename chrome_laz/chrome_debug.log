@@ -1,0 +1,67 @@
+[31132:22508:0917/020352.467:INFO:components\enterprise\browser\controller\chrome_browser_cloud_management_controller.cc:202] No machine level policy manager exists.
+[35056:19100:0917/020352.605:VERBOSE1:components\viz\service\main\viz_main_impl.cc:86] VizNullHypothesis is disabled (not a warning)
+[16180:24784:0917/020352.640:INFO:third_party\webrtc\rtc_base\cpu_info.cc:88] Available number of cores: 16
+[11876:15192:0917/020352.669:INFO:third_party\webrtc\rtc_base\cpu_info.cc:88] Available number of cores: 16
+[35552:21204:0917/020352.970:INFO:third_party\webrtc\rtc_base\cpu_info.cc:88] Available number of cores: 16
+[25648:21748:0917/020352.982:INFO:third_party\webrtc\rtc_base\cpu_info.cc:88] Available number of cores: 16
+[31132:22508:0917/020353.311:INFO:CONSOLE:1] "A parser-blocking, cross site (i.e. different eTLD+1) script, https://g.lazcdn.com/g/??/AWSC/AWSC/awsc.js,/sd/baxia-entry/baxiaCommon.js, is invoked via document.write. The network request for this script MAY be blocked by the browser in this or a future page load due to poor network connectivity. If blocked in this page load, it will be confirmed in a subsequent console message. See https://www.chromestatus.com/feature/5718547946799104 for more details.", source: https://g.lazcdn.com/res-o/lzd_sec/LWSC/index.js (1)
+[31132:22508:0917/020353.311:INFO:CONSOLE:1] "A parser-blocking, cross site (i.e. different eTLD+1) script, https://g.lazcdn.com/g/??/AWSC/AWSC/awsc.js,/sd/baxia-entry/baxiaCommon.js, is invoked via document.write. The network request for this script MAY be blocked by the browser in this or a future page load due to poor network connectivity. If blocked in this page load, it will be confirmed in a subsequent console message. See https://www.chromestatus.com/feature/5718547946799104 for more details.", source: https://g.lazcdn.com/res-o/lzd_sec/LWSC/index.js (1)
+[31132:22508:0917/020353.354:INFO:CONSOLE:1] "Root node #ice-container is not found, current root is automatically created by the framework.", source: https://g.lazcdn.com/g/psolution/lzd-m-head-foot/1.2.2/js/793.js (1)
+[31132:22508:0917/020353.456:INFO:CONSOLE:10] "URIError", source: https://g.lazcdn.com/g/lzd_sec/epssw/0.0.41/epssw.js (10)
+[31132:22508:0917/020353.457:INFO:CONSOLE:4] "[object f]", source: https://g.lazcdn.com/g/lzd_sec/epssw/0.0.41/epssw.js (4)
+[31132:22508:0917/020353.572:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020353.654:INFO:CONSOLE:1] "[object DOMTokenList]", source: https://g.lazcdn.com/g/psolution/lzd-m-head-foot/1.2.2/js/886.js (1)
+[31132:22508:0917/020353.654:INFO:CONSOLE:1] "Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/604.1", source: https://g.lazcdn.com/g/psolution/lzd-m-head-foot/1.2.2/js/886.js (1)
+[31132:22508:0917/020353.657:INFO:CONSOLE:1458] "[callapp] corescript triggered", source: https://www.lazada.sg/products/pdp-i3090094289-s21055304917.html (1458)
+[31132:22508:0917/020353.658:INFO:CONSOLE:1458] "limit check time:  1758038400000  :  1758045833657", source: https://www.lazada.sg/products/pdp-i3090094289-s21055304917.html (1458)
+[31132:22508:0917/020353.658:INFO:CONSOLE:1458] "[callapp] !isUnderLimit()", source: https://www.lazada.sg/products/pdp-i3090094289-s21055304917.html (1458)
+[31132:22508:0917/020353.658:INFO:CONSOLE:1593] "ServiceWorker registration successful with scope:  https://www.lazada.sg/products/", source: https://www.lazada.sg/products/pdp-i3090094289-s21055304917.html (1593)
+[31132:22508:0917/020353.675:INFO:CONSOLE:1] "lzd-h5-itrace version: v2.0.45", source: https://o.alicdn.com/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020353.675:INFO:CONSOLE:1] "[lzd-h5-itrace] lifecyle report plugin ready", source: https://o.alicdn.com/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020353.679:INFO:CONSOLE:1] "[lzd-h5-itrace 2.0] init images perf monitor", source: https://o.alicdn.com/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020353.679:INFO:CONSOLE:1] "[lzd-h5-itrace] init asset perf monitor", source: https://o.alicdn.com/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020353.680:INFO:CONSOLE:1] "--- iLoggerMtopPluginInit ---", source: https://o.alicdn.com/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020353.680:INFO:CONSOLE:1] "[lzd-h5-itrace] mtop itrace plugin init success!", source: https://o.alicdn.com/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020353.821:WARNING:chrome\browser\media\prefs\capture_device_ranking.h:255] Can't initialize the value of media.audio_input.user_preference_ranking because media.default_audio_capture_device isn't registered or is empty
+[31132:22508:0917/020353.821:WARNING:chrome\browser\media\prefs\capture_device_ranking.h:255] Can't initialize the value of media.video_input.user_preference_ranking because media.default_video_capture_Device isn't registered or is empty
+[31132:22508:0917/020353.896:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020353.916:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020353.944:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020353.956:INFO:CONSOLE:967] "start run...", source: https://www.lazada.sg/products/pdp-i3090094289-s21055304917.html (967)
+[31132:22508:0917/020354.126:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020354.155:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020354.167:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020354.190:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020354.204:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020354.270:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020354.295:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020359.468:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020359.494:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020414.722:INFO:CONSOLE:9] "Uncaught Error: Script error for "https://unpkg.alibaba-inc.com/@ali/affiliate-track/dist/index.umd.es5.production.js"
+https://requirejs.org/docs/errors.html#scripterror", source: https://g.lazcdn.com/g/??code/npm/@ali/lzd-h5-utils-qs/2.0.1/index.js,code/npm/@ali/lzd-h5-utils-cookie/2.1.0/index.js,code/npm/@ali/lzd-h5-utils-sites/2.1.0/index.js,code/npm/@ali/lzd-h5-utils-env/2.2.0/index.js,code/npm/@ali/lzd-h5-utils-logger/2.2.0/index.js,code/npm/@ali/lzd-h5-utils-jsonp/2.1.0/index.js,code/npm/@ali/lzd-h5-utils-mtop/2.2.2/index.js,code/npm/@ali/lzd-h5-utils-icon/1.0.12/index.js,lzd/assets/1.1.18/require/2.3.6/require.js (9)
+[31132:22508:0917/020414.728:INFO:CONSOLE:1] "[fsp-report 2.0] 1758045834211.2 1263.300000011921 637 undefined ", source: https://o.alicdn.com/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020415.349:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020415.412:INFO:CONSOLE:1] "A parser-blocking, cross site (i.e. different eTLD+1) script, https://g.lazcdn.com/g/??/AWSC/AWSC/awsc.js,/sd/baxia-entry/baxiaCommon.js, is invoked via document.write. The network request for this script MAY be blocked by the browser in this or a future page load due to poor network connectivity. If blocked in this page load, it will be confirmed in a subsequent console message. See https://www.chromestatus.com/feature/5718547946799104 for more details.", source: https://g.lazcdn.com/res-o/lzd_sec/LWSC/index.js (1)
+[31132:22508:0917/020415.412:INFO:CONSOLE:1] "A parser-blocking, cross site (i.e. different eTLD+1) script, https://g.lazcdn.com/g/??/AWSC/AWSC/awsc.js,/sd/baxia-entry/baxiaCommon.js, is invoked via document.write. The network request for this script MAY be blocked by the browser in this or a future page load due to poor network connectivity. If blocked in this page load, it will be confirmed in a subsequent console message. See https://www.chromestatus.com/feature/5718547946799104 for more details.", source: https://g.lazcdn.com/res-o/lzd_sec/LWSC/index.js (1)
+[31132:22508:0917/020415.421:INFO:CONSOLE:894] "--- itrace sdk onload ---", source: https://www.lazada.sg/wow/gcp/sg/review/product-reviews?itemId=3090094289&skuId=21055304917&spm=a2o42.pdp_revamp.pdp_top_tab.rating_and_review (894)
+[31132:22508:0917/020415.576:INFO:CONSOLE:1] "[lzd-h5-itrace] lifecyle report plugin ready", source: https://g.lazcdn.com/res-o/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020415.577:INFO:CONSOLE:1] "[lzd-h5-itrace 2.0] init images perf monitor", source: https://g.lazcdn.com/res-o/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020415.578:INFO:CONSOLE:1] "[lzd-h5-itrace] init asset perf monitor", source: https://g.lazcdn.com/res-o/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020415.578:INFO:CONSOLE:1] "--- iLoggerMtopPluginInit ---", source: https://g.lazcdn.com/res-o/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020415.578:INFO:CONSOLE:1] "[lzd-h5-itrace] mtop itrace plugin init success!", source: https://g.lazcdn.com/res-o/lzdfe/lzd-h5-itrace/index.js (1)
+[31132:22508:0917/020415.583:INFO:CONSOLE:894] "--- itrace expansion onload ---", source: https://www.lazada.sg/wow/gcp/sg/review/product-reviews?itemId=3090094289&skuId=21055304917&spm=a2o42.pdp_revamp.pdp_top_tab.rating_and_review (894)
+[31132:22508:0917/020415.613:INFO:CONSOLE:10] "URIError", source: https://g.lazcdn.com/g/lzd_sec/epssw/0.0.41/epssw.js (10)
+[31132:22508:0917/020415.614:INFO:CONSOLE:4] "[object f]", source: https://g.lazcdn.com/g/lzd_sec/epssw/0.0.41/epssw.js (4)
+[31132:22508:0917/020415.628:WARNING:chrome\browser\media\prefs\capture_device_ranking.h:255] Can't initialize the value of media.audio_input.user_preference_ranking because media.default_audio_capture_device isn't registered or is empty
+[31132:22508:0917/020415.628:WARNING:chrome\browser\media\prefs\capture_device_ranking.h:255] Can't initialize the value of media.video_input.user_preference_ranking because media.default_video_capture_Device isn't registered or is empty
+[31132:22508:0917/020415.649:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020415.702:INFO:CONSOLE:7] "[itrace says] using cookieStore", source: https://g.lazcdn.com/g/woodpeckerx/itrace-next/??itrace-jserror.iife.js,itrace-interface.iife.js,itrace-perf.iife.js,itrace-flow.iife.js,itrace-blank.iife.js,itrace-resource.iife.js,itrace.iife.js (7)
+[31132:22508:0917/020415.903:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020415.919:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020415.950:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:29572:0917/020419.103:ERROR:google_apis\gcm\engine\registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[31132:22508:0917/020420.683:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020420.711:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020424.327:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:22508:0917/020424.354:INFO:CONSOLE:3] "Error", source: https://g.lazcdn.com/g/AWSC/et/1.83.35/et_f.js (3)
+[31132:29572:0917/020441.132:ERROR:google_apis\gcm\engine\registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
