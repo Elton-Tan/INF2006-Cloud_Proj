@@ -3,6 +3,8 @@ This project is about cloud computing INF2006. REQUIRE NODE JS 21 using tailwind
 Next steps:
 1. To solve scrapper bot issue by creating dummy amazon account and set up IP rotation to prevent IP ban <- perhaps we should abandon this
 2. Maybe we should skip amazon and go to lazada scrap. But current lazada scrape only manage to scrape 1 review. Progress nonetheless. Need to improve depth scraping <-I think it has something to do with boilerplate keywords. Keep? or edit
+3. See if we can use google keyword appearances + current lazada trending to forecast demand.
+4. Focus to build infra for POC before proceeding on real implement
 
 **DO NOT REMOVE**
 to enter venv:
