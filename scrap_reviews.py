@@ -172,6 +172,14 @@ def parse_args():
         help="CSS selector(s) for the Next button (comma-separated)",
     )
     ap.add_argument("--open-reviews-tab", action="store_true", help="Try clicking a Reviews tab/link before scraping")
+    ap.add_argument("--with-snapshot", action="store_true",
+                help="Also collect a PDP price/demand snapshot per URL")
+    ap.add_argument("--snapshots-out", default="out/lazada_snapshots.jsonl",
+                    help="JSONL path for PDP snapshots (used when --with-snapshot or --snapshot-only)")
+    ap.add_argument("--snapshot-only", action="store_true",
+                    help="Only collect PDP snapshots; skip reviews")
+
+    
     return ap.parse_args()
 
 # ---------------- Helpers ----------------
@@ -192,6 +200,441 @@ BOILERPLATE_PAT = re.compile(
     r"mobile number|log in with (apple|google|facebook))",
     re.I,
 )
+
+# --- add near other helpers in scrap_reviews.py ---
+NUM_RE = re.compile(r"[\d,]+")
+PCT_RE = re.compile(r"-?\d{1,3}%")
+
+# --- put near other helpers ---
+OOS_TEXT_PAT = re.compile(
+    r"(out\s*of\s*stock|sold\s*out|unavailable|temporarily\s*unavailable|no\s*stock|not\s*available|"
+    r"currently\s*unavailable|库存不足|售罄|没有库存|缺货)",
+    re.I,
+)
+
+# --- Availability: Lazada buy-box scoped, precise, positive-first ---
+OOS_PATTERNS = [
+    r"\bout of stock\b", r"\bsold out\b", r"\bunavailable\b",
+    r"notify (me|when) available", r"no longer available", r"coming soon"
+]
+IN_STOCK_PATTERNS = [r"\badd to cart\b", r"\bbuy now\b"]
+
+def _find_buybox(driver):
+    XPS = [
+        "//*[@id='module_add_to_cart']",
+        "//*[@data-qa-locator='product-buy-box']",
+        "//*[contains(@class,'pdp-button')]",
+        "//*[contains(@class,'pdp-actions') or contains(@class,'pdp-btns')]",
+    ]
+    for xp in XPS:
+        els = driver.find_elements(By.XPATH, xp)
+        for el in els:
+            if el.is_displayed():
+                return el
+    # fallback: the main product column
+    try:
+        return driver.find_element(By.XPATH, "//*[contains(@class,'pdp-mod-product-info')]")
+    except Exception:
+        return None
+
+def _jsonld_availability(driver):
+    try:
+        for s in driver.find_elements(By.XPATH, "//script[@type='application/ld+json']"):
+            data = json.loads(s.get_attribute("textContent") or "{}")
+            objs = data if isinstance(data, list) else [data]
+            for d in objs:
+                offers = d.get("offers")
+                if not offers: continue
+                offers = offers if isinstance(offers, list) else [offers]
+                for o in offers:
+                    avail = (o.get("availability") or "").lower()
+                    if "instock" in avail: return "in_stock", "ld+json availability=InStock"
+                    if "outofstock" in avail: return "out_of_stock", "ld+json availability=OutOfStock"
+    except Exception:
+        pass
+    return None, None
+
+def detect_lazada_availability(driver):
+    # 1) Try JSON-LD first (cheap and reliable when present)
+    a, why = _jsonld_availability(driver)
+    if a: return a, why
+
+    # 2) Inspect buy-box DOM only
+    box = _find_buybox(driver)
+    if not box:
+        return "unknown", "buy-box not found"
+
+    txt = (box.text or "").lower()
+    # positive-first
+    for pat in IN_STOCK_PATTERNS:
+        if re.search(pat, txt):
+            # make sure buttons aren’t disabled
+            try:
+                add = box.find_element(By.XPATH, ".//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'add to cart') or contains(.,'Buy Now')]")
+                disabled = (add.get_attribute("disabled") or add.get_attribute("aria-disabled") or "").lower() in ("true", "disabled")
+                if not disabled:
+                    return "in_stock", f"matched '{pat}' in buy-box"
+            except Exception:
+                pass
+    # explicit OOS
+    for pat in OOS_PATTERNS:
+        m = re.search(pat, txt)
+        if m:
+            return "out_of_stock", f"matched '{m.group(0)}' in buy-box"
+
+    return "unknown", "no clear buy-box signal"
+
+
+def _has_class(el, *names):
+    try:
+        cls = (el.get_attribute("class") or "").lower()
+        return any(n in cls for n in names)
+    except Exception:
+        return False
+
+def _is_disabled(el):
+    try:
+        if el.get_attribute("disabled"): return True
+        if (el.get_attribute("aria-disabled") or "").lower() in ("true", "1"): return True
+        return _has_class(el, "disabled", "btn-disabled", "button-disabled", "unavailable")
+    except Exception:
+        return False
+
+def _safe_text(el):
+    try:
+        return (el.text or el.get_attribute("textContent") or "").strip()
+    except Exception:
+        return ""
+def detect_pdp_availability(driver):
+    """
+    Returns (is_in_stock: bool, reason: str).
+    Designed for Lazada PDPs; robust to images disabled.
+    """
+    # 0) Structured data (JSON-LD, microdata)
+    try:
+        # JSON-LD blocks often contain offers.availability
+        for s in driver.find_elements(By.XPATH, "//script[@type='application/ld+json']"):
+            txt = s.get_attribute("textContent") or ""
+            try:
+                data = json.loads(txt)
+            except Exception:
+                continue
+            objs = data if isinstance(data, list) else [data]
+            for d in objs:
+                if not isinstance(d, dict): continue
+                offers = d.get("offers")
+                buckets = offers if isinstance(offers, list) else [offers] if isinstance(offers, dict) else []
+                for off in buckets:
+                    avail = (off or {}).get("availability") or ""
+                    if isinstance(avail, (list, tuple)):
+                        avail = " ".join(map(str, avail))
+                    avail = str(avail).lower()
+                    if "outofstock" in avail:
+                        return (False, "JSON-LD availability=OutOfStock")
+                    if "instock" in avail or "preorder" in avail:
+                        # keep checking – variant OOS can still override
+                        pass
+    except Exception:
+        pass
+
+    # 1) Look for explicit OOS text anywhere near price/CTA/alerts
+    try:
+        oos_nodes = driver.find_elements(
+            By.XPATH,
+            "//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'out of stock')"
+            " or contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'sold out')"
+            " or contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'unavailable')]"
+        )
+        for n in oos_nodes:
+            t = _safe_text(n)
+            if t and OOS_TEXT_PAT.search(t):
+                return (False, f"OOS text: {t[:50]}")
+    except Exception:
+        pass
+
+    # 2) CTA/buttons: if both are missing or disabled, treat as OOS
+    try:
+        ctas = []
+        # common Lazada PDP CTAs
+        for xp in [
+            "//button[contains(.,'Add to Cart')]",
+            "//button[contains(.,'Add to cart')]",
+            "//button[contains(.,'Buy Now')]",
+            "//button[contains(.,'Buy now')]",
+            "//a[contains(.,'Add to Cart')]",
+            "//a[contains(.,'Buy Now')]",
+            # class-based fallbacks
+            "//*[contains(@class,'add-to-cart') or contains(@class,'buy-now') or contains(@class,'addCart')]"
+        ]:
+            ctas.extend(driver.find_elements(By.XPATH, xp))
+        ctas = [b for b in ctas if b.is_displayed()]
+
+        if not ctas:
+            # If no purchasable CTA is visible, likely OOS or not sellable in region
+            return (False, "CTAs missing")
+
+        enabled_seen = any(not _is_disabled(b) for b in ctas)
+        if not enabled_seen:
+            return (False, "CTAs disabled")
+
+    except Exception:
+        # if anything blows up, be conservative & return unknown -> treat as in stock and let other signals speak
+        return (True, "CTA check error")
+
+    # 3) Variant quick-check: if all visible options are disabled, it’s OOS
+    try:
+        # property blocks often have sku/variant in their locators/classes
+        groups = driver.find_elements(By.XPATH,
+            "//*[contains(@data-qa-locator,'sku') or contains(@class,'sku') or contains(@class,'variation')][.//li or .//button or .//a]"
+        )
+        # If there are variant groups, confirm at least one selectable option exists
+        if groups:
+            at_least_one_selectable = False
+            for g in groups:
+                opts = []
+                # common patterns for options
+                for xp in [".//li", ".//button", ".//a", ".//span/.."]:
+                    opts.extend(g.find_elements(By.XPATH, xp))
+                # any option that is not disabled/NA?
+                for o in opts:
+                    txt = _safe_text(o).lower()
+                    if _is_disabled(o): 
+                        continue
+                    if "not available" in txt or "unavailable" in txt:
+                        continue
+                    at_least_one_selectable = True
+                    break
+            if not at_least_one_selectable:
+                return (False, "All variants disabled/unavailable")
+    except Exception:
+        pass
+
+    return (True, "OK")
+
+
+def _to_int(s):
+    if not s: return None
+    m = NUM_RE.search(s.replace("\xa0"," "))
+    return int(m.group(0).replace(",", "")) if m else None
+
+def _to_float(s):
+    try:
+        return float(re.sub(r"[^\d.]", "", s))
+    except Exception:
+        return None
+
+def scrape_lazada_pdp_snapshot(driver, url, args):
+    driver.get(url)
+    WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+    jitter(args.min_delay, args.max_delay)
+
+    try:
+        close_login_overlays(driver, args.verbose)
+    except Exception:
+        pass
+
+    name = extract_product_name(driver)
+    price_cur = price_orig = None
+    rating_avg = rating_cnt = reviews_cnt = None
+    sold_cnt = stock_left = None
+    discount_pct = None
+    currency = "SGD" if "lazada.sg" in url else None
+    brand = category = None
+
+    # Wait a bit for price-ish nodes to appear (but don't block forever)
+    try:
+        WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located((
+            By.XPATH,
+            "//*[@data-qa-locator='pdp-price']"
+            " | //*[@itemprop='price']"
+            " | //meta[@property='product:price:amount']"
+            " | //meta[@property='og:price:amount']"
+            " | //*[contains(@class,'pdp-price') or contains(@data-qa-locator,'pdp-price')]"
+        )))
+    except Exception:
+        pass
+
+    # --- price (DOM first) ---
+    PRICE_XPS = [
+        "//*[@data-qa-locator='pdp-price']",
+        "//*[contains(@class,'pdp-price')]",
+        "//*[@itemprop='price']",
+        "//meta[@property='product:price:amount']",
+        "//meta[@property='og:price:amount']",
+        "//*[contains(@class,'pdp-v2-product-price-content-salePrice-amount')]",        # NEW v2
+        "//*[contains(@class,'pdp-v2-product-price-content-originalPrice-amount')]"
+    ]
+    def _grab_num(el):
+        t = (el.get_attribute("textContent") or el.get_attribute("content") or el.text or "").strip()
+        return _to_float(t)
+
+    for xp in PRICE_XPS:
+        els = driver.find_elements(By.XPATH, xp)
+        for el in els:
+            v = _grab_num(el)
+            if v is not None:
+                price_cur = v; break
+        if price_cur is not None: break
+
+    for xp in [
+        "//*[contains(@class,'pdp-price_type_deleted')]",
+        "//del//*[contains(@class,'price') or @itemprop='price']",
+        "//del"
+    ]:
+        els = driver.find_elements(By.XPATH, xp)
+        for el in els:
+            v = _grab_num(el)
+            if v is not None:
+                price_orig = v; break
+        if price_orig is not None: break
+
+    # --- currency (meta) ---
+    if currency is None:
+        for prop in ("product:price:currency", "og:price:currency"):
+            els = driver.find_elements(By.XPATH, f"//meta[@property='{prop}']")
+            if els:
+                c = (els[0].get_attribute("content") or "").strip()
+                if c: currency = c; break
+
+    # --- JSON-LD fallback (price, rating, counts, brand) ---
+    try:
+        for s in driver.find_elements(By.XPATH, "//script[@type='application/ld+json']"):
+            txt = s.get_attribute("textContent") or ""
+            try:
+                data = json.loads(txt)
+            except Exception:
+                continue
+            blocks = data if isinstance(data, list) else [data]
+            for d in blocks:
+                if not isinstance(d, dict): continue
+
+                # offers/price
+                offers = d.get("offers")
+                if isinstance(offers, dict):
+                    p = offers.get("price") or offers.get("lowPrice") or offers.get("highPrice")
+                    if p is not None and price_cur is None:
+                        price_cur = _to_float(str(p))
+                    if not currency:
+                        currency = offers.get("priceCurrency") or currency
+                elif isinstance(offers, list):
+                    for o in offers:
+                        if isinstance(o, dict):
+                            p = o.get("price") or o.get("lowPrice") or o.get("highPrice")
+                            if p is not None and price_cur is None:
+                                price_cur = _to_float(str(p))
+                            if not currency and o.get("priceCurrency"):
+                                currency = o.get("priceCurrency")
+
+                # aggregate rating
+                ar = d.get("aggregateRating")
+                if isinstance(ar, dict):
+                    rv = ar.get("ratingValue")
+                    rc = ar.get("ratingCount") or ar.get("reviewCount")
+                    if rv is not None and rating_avg is None:
+                        try: rating_avg = float(rv)
+                        except Exception: pass
+                    if rc is not None and (rating_cnt is None or reviews_cnt is None):
+                        try:
+                            n = int(str(rc).replace(",", ""))
+                            # ambiguous which count it is; set both if empty
+                            rating_cnt = rating_cnt or n
+                            reviews_cnt = reviews_cnt or n
+                        except Exception:
+                            pass
+
+                # brand
+                if not brand:
+                    b = d.get("brand")
+                    if isinstance(b, dict):
+                        brand = b.get("name") or brand
+                    elif isinstance(b, str):
+                        brand = b
+
+                # name
+                if not name and d.get("name"):
+                    name = d["name"]
+    except Exception:
+        pass
+
+    # --- other counts visible on page ---
+    for xp in [
+        "//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'ratings')]",
+        "//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'reviews')]",
+    ]:
+        try:
+            txt = safe_text(driver.find_element(By.XPATH, xp))
+            if txt:
+                if "rating" in txt.lower() and _to_int(txt): rating_cnt = rating_cnt or _to_int(txt)
+                if "review" in txt.lower() and _to_int(txt): reviews_cnt = reviews_cnt or _to_int(txt)
+        except Exception:
+            pass
+
+    # sold / stock
+    for xp in ["//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'sold')]"]:
+        try:
+            txt = safe_text(driver.find_element(By.XPATH, xp))
+            if txt and "sold" in txt.lower():
+                sold_cnt = _to_int(txt); break
+        except Exception:
+            pass
+    for xp in ["//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'only') and contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'left')]"]:
+        try:
+            stock_left = _to_int(safe_text(driver.find_element(By.XPATH, xp))); break
+        except Exception:
+            pass
+
+    # discount %
+    for xp in ["//*[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'%') or contains(.,'Voucher') or contains(.,'Flash Sale')]"]:
+        try:
+            txt = safe_text(driver.find_element(By.XPATH, xp))
+            if txt:
+                m = PCT_RE.search(txt)
+                if m:
+                    discount_pct = int(m.group(0).replace('%',''))
+                break
+        except Exception:
+            pass
+    if discount_pct is not None:
+        discount_pct = abs(discount_pct)
+
+    # category (breadcrumb best-effort)
+    for xp in ["//nav//a[contains(@href,'catalog')][last()]", "//a[contains(@href,'category')][last()]"]:
+        try:
+            category = safe_text(driver.find_element(By.XPATH, xp)) or category
+        except Exception:
+            pass
+
+    # DEBUG DUMPS when key fields missing
+    if args.dump_html and (price_cur is None or (rating_avg is None and rating_cnt is None and reviews_cnt is None)):
+        write_dump(args.dump_html, _dump_name_for(url, "snapshot_page.html"), driver.page_source)
+        try:
+            nodes = driver.find_elements(By.XPATH, "//*[contains(@class,'price') or @itemprop='price' or contains(@data-qa-locator,'price')]")
+            html = "\n\n".join((n.get_attribute("outerHTML") or "") for n in nodes[:200])
+            write_dump(args.dump_html, _dump_name_for(url, "snapshot_price_candidates.html"), html)
+        except Exception:
+            pass
+    availability, why = detect_lazada_availability(driver)
+    return {
+        "source_domain": "www.lazada.sg",
+        "page_url": url,
+        "ts_ingested": datetime.utcnow().isoformat()+"Z",
+        "product_name": name,
+        "currency": currency,
+        "price_current": price_cur,
+        "price_original": price_orig,
+        "discount_pct": discount_pct,
+        "rating_avg": rating_avg,
+        "rating_count": rating_cnt,
+        "reviews_count": reviews_cnt,
+        "sold_count": sold_cnt,
+        "stock_left": stock_left,
+        "brand": brand,
+        "category": category,
+        "availability": availability,
+        "oos_reason": why if availability == "out_of_stock" else None,
+    }
+
+
 
 def jitter(a, b):
     time.sleep(random.uniform(a, b))
@@ -237,13 +680,10 @@ def get_driver(args):
     opts.add_argument("--no-first-run")
     opts.add_argument("--no-default-browser-check")
     opts.add_argument("--safebrowsing-disable-auto-update")
-    opts.add_argument("--blink-settings=imagesEnabled=false")  # block images
     opts.add_argument(f"--lang={args.lang}")
     opts.add_argument(f"--user-agent={(MOBILE_UA if args.mobile else DESKTOP_UA)}")
 
-    # Also block images via prefs (works even when not headless)
     prefs = {
-        "profile.managed_default_content_settings.images": 2,
         "profile.default_content_setting_values.notifications": 2
     }
     opts.add_experimental_option("prefs", prefs)
@@ -690,6 +1130,10 @@ def rows_len(container_el) -> int:
     except Exception:
         return 0
 
+def _dump_name_for(url: str, suffix: str) -> str:
+    tail = url.split("/")[-1] or "page"
+    safe = re.sub(r"[^a-zA-Z0-9._-]+", "_", tail)[:90]
+    return f"{safe}__{suffix}"
 
 def wait_for_page_change(container, old_page: Optional[int], timeout=2.0, poll=0.1) -> bool:
     """Wait until the active page number changes OR the container HTML/content grows."""
@@ -726,17 +1170,14 @@ class Stats:
     emitted: int = 0
     skipped: int = 0
     empty: int = 0
+    snapshots: int = 0
+
+
 
 def scrape_lazada_pdp(driver, url, args) -> List[dict]:
     """Open a Lazada PDP, load as many reviews as possible, and return parsed rows."""
 
-    # --- helpers (scoped to this function so you don't need to edit elsewhere) ---
-    def auto_scroll(passes: int = 10, delay: float = 0.8):
-        """Scroll the page to the bottom multiple times to trigger lazy loads."""
-        for _ in range(max(1, passes)):
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(delay)
-
+    # ---- tiny local helpers (scoped to this function) ----
     def wait_for_invisible(driver, css_or_xpath: str, timeout=2.0):
         t0 = time.time()
         while time.time() - t0 < timeout:
@@ -752,13 +1193,13 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
             time.sleep(0.08)
         return False
 
-    def _container_sig(container, k=4000):
+    def _container_sig(container, k=4000) -> str:
         try:
             return (container.get_attribute("innerHTML") or "")[:k]
         except Exception:
             return ""
 
-    def _wait_for_container_change(container, prev_sig, timeout=4.0, poll=0.1):
+    def _wait_for_container_change(container, prev_sig, timeout=4.0, poll=0.1) -> bool:
         t0 = time.time()
         while time.time() - t0 < timeout:
             if _container_sig(container) != prev_sig:
@@ -766,21 +1207,21 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
             time.sleep(poll)
         return False
 
-    def try_click_numeric_next_in_container(container_el, current_page: Optional[int], driver, next_selectors: Optional[str]) -> bool:
-        """Click the next page (preferring numeric), then wait for the review list to change."""
+    def try_click_numeric_next_in_container(container_el, current_page: Optional[int],
+                                            driver, next_selectors: Optional[str]) -> bool:
+        """Click the next page (prefer numeric), then wait for the list to grow or HTML to change."""
         prev_sig = _container_sig(container_el)
-        old_n = rows_len(container_el)  # <-- capture old row count BEFORE clicking
+        old_n = rows_len(container_el)
 
         def _clicked_wait() -> bool:
-            # wait for rows to increase (fast) then fall back to DOM signature change
+            # Prefer a count increase; fall back to DOM signature change
             if wait_for_review_growth(container_el, old_n, timeout=4.0, poll=0.15) > old_n:
                 return True
             return _wait_for_container_change(container_el, prev_sig, timeout=2.0, poll=0.1)
 
-        # 0) user-specified selectors first (container then page)
+        # 0) user-supplied selectors first (try inside container, then page-level)
         if next_selectors:
             for css in [s.strip() for s in next_selectors.split(",") if s.strip()]:
-                # try inside container
                 try:
                     btn = container_el.find_element(By.CSS_SELECTOR, css)
                     if btn.is_displayed() and (not hasattr(btn, "is_enabled") or btn.is_enabled()):
@@ -790,7 +1231,6 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
                         return _clicked_wait()
                 except Exception:
                     pass
-                # try whole page
                 try:
                     btn = driver.find_element(By.CSS_SELECTOR, css)
                     if btn.is_displayed() and (not hasattr(btn, "is_enabled") or btn.is_enabled()):
@@ -804,10 +1244,10 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
         # 1) numeric target (current_page + 1)
         if current_page is not None:
             target = str(current_page + 1)
-            for xp in [
+            for xp in (
                 f".//li[not(contains(@class,'jump')) and not(contains(@class,'more')) and not(contains(@class,'last'))]/a[normalize-space(text())='{target}']",
                 f".//a[normalize-space(text())='{target}']",
-            ]:
+            ):
                 try:
                     btn = container_el.find_element(By.XPATH, xp)
                     if btn.is_displayed():
@@ -819,12 +1259,12 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
                     continue
 
         # 2) conservative “Next” inside container
-        for xp in [
+        for xp in (
             ".//a[(contains(@aria-label,'Next') or contains(.,'Next')) and not(contains(@class,'disabled'))]",
             ".//button[(contains(@aria-label,'Next') or contains(.,'Next')) and not(contains(@class,'disabled'))]",
             ".//li[contains(@class,'active')]/following-sibling::li[1]/a[not(contains(@class,'disabled'))]",
             ".//*[contains(@class,'next-pagination-item') and contains(@class,'next')]//a[not(contains(@class,'disabled'))]"
-        ]:
+        ):
             try:
                 btn = container_el.find_element(By.XPATH, xp)
                 cls = (btn.get_attribute("class") or "").lower()
@@ -839,12 +1279,9 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
                 continue
 
         # 3) page-level fallbacks
-        for css in [
-            "a.next-next", "button.next-next",
-            ".next-pagination-item.next a", ".next-pagination-item.next button",
-            "a[aria-label='Next']", "button[aria-label='Next']",
-            "li.next a"
-        ]:
+        for css in ("a.next-next", "button.next-next",
+                    ".next-pagination-item.next a", ".next-pagination-item.next button",
+                    "a[aria-label='Next']", "button[aria-label='Next']", "li.next a"):
             try:
                 btn = driver.find_element(By.CSS_SELECTOR, css)
                 if btn.is_displayed() and (not hasattr(btn, "is_enabled") or btn.is_enabled()):
@@ -857,60 +1294,61 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
 
         return False
 
-
-
-
-    # --- open page ---
+    # ---- open PDP ----
     driver.get(url)
     WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
     jitter(args.min_delay, args.max_delay)
 
-    # dismiss overlays if any
-    if not close_login_overlays(driver, args.verbose):
-        log("Login wall detected, skipping page", args.verbose)
-        return []
+    # dismiss blocking overlays; skip if hard login wall
+    try:
+        if not close_login_overlays(driver, args.verbose):
+            log("Login wall detected, skipping page", args.verbose)
+            return []
+    except Exception:
+        pass
 
-    switched = switch_into_review_iframe_if_present(driver, args.verbose)
+    # switch to review iframe if present
+    _ = switch_into_review_iframe_if_present(driver, args.verbose)
 
-    # locate review container (also clicks Reviews tab if needed)
+    # locate the reviews container (optionally click "Reviews" tab first)
     container = find_reviews_container(driver, args.verbose, try_click_tab=args.open_reviews_tab)
     if not container:
-        if args.verbose:
-            print("No visible reviews container found")
         if args.dump_html:
             write_dump(args.dump_html, "page_source.html", driver.page_source)
-        # if we switched into an iframe unsuccessfully, go back up for safety
-        try:
-            driver.switch_to.default_content()
-        except Exception:
-            pass
         return []
 
-    pin_container_into_view(driver, container)
-
-    # fast bail on explicit empty state
+    # bail fast on explicit empty state
     if container_is_empty(container):
-        log("PDP has zero reviews (empty-state)", args.verbose)
+        if args.dump_html:
+            try:
+                html = container.get_attribute("outerHTML") or ""
+            except Exception:
+                html = driver.page_source
+            write_dump(args.dump_html, _dump_name_for(url, "reviews_empty.html"), html)
         return []
 
-    pin_container_into_view(driver, container)
+    # keep the container in view and warm it up
+    try:
+        pin_container_into_view(driver, container)
+    except Exception:
+        pass
     scroll_reviews_container(container, passes=3, delay=0.25, verbose=args.verbose)
 
-    # main load loop: click 'Load more' (1 per iter), scroll, stop when no growth
+    # ---- main load loop ----
     total_loops = max(1, int(args.pages))
     prev_count = rows_len(container)
     loops_done = 0
-    seen_hashes = set()
-    accumulated = []
+    seen = set()
+    collected: List[dict] = []
 
     while loops_done < total_loops:
-        # click exactly one "Load more" (your helper clicks inside the container)
+        # click a single "Load more" inside the container (no-op if absent)
         click_load_more_in_container(container, 1, args.verbose, args.min_delay, args.max_delay)
 
-        # scroll again to trigger fetch/render
+        # scroll the container to trigger lazy loads
         scroll_reviews_container(container, passes=3, delay=0.25, verbose=args.verbose)
 
-        # refresh container reference (DOM may re-mount)
+        # container may re-mount; refresh the handle if we still can find it
         try:
             container = find_reviews_container(driver, args.verbose, try_click_tab=False) or container
         except Exception:
@@ -920,22 +1358,26 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
         if args.verbose:
             log(f"[reviews] count grew {prev_count} → {curr_count}", True)
 
+        # harvest current batch
         for r in extract_reviews_from_container(container):
             key = (r.get("author") or "", (r.get("review_text") or "")[:120])
-            if key not in seen_hashes:
-                seen_hashes.add(key)
-                accumulated.append(r)
+            if key not in seen:
+                seen.add(key)
+                collected.append(r)
 
-        # stop if no growth after a click+scroll cycle
+        # If no growth, try paginated "Next"
         if curr_count <= prev_count:
             old_page = get_active_review_page(container)
             if not try_click_numeric_next_in_container(container, old_page, driver, args.review_next_selector):
                 break
-            # Wait for page number (or items) to change so we don't skip multiple pages
+            # Wait for page number or content change to avoid skipping
             if not wait_for_page_change(container, old_page):
                 break
-            # Re-pin and gently load
-            pin_container_into_view(driver, container, offset=120)
+            # re-pin and gentle warm-up
+            try:
+                pin_container_into_view(driver, container, offset=120)
+            except Exception:
+                pass
             scroll_reviews_container(container, passes=3, delay=0.25, verbose=args.verbose)
             try:
                 container = find_reviews_container(driver, args.verbose, try_click_tab=False) or container
@@ -951,24 +1393,26 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
         loops_done += 1
         jitter(args.min_delay, args.max_delay)
 
-    # final extract
+    # final pass to catch any late-mount items
     for r in extract_reviews_from_container(container):
         key = (r.get("author") or "", (r.get("review_text") or "")[:120])
-        if key not in seen_hashes:
-            seen_hashes.add(key)
-            accumulated.append(r)
+        if key not in seen:
+            seen.add(key); collected.append(r)
 
+    # dump the container HTML if nothing parsed (for debugging)
+    if not collected and args.dump_html:
+        try:
+            html = container.get_attribute("outerHTML") or ""
+            write_dump(args.dump_html, "reviews_container.html", html)
+        except Exception:
+            html = driver.page_source
+        write_dump(args.dump_html, _dump_name_for(url, "reviews_container.html"), html)
+
+    # enrich rows
     pname = extract_product_name(driver)
-    rows = accumulated
-
-    if not rows and args.dump_html:
-        html = container.get_attribute("outerHTML") or ""
-        write_dump(args.dump_html, "reviews_container.html", html)
-
-    # enrich and return
     now = datetime.utcnow().isoformat() + "Z"
-    out = []
-    for r in rows:
+    out: List[dict] = []
+    for r in collected:
         out.append({
             "source_domain": "www.lazada.sg",
             "page_url": url,
@@ -982,6 +1426,8 @@ def scrape_lazada_pdp(driver, url, args) -> List[dict]:
             "ts_ingested": now,
         })
     return out
+
+
 
 def uniq_keep_order(xs: Iterable[str]) -> List[str]:
     seen = set(); out = []
@@ -1013,21 +1459,46 @@ def main():
             print("No PDP URLs to scrape. Use --urls or --discover.")
             sys.exit(1)
 
+        snap_path = None
+        if args.with_snapshot or args.snapshot_only:
+            snap_path = Path(args.snapshots_out)
+            snap_path.parent.mkdir(parents=True, exist_ok=True)
+            ensure_outfile(snap_path)
+
         with out_path.open("a", encoding="utf-8") as f:
+            snap_f = snap_path.open("a", encoding="utf-8") if snap_path else None
             for url in urls:
                 stats.scanned += 1
                 try:
-                    rows = scrape_lazada_pdp(driver, url, args)
-                    if not rows:
-                        # Count empty PDPs separately for visibility
-                        stats.empty += 1
-                    for row in rows:
-                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
-                    stats.emitted += len(rows)
-                    log(f"URL scraped: {url} • emitted {len(rows)}", True)
+                    # --- PDP SNAPSHOT ---
+                    if snap_f is not None:
+                        try:
+                            snap = scrape_lazada_pdp_snapshot(driver, url, args)
+                            if snap:
+                                snap_f.write(json.dumps(snap, ensure_ascii=False) + "\n")
+                                stats.snapshots += 1
+                                log(f"[snapshot] {url}", args.verbose)
+                        except Exception as se:
+                            log(f"[snapshot] Error: {se}", True)
+
+                    # --- REVIEWS (skip if snapshot-only) ---
+                    if not args.snapshot_only:
+                        rows = scrape_lazada_pdp(driver, url, args)
+                        if not rows:
+                            stats.empty += 1
+                        for row in rows:
+                            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                        stats.emitted += len(rows)
+                        log(f"URL scraped: {url} • emitted {len(rows)}", True)
+
                 except Exception as e:
                     log(f"Error scraping {url}: {e}", True)
-                jitter(args.min_delay, args.max_delay)
+                finally:
+                    jitter(args.min_delay, args.max_delay)
+
+            if snap_f is not None:
+                snap_f.close()
+
     finally:
         if driver:
             try:
@@ -1035,7 +1506,8 @@ def main():
             except Exception:
                 pass
 
-    print(f"Done. Scanned={stats.scanned} Emitted={stats.emitted} EmptyPDPs={stats.empty} Skipped=0")
+    print(f"Done. Scanned={stats.scanned} EmittedReviews={stats.emitted} "
+      f"Snapshots={stats.snapshots} EmptyPDPs={stats.empty} Skipped=0")
 
 if __name__ == "__main__":
     main()
