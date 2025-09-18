@@ -149,6 +149,9 @@ async def open_reviews_tab_if_needed(page):
 # ---------------- CLI ----------------
 
 def parse_args():
+    # argparse (add these)
+
+
     ap = argparse.ArgumentParser(description="Lazada PDP reviews scraper (Selenium)")
     ap.add_argument("--urls", nargs="*", default=[], help="Lazada PDP URLs")
     ap.add_argument("--discover", nargs="*", default=[], help="Lazada search URLs or plain queries (e.g., 'foot cream')")
