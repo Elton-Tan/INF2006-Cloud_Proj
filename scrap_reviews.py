@@ -279,6 +279,9 @@ def parse_args():
 
     ap = argparse.ArgumentParser(description="Lazada PDP reviews scraper (Selenium)")
     ap.add_argument("--images-dir", default=None, help="If set, download snapshot image files here")
+    ap.add_argument("--profile-dir", default=None, help="Chrome user-data root dir (…\\User Data)")
+    ap.add_argument("--profile-name", default=None, help="Chrome profile directory name (e.g., 'Default', 'Profile 6')")
+
 
     ap.add_argument("--urls", nargs="*", default=[], help="Lazada PDP URLs")
     ap.add_argument("--discover", nargs="*", default=[], help="Lazada search URLs or plain queries (e.g., 'foot cream')")
@@ -291,7 +294,6 @@ def parse_args():
     ap.add_argument("--max-delay", type=float, default=1.2, help="Max delay between actions (s)")
     ap.add_argument("--lang", default="en-SG", help="Accept-Language hint")
     ap.add_argument("--mobile", action="store_true", help="Use a mobile UA (optional)")
-    ap.add_argument("--profile-dir", default=None, help="Chrome user-data-dir (optional)")
     ap.add_argument("--proxy", default=None, help="http://host:port (optional)")
     ap.add_argument("--dump-html", default=None, help="Directory to dump HTML when 0 reviews")
     ap.add_argument("--verbose", action="store_true", help="Verbose logs")
@@ -319,8 +321,8 @@ MOBILE_UA = (
     "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/604.1"
 )
 DESKTOP_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0",
 )
 
 EMPTY_PAT = re.compile(r"\bThis product has no reviews\b", re.I)
@@ -803,6 +805,15 @@ def get_driver(args):
     opts = ChromeOptions()
     if args.headless:
         opts.add_argument("--headless=new")
+    if args.profile_dir:
+        opts.add_argument(f"--user-data-dir={Path(args.profile_dir).absolute()}")
+    if args.profile_name:
+        opts.add_argument(f"--profile-directory={args.profile_name}")
+    if not args.profile_dir and not args.profile_name:
+        opts.add_argument(f"--user-agent={DESKTOP_UA}")
+    elif args.mobile:
+        opts.add_argument(f"--user-agent={MOBILE_UA}")
+
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--no-sandbox")
@@ -816,6 +827,10 @@ def get_driver(args):
     opts.add_argument("--safebrowsing-disable-auto-update")
     opts.add_argument(f"--lang={args.lang}")
     opts.add_argument(f"--user-agent={(MOBILE_UA if args.mobile else DESKTOP_UA)}")
+    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+    opts.add_experimental_option("useAutomationExtension", False)
+    opts.add_argument("--disable-blink-features=AutomationControlled")
+
 
     prefs = {
         "profile.default_content_setting_values.notifications": 2
@@ -828,6 +843,17 @@ def get_driver(args):
         opts.add_argument(f"--proxy-server={args.proxy}")
 
     drv = webdriver.Chrome(options=opts)
+    try:
+        drv.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+            Object.defineProperty(navigator, 'languages', {get: () => ['en-US','en']});
+            Object.defineProperty(navigator, 'platform', {get: () => 'Win32'});
+            """
+        })
+    except Exception:
+        pass
+
     drv.set_page_load_timeout(45)
     drv.implicitly_wait(0)
     return drv
