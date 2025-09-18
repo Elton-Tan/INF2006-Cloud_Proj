@@ -146,6 +146,131 @@ async def open_reviews_tab_if_needed(page):
         except Exception:
             continue
 
+
+from urllib.parse import urljoin
+
+def _best_from_srcset(srcset: str) -> Optional[str]:
+    # pick the largest candidate from srcset
+    try:
+        parts = [p.strip() for p in srcset.split(",") if p.strip()]
+        def parse(p):
+            bits = p.split()
+            u = bits[0]
+            w = 0
+            for b in bits[1:]:
+                if b.endswith("w"):
+                    try: w = int(b[:-1])
+                    except: pass
+            return (w, u)
+        cands = [parse(p) for p in parts]
+        cands.sort(key=lambda x: x[0], reverse=True)
+        return cands[0][1] if cands else None
+    except Exception:
+        return None
+
+def _norm_url(u: Optional[str], base: str) -> Optional[str]:
+    if not u: return None
+    u = u.strip().strip('"').strip("'")
+    if u.startswith("//"): u = "https:" + u
+    return urljoin(base, u)
+
+def extract_primary_image_url(driver, base_url: str) -> Optional[str]:
+    # 0) JSON-LD image
+    try:
+        for s in driver.find_elements(By.XPATH, "//script[@type='application/ld+json']"):
+            txt = s.get_attribute("textContent") or ""
+            try:
+                data = json.loads(txt)
+            except Exception:
+                continue
+            blocks = data if isinstance(data, list) else [data]
+            for d in blocks:
+                img = d.get("image")
+                if isinstance(img, list) and img:
+                    return _norm_url(str(img[0]), base_url)
+                if isinstance(img, str) and img:
+                    return _norm_url(img, base_url)
+    except Exception:
+        pass
+
+    # 1) Open Graph / meta fallbacks
+    for prop in ("og:image", "twitter:image", "og:image:url"):
+        try:
+            m = driver.find_elements(By.XPATH, f"//meta[@property='{prop}' or @name='{prop}']")
+            if m:
+                u = m[0].get_attribute("content") or ""
+                u = _norm_url(u, base_url)
+                if u: return u
+        except Exception:
+            continue
+
+    # 2) Gallery/buy-box area <img> nodes (common Lazada selectors)
+    XPS = [
+        # v1/v2 PDP galleries & main image containers
+        "//*[@id='module_product_image_1']//img",
+        "//*[@id='module_product_image']//img",
+        "//*[contains(@class,'pdp-gallery')]//img",
+        "//*[contains(@class,'pdp-mod-product-main-img')]//img",
+        "//*[contains(@class,'pdp-v2-gallery')]//img",
+        # generic: main image within product info column
+        "//*[contains(@class,'pdp-mod-product-info')]//img",
+        # any visible large image on page as last resort
+        "//img"
+    ]
+    def _grab_img_src(img_el):
+        for attr in ("src", "data-src", "data-ks-lazyload", "data-zoom-image", "data-original", "srcset"):
+            v = img_el.get_attribute(attr)
+            if not v: 
+                continue
+            if attr == "srcset":
+                best = _best_from_srcset(v)
+                if best:
+                    return _norm_url(best, base_url)
+            else:
+                u = _norm_url(v, base_url)
+                if u and (u.lower().endswith((".jpg", ".jpeg", ".png", ".webp")) or u.startswith("http")):
+                    return u
+        return None
+
+    for xp in XPS:
+        try:
+            imgs = [i for i in driver.find_elements(By.XPATH, xp) if i.is_displayed()]
+            # prefer the largest displayed image
+            scored = []
+            for i in imgs:
+                try:
+                    rect = i.rect or {}
+                    area = int(rect.get("width", 0)) * int(rect.get("height", 0))
+                    scored.append((area, i))
+                except Exception:
+                    scored.append((0, i))
+            for _, el in sorted(scored, key=lambda t: t[0], reverse=True):
+                u = _grab_img_src(el)
+                if u: return u
+        except Exception:
+            continue
+
+    return None
+
+def download_image_to(path_dir: Optional[str], img_url: Optional[str], fname_hint: str):
+    if not path_dir or not img_url: return None
+    try:
+        import requests, os
+        Path(path_dir).mkdir(parents=True, exist_ok=True)
+        ext = ".jpg"
+        for e in (".jpg",".jpeg",".png",".webp"):
+            if img_url.lower().split("?")[0].endswith(e):
+                ext = e; break
+        fn = re.sub(r"[^a-zA-Z0-9._-]+", "_", fname_hint)[:80] or "image"
+        fp = str(Path(path_dir) / f"{fn}{ext}")
+        r = requests.get(img_url, timeout=15)
+        if r.ok:
+            with open(fp, "wb") as w: w.write(r.content)
+            return fp
+    except Exception:
+        return None
+    return None
+
 # ---------------- CLI ----------------
 
 def parse_args():
@@ -153,6 +278,8 @@ def parse_args():
 
 
     ap = argparse.ArgumentParser(description="Lazada PDP reviews scraper (Selenium)")
+    ap.add_argument("--images-dir", default=None, help="If set, download snapshot image files here")
+
     ap.add_argument("--urls", nargs="*", default=[], help="Lazada PDP URLs")
     ap.add_argument("--discover", nargs="*", default=[], help="Lazada search URLs or plain queries (e.g., 'foot cream')")
     ap.add_argument("--discover-limit", type=int, default=12, help="Max PDPs to collect from discovery")
@@ -437,6 +564,8 @@ def scrape_lazada_pdp_snapshot(driver, url, args):
         pass
 
     name = extract_product_name(driver)
+    image_url = extract_primary_image_url(driver, url) 
+    image_path = download_image_to(args.images_dir, image_url, name or "pdp")
     price_cur = price_orig = None
     rating_avg = rating_cnt = reviews_cnt = None
     sold_cnt = stock_left = None
@@ -622,6 +751,8 @@ def scrape_lazada_pdp_snapshot(driver, url, args):
         "page_url": url,
         "ts_ingested": datetime.utcnow().isoformat()+"Z",
         "product_name": name,
+        "image_url": image_url,
+        "image_path": image_path,
         "currency": currency,
         "price_current": price_cur,
         "price_original": price_orig,
