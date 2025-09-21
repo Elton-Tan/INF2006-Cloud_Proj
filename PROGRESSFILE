@@ -28,5 +28,19 @@ python -m venv .venv
 **for new profile (new ip new to scraping), remove:** 
 >> --profile-dir "C:\Users\Elton\ChromeSelenium" `
 >> --profile-name "Profile 6"
-to trigger no profile
-as u are unlikely to identified as bot. <- i had to add this because i think im added to the suspicious list
+
+FOR RDS always:
+SSH first 
+ssh -i C:\Users\Elton\Downloads\spirulina.pem ec2-user@18.213.71.27 -L 3309:spirulina-main-database.c9gsuqika095.us-east-1.rds.amazonaws.com:3306
+
+run server.js node server.js
+
+then npm start react 
+
+u need 3 terminal
+
+1. Always test the connection via workbench first that u have set up using SSH, then, (to ensure the instance is running)
+2. then ssh via ur own term
+3. then use your normal TCP connection pointing to the port u SSH in your workbench
+
+
