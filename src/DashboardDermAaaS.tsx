@@ -1,11 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
   LineChart,
   Line,
   BarChart,
   Bar,
-  AreaChart,
   Area,
   XAxis,
   YAxis,
@@ -13,9 +12,6 @@ import {
   Tooltip,
   Legend,
   ReferenceArea,
-  ScatterChart,
-  Scatter,
-  ZAxis,
   ComposedChart,
 } from "recharts";
 
@@ -28,15 +24,15 @@ type Severity = "low" | "medium" | "high";
 type Alert = {
   id: string;
   ts: string; // ISO
-  title: string; // e.g., "Competitor X: posted an ad"
-  description: string; // e.g., "Ad is about 30% discount on heel balm"
+  title: string;
+  description: string;
   severity: Severity;
-  market?: string; // SG/MY/etc
-  channel?: string; // Lazada/Shopee/etc
+  market?: string;
+  channel?: string;
 };
 
 type PriceSeriesPoint = {
-  day: string; // e.g., 2025-09-12
+  day: string;
   avg_price_spiruvita: number;
   avg_price_canesten: number;
   avg_price_lamisil: number;
@@ -47,28 +43,33 @@ type TrendPoint = {
   foot_cream: number;
   antifungal: number;
   heel_balm: number;
-  forecast?: number; // optional overlay for forecasted index
+  forecast?: number;
 };
 
-type AspectSentiment = {
-  aspect: string; // greasiness, smell, etc.
-  positive: number; // 0..1
-  neutral: number; // 0..1
-  negative: number; // 0..1
-};
-
-type SnapshotRow = {
-  id: string;
+// API row coming from /api/watchlist
+type ApiWatchRow = {
+  id: number;
+  product: string | null;
+  price: number | null;
   url: string;
-  imageUrl?: string;
-  product?: string;
-  price?: string;
-  availability?: string; // in_stock / out_of_stock / unknown
-  status: "adding" | "done" | "error";
+  stock_status: string | null; // e.g. "In Stock", "Out of Stock", null
+  updated_at: string | null;
+  image_url?: string | null; // optional if you add this later
+};
+
+// UI row for your table
+type SnapshotRow = {
+  id: string; // keep as string for React keys; convert from number
+  url: string;
+  imageUrl?: string | null;
+  product?: string | null;
+  price?: string | null | number;
+  availability?: "in_stock" | "out_of_stock" | "unknown";
+  status?: "adding" | "done" | "error";
 };
 
 // ===============================================================
-// MOCK DATA (replace with API wiring later)
+// MOCK DATA (unchanged; used by other views only)
 // ===============================================================
 
 const MOCK_ALERTS_SEED: Alert[] = [
@@ -175,7 +176,7 @@ const MOCK_PRICES: PriceSeriesPoint[] = [
   },
 ];
 
-const MOCK_ASPECTS: AspectSentiment[] = [
+const MOCK_ASPECTS = [
   { aspect: "greasiness", positive: 0.62, neutral: 0.16, negative: 0.22 },
   { aspect: "smell", positive: 0.48, neutral: 0.18, negative: 0.34 },
   { aspect: "relief_speed", positive: 0.58, neutral: 0.23, negative: 0.19 },
@@ -231,7 +232,7 @@ export default function SpiruvitaDashboardV2() {
               <code className="rounded bg-gray-100 px-1">/api/trends</code>,{" "}
               <code className="rounded bg-gray-100 px-1">/api/prices</code>,{" "}
               <code className="rounded bg-gray-100 px-1">/api/sentiment</code>,{" "}
-              <code className="rounded bg-gray-100 px-1">/api/snapshots</code>.
+              <code className="rounded bg-gray-100 px-1">/api/watchlist</code>.
             </p>
           </div>
         </aside>
@@ -248,13 +249,12 @@ export default function SpiruvitaDashboardV2() {
 }
 
 // ===============================================================
-// VIEW 1 — LIVE FEED
+// VIEW 1 — LIVE FEED (unchanged)
 // ===============================================================
 
 function LiveFeed() {
   const [alerts, setAlerts] = useState<Alert[]>(() => MOCK_ALERTS_SEED);
 
-  // Simulate streaming alerts every ~7s
   useEffect(() => {
     const t = setInterval(() => {
       const now = new Date();
@@ -285,9 +285,8 @@ function LiveFeed() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {/* Alerts feed */}
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="mb-1 text-lg font-semibold">Real‑time Alerts</h2>
+        <h2 className="mb-1 text-lg font-semibold">Real-time Alerts</h2>
         <p className="mb-3 text-sm text-gray-500">
           Examples: competitor ad posts, stockouts, price drops.
         </p>
@@ -323,7 +322,6 @@ function LiveFeed() {
         </div>
       </section>
 
-      {/* Google Trends + Forecast (mock) */}
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-lg font-semibold">
           Interest in Skincare (Google Trends • mock)
@@ -366,7 +364,6 @@ function LiveFeed() {
                 name="Forecast"
                 fillOpacity={0.1}
               />
-              {/* Shade the forecast horizon */}
               <ReferenceArea
                 x1="2025-09-18"
                 x2="2025-09-20"
@@ -379,7 +376,6 @@ function LiveFeed() {
         </div>
       </section>
 
-      {/* Competitor prices (past week) */}
       <section className="rounded-2xl border bg-white p-4 shadow-sm md:col-span-2">
         <h2 className="mb-1 text-lg font-semibold">
           Competitor Aggregate Prices — Past Week (mock)
@@ -422,11 +418,10 @@ function LiveFeed() {
 }
 
 // ===============================================================
-// VIEW 2 — BATCH ANALYTICS (static mock)
+// VIEW 2 — BATCH ANALYTICS (unchanged)
 // ===============================================================
 
 function BatchAnalytics() {
-  // Reuse MOCK_ASPECTS for a stacked bar of sentiment
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
@@ -437,17 +432,17 @@ function BatchAnalytics() {
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={MOCK_ASPECTS}
+              data={MOCK_ASPECTS as any}
               margin={{ top: 10, right: 20, bottom: 10, left: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="aspect"
-                tickFormatter={(s) => s.replace(/_/g, " ")}
+                tickFormatter={(s) => String(s).replace(/_/g, " ")}
               />
               <YAxis
                 domain={[0, 1]}
-                tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                tickFormatter={(v) => `${Math.round((v as number) * 100)}%`}
               />
               <Tooltip
                 formatter={(v: number) => `${Math.round((v as number) * 100)}%`}
@@ -512,51 +507,65 @@ function BatchAnalytics() {
 }
 
 // ===============================================================
-// VIEW 3 — SNAPSHOTTER (URL input + table)
+// VIEW 3 — SNAPSHOTTER (URL input + table wired to /api/watchlist)
 // ===============================================================
 
 function Snapshotter() {
   const [url, setUrl] = useState("");
-  const [rows, setRows] = useState<SnapshotRow[]>([
-    {
-      id: "r1",
-      url: "https://www.lazada.sg/products/pdp-123",
-      imageUrl: "https://picsum.photos/seed/a/80/80",
-      product: "Example Product A",
-      price: "$14.90",
-      availability: "in_stock",
-      status: "done",
-    },
-  ]);
+  const [rows, setRows] = useState<SnapshotRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // helper: map API -> UI
+  const mapApiToUi = (r: ApiWatchRow): SnapshotRow => {
+    const availability: SnapshotRow["availability"] = r.stock_status
+      ? r.stock_status.toLowerCase().includes("out")
+        ? "out_of_stock"
+        : "in_stock"
+      : "unknown";
+    return {
+      id: String(r.id),
+      url: r.url,
+      product: r.product,
+      price: r.price, // your API uses numeric price; table prints number or —
+      availability,
+      status: "done",
+      imageUrl: r.image_url ?? null, // stays blank unless you add column
+    };
+  };
+
+  const load = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const res = await fetch("/api/watchlist"); // CRA proxy → Node API
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: ApiWatchRow[] = await res.json();
+      setRows(data.map(mapApiToUi));
+    } catch (e: any) {
+      console.error(e);
+      setError("Failed to load watchlist");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  // keep the Add button UI but make it a no-op for now (we're focusing on list)
   function addUrl() {
     if (!url.trim()) return;
     const id = `tmp-${Date.now()}`;
-    const pending: SnapshotRow = {
-      id,
-      url: url.trim(),
-      status: "adding",
-    };
+    const pending: SnapshotRow = { id, url: url.trim(), status: "adding" };
     setRows((prev) => [pending, ...prev]);
     setUrl("");
-
-    // Simulate long-running snapshot job completing later
+    // TODO: POST to /api/watchlist in future; after success, call load()
     setTimeout(() => {
-      setRows((prev) =>
-        prev.map((r) =>
-          r.id === id
-            ? {
-                ...r,
-                imageUrl: "https://picsum.photos/seed/" + id + "/80/80",
-                product: "(mock) Parsed Product Name",
-                price: "$15.50",
-                availability: Math.random() > 0.2 ? "in_stock" : "out_of_stock",
-                status: "done",
-              }
-            : r
-        )
-      );
-    }, 2200);
+      setRows((prev) => prev.filter((r) => r.id !== id));
+      load();
+    }, 1200);
   }
 
   return (
@@ -578,8 +587,15 @@ function Snapshotter() {
         <button
           className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
           onClick={addUrl}
+          title="Currently demo only — wires to POST later"
         >
           Add
+        </button>
+        <button
+          className="rounded-xl bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
+          onClick={load}
+        >
+          Refresh
         </button>
       </div>
 
@@ -596,75 +612,100 @@ function Snapshotter() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="px-3 py-2">
-                  {r.imageUrl ? (
-                    <img
-                      src={r.imageUrl}
-                      alt={r.product || ""}
-                      className="h-12 w-12 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="h-12 w-12 rounded-lg bg-gray-100" />
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  <div className="line-clamp-2 max-w-xs">
-                    {r.product || (
-                      <span className="italic text-gray-500">—</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-3 py-2">
-                  {r.price || <span className="italic text-gray-500">—</span>}
-                </td>
-                <td className="px-3 py-2">
-                  {r.status === "adding" ? (
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                      pending…
-                    </span>
-                  ) : r.availability === "in_stock" ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
-                      in stock
-                    </span>
-                  ) : r.availability === "out_of_stock" ? (
-                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">
-                      out of stock
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                      unknown
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={r.url}
-                      className="truncate text-blue-600 underline"
-                      title={r.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {r.url}
-                    </a>
-                    {r.status === "adding" && (
-                      <span className="text-xs text-gray-500">
-                        • adding url {r.url}
-                      </span>
-                    )}
-                  </div>
+            {loading && (
+              <tr>
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
+                  Loading…
                 </td>
               </tr>
-            ))}
+            )}
+            {!loading && error && (
+              <tr>
+                <td className="px-3 py-6 text-center text-rose-600" colSpan={5}>
+                  {error}
+                </td>
+              </tr>
+            )}
+            {!loading && !error && rows.length === 0 && (
+              <tr>
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
+                  No items yet.
+                </td>
+              </tr>
+            )}
+            {!loading &&
+              !error &&
+              rows.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="px-3 py-2">
+                    {r.imageUrl ? (
+                      <img
+                        src={r.imageUrl}
+                        alt={r.product || ""}
+                        className="h-12 w-12 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-lg bg-gray-100" />
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="line-clamp-2 max-w-xs">
+                      {r.product || (
+                        <span className="italic text-gray-500">—</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    {r.price ?? <span className="italic text-gray-500">—</span>}
+                  </td>
+                  <td className="px-3 py-2">
+                    {r.status === "adding" ? (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                        pending…
+                      </span>
+                    ) : r.availability === "in_stock" ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
+                        in stock
+                      </span>
+                    ) : r.availability === "out_of_stock" ? (
+                      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">
+                        out of stock
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                        unknown
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={r.url}
+                        className="truncate text-blue-600 underline"
+                        title={r.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {r.url}
+                      </a>
+                      {r.status === "adding" && (
+                        <span className="text-xs text-gray-500">
+                          • adding url {r.url}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
 
       <div className="mt-3 text-xs text-gray-500">
-        Notes: UI only. Wire <code>/api/snapshots:add</code> for queueing and{" "}
-        <code>/api/snapshots:list</code> for listing rows.
+        Notes: This table now **reads** from <code>/api/watchlist</code>. The
+        “Add” button is a demo — when you’re ready, wire it to{" "}
+        <code>POST /api/watchlist</code> and call <code>load()</code> after
+        success.
       </div>
     </section>
   );
