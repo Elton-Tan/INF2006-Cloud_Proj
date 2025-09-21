@@ -3,7 +3,7 @@ This project is about cloud computing INF2006. REQUIRE NODE JS 21 using tailwind
 Next steps:
 1. To solve scrapper bot issue by creating dummy amazon account and set up IP rotation to prevent IP ban <- perhaps we should abandon this
 2. See if we can use google keyword appearances + current lazada trending to forecast demand.
-3. Focus to build infra for POC before proceeding on real implement
+3. Focus to build infra for POC before proceeding on real implement [Next step: SET S3 to store snapshot]
 4. Snapshot or reviews or both
 5. Meta ad library to know whether competitor uploaded any ads and what kind
 
@@ -14,12 +14,19 @@ python -m venv .venv
 
 (.venv) PS C:\Users\Elton\Desktop\Y2T1 SIT\INF2006 Cloud\Project\dermatology-dashboard>
  python .\scrap_reviews.py `
---urls (Get-Content .\seeds.txt) `
---with-snapshot --snapshots-out .\out\lazada_snapshots.jsonl `
---out .\out\lazada_reviews.jsonl `
---pages 5 `
---min-delay 0.8 --max-delay 1.6 `
---review-next-selector ".next-pagination-item.next a, a[aria-label='Next']" `     
---lang en-SG --verbose `
---snapshot-only `  
---headless
+>>   --urls (Get-Content .\seeds.txt) `
+>>   --with-snapshot --snapshots-out .\out\lazada_snapshots.jsonl `
+>>   --pages 1 `
+>>   --min-delay 3 --max-delay 4.5 `
+>>   --review-next-selector ".next-pagination-item.next a, a[aria-label='Next']" `     
+>>   --lang en-SG --verbose `
+>>   --snapshot-only `
+>> --images-dir .\out\shots `
+>> --profile-dir "C:\Users\Elton\ChromeSelenium" `
+>> --profile-name "Profile 6"
+
+**for new profile (new ip new to scraping), remove:** 
+>> --profile-dir "C:\Users\Elton\ChromeSelenium" `
+>> --profile-name "Profile 6"
+to trigger no profile
+as u are unlikely to identified as bot. <- i had to add this because i think im added to the suspicious list
