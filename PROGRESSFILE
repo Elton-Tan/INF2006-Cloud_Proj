@@ -7,6 +7,11 @@ Next steps:
 4. Snapshot (done)
 5. Meta ad library to know whether competitor uploaded any ads and what kind
 
+To access JWT token: 
+https://us-east-1wjr7jn7tu.auth.us-east-1.amazoncognito.com/login?client_id=79nuljha7jnv5hcass1rsd3jjc&response_type=token&scope=openid+email+phone&redirect_uri=https%3A%2F%2Fd84l1y8p4kdic.cloudfront.net%2F
+^PURELY for dev use only! I will remove this token access method once the final project project!
+
+
 **DO NOT REMOVE**
 (slow scrap to prevent IP ban)
 to enter venv:
