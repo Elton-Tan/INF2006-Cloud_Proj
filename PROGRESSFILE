@@ -3,8 +3,8 @@ This project is about cloud computing INF2006. REQUIRE NODE JS 21 using tailwind
 Next steps:
 1. To solve scrapper bot issue by creating dummy amazon account and set up IP rotation to prevent IP ban <- perhaps we should abandon this
 2. See if we can use google keyword appearances + current lazada trending to forecast demand.
-3. Focus to build infra for POC before proceeding on real implement [Next step: SET S3 to store snapshot]
-4. Snapshot or reviews or both
+3. Focus to build infra for POC before proceeding on real implement 
+4. Snapshot (done)
 5. Meta ad library to know whether competitor uploaded any ads and what kind
 
 **DO NOT REMOVE**
