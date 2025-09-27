@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>WS Test</title>
+<script>
+  const WSS =
+    "wss://u5h4xxv7q0.execute-api.us-east-1.amazonaws.com/production?user=tester";
+  const ws = new WebSocket(WSS);
+  ws.onopen = () => console.log("[ws] open");
+  ws.onmessage = (e) => console.log("[ws] message", e.data);
+  ws.onclose = (e) => console.log("[ws] close", e.code, e.reason);
+  ws.onerror = (e) => console.log("[ws] error", e);
+</script>
+<h1>Open devtools console to see logs</h1>
