@@ -46,27 +46,57 @@ type TrendPoint = {
   forecast?: number;
 };
 
-// API row coming from /api/watchlist
 type ApiWatchRow = {
-  id: number;
+  id: number | string;
+  url: string;
   product: string | null;
   price: number | null;
-  url: string;
-  stock_status: string | null; // e.g. "In Stock", "Out of Stock", null
-  updated_at: string | null;
-  image_url?: string | null; // optional if you add this later
+  stock_status: string | null;
+  image_url: string | null;
+  updated_at?: number | string | null;
 };
 
 // UI row for your table
 type SnapshotRow = {
-  id: string; // keep as string for React keys; convert from number
-  url: string;
-  imageUrl?: string | null;
+  url: string; // identity (canonicalUrl used internally)
   product?: string | null;
-  price?: string | null | number;
-  availability?: "in_stock" | "out_of_stock" | "unknown";
-  status?: "adding" | "done" | "error";
+  price?: number | null;
+  availability?: Availability;
+  imageUrl?: string | null;
+  status?: "adding" | "ok" | "error";
+  updated_at?: number; // unix seconds
 };
+
+function useToast() {
+  const [msg, setMsg] = useState<string | null>(null);
+  const show = (m: string, ms = 2200) => {
+    setMsg(m);
+    window.clearTimeout((show as any)._t);
+    (show as any)._t = window.setTimeout(() => setMsg(null), ms);
+  };
+
+  const Toast = () =>
+    msg ? (
+      <>
+        {/* optional dim overlay — uncomment to add a subtle backdrop */}
+        {/* <div className="fixed inset-0 z-[9998] bg-black/20" /> */}
+
+        <div
+          role="alert"
+          className="fixed left-1/2 top-1/2 z-[9999] -translate-x-1/2 -translate-y-1/2
+                     rounded-xl border border-red-300 bg-red-600 px-4 py-3 text-white
+                     shadow-2xl pointer-events-none"
+        >
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-white" />
+            <span className="text-sm font-medium">{msg}</span>
+          </div>
+        </div>
+      </>
+    ) : null;
+
+  return { show, Toast };
+}
 
 // ===============================================================
 // MOCK DATA (unchanged; used by other views only)
@@ -510,39 +540,194 @@ function BatchAnalytics() {
 // VIEW 3 — SNAPSHOTTER (URL input + table wired to /api/watchlist)
 // ===============================================================
 
-function Snapshotter() {
-  const [url, setUrl] = useState("");
-  const [rows, setRows] = useState<SnapshotRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+type Availability = "in_stock" | "out_of_stock" | "unknown";
 
-  // helper: map API -> UI
-  const mapApiToUi = (r: ApiWatchRow): SnapshotRow => {
-    const availability: SnapshotRow["availability"] = r.stock_status
-      ? r.stock_status.toLowerCase().includes("out")
-        ? "out_of_stock"
-        : "in_stock"
-      : "unknown";
-    return {
-      id: String(r.id),
-      url: r.url,
-      product: r.product,
-      price: r.price, // your API uses numeric price; table prints number or —
-      availability,
-      status: "done",
-      imageUrl: r.image_url ?? null, // stays blank unless you add column
-    };
+function Snapshotter() {
+  // ====== CONFIG ======
+  const API_BASE = "https://unaz4gl673.execute-api.us-east-1.amazonaws.com/dev";
+
+  const AUTH_TOKEN =
+    "eyJraWQiOiJEVjRYZ0VPdEZIRmxDeVloWW8zV2llYzRVekFueTBuUEJPMlVwcEsxQTFjPSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiUy1wOUhaNE9wTFFYV3R0dGNkYlNWUSIsInN1YiI6Ijc0Zjg4NDc4LWIwNzEtNzAyZi1jNzc2LWVlNmNiMTY5OTRlZSIsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX1dqUjdqbjd0VSIsImNvZ25pdG86dXNlcm5hbWUiOiJzcGlydWxpbmEtYWRtaW4iLCJhdWQiOiI3OW51bGpoYTdqbnY1aGNhc3MxcnNkM2pqYyIsImV2ZW50X2lkIjoiNTIwNWNhYmUtZDExOC00NzQ2LWI3OGItMDhlZWMzNTVjNzdiIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3NTg5MDk0NzksImV4cCI6MTc1ODkxMzA3OSwiaWF0IjoxNzU4OTA5NDc5LCJqdGkiOiJiMWU1YWFjNy05MThiLTRmOTAtYTA3ZC04MDhjZTE5Zjc1YTYiLCJlbWFpbCI6ImVsdG9udGFuMDcwOUBnbWFpbC5jb20ifQ.hSh8iXEgwFxHQvPCPulyyIGsyrLShxV5NRWvmMxHTfNxAZAbb6JyEmLRxha68cQEuxMUJdM4ihgpdmuxrPGo6Q0YTTPpQ0qVBeE8LM-Y36J37NXxQVT2HRXCdMinU-KtJn6MKGodd9jFt7x6fE7UVgPzhvKoVb5mrDxj8jSvT5wQLme00QBqyQIHQmlrSvHsETA7d53M43aN0dwx1hnURvMjzeyteB7i5ZZbK8b6_DQyPzSQ-fiY7kKMxJxzVmw86pkj3HapndMzHzKOWe07ibUKVWfUxgRgvZ4mHq8Kpv85YFgQa1ppK82iKH5ZkriYRRZnLCrdXVbebmhTeBVjMw";
+  const WS_BASE =
+    "wss://u5h4xxv7q0.execute-api.us-east-1.amazonaws.com/production";
+  const USER_ID = "tester";
+  const PENDING_KEY = "watchlist.pending.v2";
+  const PENDING_TTL_MS = 5 * 60 * 1000;
+
+  // ====== STATE ======
+  const { show, Toast } = useToast();
+  const [inputUrl, setInputUrl] = useState<string>("");
+  const [rows, setRows] = useState<SnapshotRow[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [wsOpen, setWsOpen] = useState<boolean>(false);
+
+  type PendingEntry = { url: string; ts: number };
+  const [pending, setPending] = useState<Record<string, PendingEntry>>(() => {
+    try {
+      const raw = localStorage.getItem(PENDING_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw) as Record<string, any>;
+      const out: Record<string, PendingEntry> = {};
+      Object.entries(parsed).forEach(([k, v]: [string, any]) => {
+        if (typeof v === "string") out[k] = { url: v, ts: Date.now() };
+        else if (v && typeof v.url === "string" && typeof v.ts === "number")
+          out[k] = v as PendingEntry;
+      });
+      return out;
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+    } catch {}
+  }, [pending]);
+
+  // ====== HELPERS ======
+  const authHeaders = (): Record<string, string> => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${AUTH_TOKEN}`,
+  });
+
+  const canonicalUrl = (raw: string): string => {
+    const trimmed = (raw || "").trim();
+    if (!trimmed) return "";
+    try {
+      const u = new URL(trimmed);
+      u.hash = "";
+      u.host = u.host.toLowerCase().replace(/^(www|m)\./, "");
+      [
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+        "spm",
+        "from",
+        "clickTrackInfo",
+      ].forEach((k) => u.searchParams.delete(k));
+      u.pathname = u.pathname.replace(/\/+$/, "") || "/";
+      return u.toString();
+    } catch {
+      return trimmed.replace(/\/+$/, "");
+    }
   };
 
-  const load = async () => {
+  const toAvail = (s?: string | null): Availability => {
+    if (!s) return "unknown";
+    const v = s.toLowerCase();
+    if (v.includes("out")) return "out_of_stock";
+    if (v.includes("in")) return "in_stock";
+    return "unknown";
+  };
+  const toUnix = (t?: number | string | null): number | undefined => {
+    if (t == null) return undefined;
+    if (typeof t === "number") return t;
+    const ms = Date.parse(t);
+    return Number.isFinite(ms) ? Math.floor(ms / 1000) : undefined;
+  };
+
+  const mapApiToUi = (r: ApiWatchRow): SnapshotRow => ({
+    url: r.url,
+    product: r.product,
+    price: r.price ?? undefined,
+    availability: toAvail(r.stock_status),
+    imageUrl: r.image_url ?? null,
+    status: "ok",
+    updated_at: toUnix(r.updated_at),
+  });
+
+  // Upsert into array by canonical URL; preserve order: newest first
+  const upsertByUrl = (
+    list: SnapshotRow[],
+    row: SnapshotRow
+  ): SnapshotRow[] => {
+    const key = canonicalUrl(row.url);
+    const idx = list.findIndex((x: SnapshotRow) => canonicalUrl(x.url) === key);
+    if (idx === -1) {
+      // new → put at top
+      return [row, ...list];
+    }
+    const copy = list.slice();
+    const old = copy[idx]!;
+    // prefer newer timestamp if available
+    const newer = (row.updated_at ?? 0) >= (old.updated_at ?? 0);
+    copy[idx] = newer ? { ...old, ...row } : { ...row, ...old };
+    return copy;
+  };
+
+  // Remove by canonical URL
+  const removeByUrl = (list: SnapshotRow[], url: string): SnapshotRow[] => {
+    const key = canonicalUrl(url);
+    return list.filter((x: SnapshotRow) => canonicalUrl(x.url) !== key);
+  };
+
+  // ====== SERVER DEDUPE (URL only, no title-based merge) ======
+  const dedupeByUrl = (list: ApiWatchRow[]): ApiWatchRow[] => {
+    const byUrl = new Map<string, ApiWatchRow>();
+    const isNewer = (a: ApiWatchRow, b?: ApiWatchRow): boolean => {
+      if (!b) return true;
+      const au = toUnix(a.updated_at) ?? 0;
+      const bu = toUnix(b.updated_at) ?? 0;
+      return au !== bu ? au > bu : Number(a.id) > Number(b.id);
+    };
+    for (const r of list) {
+      const k = canonicalUrl(r.url);
+      const prev = byUrl.get(k);
+      if (isNewer(r, prev)) byUrl.set(k, r);
+    }
+    return Array.from(byUrl.values());
+  };
+
+  // ====== LOAD / REFRESH ======
+  const load = async (): Promise<void> => {
     try {
       setError(null);
       setLoading(true);
-      const res = await fetch("/api/watchlist"); // CRA proxy → Node API
+
+      const res = await fetch(`${API_BASE}/watchlist`, {
+        headers: authHeaders(),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: ApiWatchRow[] = await res.json();
-      setRows(data.map(mapApiToUi));
-    } catch (e: any) {
+      const data = (await res.json()) as ApiWatchRow[];
+
+      // Real rows from server
+      let next: SnapshotRow[] = [];
+      for (const r of dedupeByUrl(data))
+        next = upsertByUrl(next, mapApiToUi(r));
+
+      // Merge pending placeholders (not yet resolved) + expire TTL
+      const now = Date.now();
+      Object.entries(pending).forEach(([tid, ent]: [string, PendingEntry]) => {
+        const key = canonicalUrl(ent.url);
+        const resolved = next.some(
+          (x: SnapshotRow) => canonicalUrl(x.url) === key
+        );
+        const expired = now - ent.ts > PENDING_TTL_MS;
+        if (!resolved && !expired) {
+          next = upsertByUrl(next, {
+            url: ent.url,
+            status: "adding",
+            availability: "unknown",
+          });
+        } else if (!resolved && expired) {
+          next = upsertByUrl(next, { url: ent.url, status: "error" });
+          setPending((p) => {
+            const { [tid]: _, ...rest } = p;
+            return rest;
+          });
+        } else if (resolved) {
+          setPending((p) => {
+            const { [tid]: _, ...rest } = p;
+            return rest;
+          });
+        }
+      });
+
+      setRows(next);
+    } catch (e) {
       console.error(e);
       setError("Failed to load watchlist");
     } finally {
@@ -551,23 +736,265 @@ function Snapshotter() {
   };
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
-  // keep the Add button UI but make it a no-op for now (we're focusing on list)
-  function addUrl() {
-    if (!url.trim()) return;
-    const id = `tmp-${Date.now()}`;
-    const pending: SnapshotRow = { id, url: url.trim(), status: "adding" };
-    setRows((prev) => [pending, ...prev]);
-    setUrl("");
-    // TODO: POST to /api/watchlist in future; after success, call load()
-    setTimeout(() => {
-      setRows((prev) => prev.filter((r) => r.id !== id));
-      load();
-    }, 1200);
-  }
+  // ====== WEBSOCKET ======
+  type LiveUpsert = {
+    type: "watchlist.row_upserted";
+    row: {
+      url: string;
+      product?: string | null;
+      price?: number | null;
+      stock_status?: string | null;
+      image_url?: string | null;
+      updated_at?: number;
+    };
+  };
+  type LiveFailed = {
+    type: "watchlist.job_failed";
+    url: string;
+    reason?: string;
+  };
+  type LiveMsg = LiveUpsert | LiveFailed;
 
+  const mapLiveToUi = (r: LiveUpsert["row"]): SnapshotRow => ({
+    url: r.url,
+    product: r.product ?? undefined,
+    price: r.price ?? undefined,
+    availability: toAvail(r.stock_status),
+    imageUrl: r.image_url ?? null,
+    status: "ok",
+    updated_at: typeof r.updated_at === "number" ? r.updated_at : undefined,
+  });
+
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    let attempts = 0;
+    let reconnectTimer: number | undefined;
+
+    const connect = (): void => {
+      try {
+        const url = `${WS_BASE}?token=${encodeURIComponent(AUTH_TOKEN)}`;
+        ws = new WebSocket(url);
+        attempts += 1;
+
+        ws.onopen = () => {
+          attempts = 0;
+          setWsOpen(true);
+        };
+
+        ws.onmessage = (e: MessageEvent<string>) => {
+          try {
+            const msg = JSON.parse(e.data) as LiveMsg;
+            if (msg.type === "watchlist.row_upserted") {
+              console.log("[WS] upserted:", msg.row.url);
+              const c = canonicalUrl(msg.row.url);
+              setRows((prev: SnapshotRow[]) =>
+                upsertByUrl(prev, mapLiveToUi(msg.row))
+              );
+              setPending((p) => {
+                const out: Record<string, PendingEntry> = {};
+                Object.entries(p).forEach(
+                  ([tid, ent]: [string, PendingEntry]) => {
+                    if (canonicalUrl(ent.url) !== c) out[tid] = ent;
+                  }
+                );
+                return out;
+              });
+            } else if (msg.type === "watchlist.job_failed") {
+              setRows((prev: SnapshotRow[]) =>
+                upsertByUrl(prev, { url: msg.url, status: "error" })
+              );
+              setPending((p) => {
+                const c = canonicalUrl(msg.url);
+                const out: Record<string, PendingEntry> = {};
+                Object.entries(p).forEach(
+                  ([tid, ent]: [string, PendingEntry]) => {
+                    if (canonicalUrl(ent.url) !== c) out[tid] = ent;
+                  }
+                );
+                return out;
+              });
+              show("Adding failed — please retry.");
+            }
+          } catch (err) {
+            console.error("WS parse error", err);
+          }
+        };
+
+        ws.onclose = () => {
+          setWsOpen(false);
+          const delay = Math.min(1000 * Math.max(1, attempts), 10000);
+          reconnectTimer = window.setTimeout(
+            connect,
+            delay
+          ) as unknown as number;
+        };
+
+        ws.onerror = () => {
+          try {
+            ws?.close();
+          } catch {}
+        };
+      } catch {
+        const delay = Math.min(1000 * Math.max(1, attempts), 10000);
+        reconnectTimer = window.setTimeout(connect, delay) as unknown as number;
+      }
+    };
+
+    connect();
+    return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      try {
+        ws?.close();
+      } catch {}
+    };
+  }, [WS_BASE, AUTH_TOKEN]); // WS_URL stable here
+
+  // ====== FALLBACK POLLING (only when WS closed and we have pending) ======
+  // Reconcile pending regularly whether WS is open or not
+  useEffect(() => {
+    const hasPending = Object.keys(pending).length > 0;
+    if (!hasPending) return;
+
+    let timer: number | undefined;
+    let stopped = false;
+
+    // Poll faster if WS is down, slower if WS is up
+    let delay = wsOpen ? 7000 : 3000;
+    const maxDelay = wsOpen ? 15000 : 12000;
+
+    const tick = async () => {
+      if (stopped) return;
+      if (document.visibilityState === "visible") {
+        await load(); // <- this applies your TTL & merges
+        delay = Math.min(delay * 1.8, maxDelay); // backoff
+      }
+      timer = window.setTimeout(tick, delay) as unknown as number;
+    };
+
+    timer = window.setTimeout(tick, delay) as unknown as number;
+
+    const onVisible = () => {
+      delay = wsOpen ? 7000 : 3000;
+      void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      stopped = true;
+    };
+  }, [pending, wsOpen]); // <-- keep both deps
+
+  // ====== ADD FLOW ======
+  // ====== ADD FLOW ======
+  const addUrl = async (): Promise<void> => {
+    const clean = inputUrl.trim();
+    if (!clean) return;
+
+    const key = canonicalUrl(clean);
+
+    // prevent duplicates already in UI
+    const exists = rows.some(
+      (x: SnapshotRow) =>
+        canonicalUrl(x.url) === key &&
+        (x.status === "ok" || x.status === "adding")
+    );
+    if (exists) {
+      show("Product already in watchlist.");
+      return;
+    }
+
+    // (best-effort) server duplicate check
+    try {
+      const res = await fetch(`${API_BASE}/watchlist`, {
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as ApiWatchRow[];
+        const found = dedupeByUrl(data).some(
+          (r) => canonicalUrl(r.url) === key
+        );
+        if (found) {
+          show("Product already in watchlist.");
+          return;
+        }
+      }
+    } catch {}
+
+    // --- optimistic placeholder (ONCE) ---
+    const tempId = `tmp-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 7)}`;
+    setRows((prev) =>
+      upsertByUrl(prev, {
+        url: clean,
+        status: "adding",
+        availability: "unknown",
+      })
+    );
+    setPending((p) => ({ ...p, [tempId]: { url: clean, ts: Date.now() } }));
+    setInputUrl("");
+
+    // enqueue
+    try {
+      const res = await fetch(`${API_BASE}/watchlist`, {
+        method: "POST",
+        headers: authHeaders(), // Authorization: Bearer <JWT>
+        body: JSON.stringify({ url: clean }), // ← no user_id here
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      console.error(e);
+      setRows((prev) => upsertByUrl(prev, { url: clean, status: "error" }));
+      setPending((p) => {
+        const { [tempId]: _, ...rest } = p;
+        return rest;
+      });
+      show("Failed to add. Try again.");
+      return;
+    }
+
+    // --- reconciliation loop (ALWAYS run; exits on success) ---
+    const START = Date.now();
+    const TIMEOUT = 5 * 60 * 1000; // match your TTL window if you like
+    const INTERVAL = 3000;
+
+    const loop = async (): Promise<void> => {
+      try {
+        const r = await fetch(`${API_BASE}/watchlist`, {
+          headers: authHeaders(),
+        });
+        if (r.ok) {
+          const arr = (await r.json()) as ApiWatchRow[];
+          const hit = dedupeByUrl(arr).find((x) => canonicalUrl(x.url) === key);
+          if (hit) {
+            setRows((prev) => upsertByUrl(prev, mapApiToUi(hit)));
+            setPending((p) => {
+              const { [tempId]: _, ...rest } = p;
+              return rest;
+            });
+            return; // done
+          }
+        }
+      } catch {}
+      if (Date.now() - START < TIMEOUT) setTimeout(loop, INTERVAL);
+      // else: your watchdog effect + TTL will flip it to error
+    };
+
+    setTimeout(loop, INTERVAL);
+    // small nudge for perceived speed
+    setTimeout(() => {
+      void load();
+    }, 4000);
+  };
+
+  // ====== RENDER ======
   return (
     <section className="rounded-2xl border bg-white p-4 shadow-sm">
       <h2 className="mb-1 text-lg font-semibold">Snapshotter</h2>
@@ -576,30 +1003,38 @@ function Snapshotter() {
         with scroll.
       </p>
 
-      {/* Input row */}
       <div className="mb-3 flex gap-2">
         <input
           className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm"
           placeholder="https://www.lazada.sg/products/..."
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          value={inputUrl}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setInputUrl(e.target.value)
+          }
         />
         <button
           className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
           onClick={addUrl}
-          title="Currently demo only — wires to POST later"
         >
           Add
         </button>
         <button
           className="rounded-xl bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
-          onClick={load}
+          onClick={() => {
+            void load();
+          }}
         >
           Refresh
         </button>
       </div>
 
-      {/* Table */}
+      <div className="mb-2 text-xs">
+        Live:&nbsp;
+        <span className={wsOpen ? "text-emerald-600" : "text-amber-600"}>
+          {wsOpen ? "connected" : "reconnecting / fallback polling"}
+        </span>
+      </div>
+
       <div className="max-h-80 overflow-auto rounded-xl border">
         <table className="min-w-full text-left text-sm">
           <thead className="sticky top-0 bg-gray-50 text-gray-600">
@@ -635,78 +1070,112 @@ function Snapshotter() {
             )}
             {!loading &&
               !error &&
-              rows.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="px-3 py-2">
-                    {r.imageUrl ? (
-                      <img
-                        src={r.imageUrl}
-                        alt={r.product || ""}
-                        className="h-12 w-12 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded-lg bg-gray-100" />
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="line-clamp-2 max-w-xs">
-                      {r.product || (
+              rows.map((r: SnapshotRow) => {
+                const key = canonicalUrl(r.url); // key by URL (prevents dupes)
+                return (
+                  <tr key={key} className="border-t">
+                    <td className="px-3 py-2">
+                      {r.imageUrl ? (
+                        <img
+                          src={r.imageUrl}
+                          alt={r.product || ""}
+                          className="h-12 w-12 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-lg bg-gray-100" />
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="line-clamp-2 max-w-xs">
+                        {r.product || (
+                          <span className="italic text-gray-500">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      {typeof r.price === "number" ? (
+                        r.price
+                      ) : (
                         <span className="italic text-gray-500">—</span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    {r.price ?? <span className="italic text-gray-500">—</span>}
-                  </td>
-                  <td className="px-3 py-2">
-                    {r.status === "adding" ? (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                        pending…
-                      </span>
-                    ) : r.availability === "in_stock" ? (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
-                        in stock
-                      </span>
-                    ) : r.availability === "out_of_stock" ? (
-                      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">
-                        out of stock
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                        unknown
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={r.url}
-                        className="truncate text-blue-600 underline"
-                        title={r.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {r.url}
-                      </a>
-                      {r.status === "adding" && (
-                        <span className="text-xs text-gray-500">
-                          • adding url {r.url}
+                    </td>
+                    <td className="px-3 py-2">
+                      {r.status === "adding" ? (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                          adding…
+                        </span>
+                      ) : r.status === "error" ? (
+                        <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">
+                          error
+                        </span>
+                      ) : r.availability === "in_stock" ? (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
+                          in stock
+                        </span>
+                      ) : r.availability === "out_of_stock" ? (
+                        <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">
+                          out of stock
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                          unknown
                         </span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={r.url}
+                          className="inline-flex items-center gap-1 text-blue-600 underline"
+                          title={r.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View product <span aria-hidden>↗</span>
+                        </a>
+                        {r.status === "adding" && (
+                          <span className="text-xs text-gray-500">
+                            queuing…
+                          </span>
+                        )}
+                        {r.status === "error" && (
+                          <>
+                            <span className="text-xs text-rose-600">
+                              adding failed — please retry
+                            </span>
+                            <button
+                              className="text-xs underline"
+                              onClick={() => {
+                                setInputUrl(r.url);
+                                void addUrl();
+                              }}
+                            >
+                              Retry
+                            </button>
+                            <button
+                              className="text-xs underline"
+                              onClick={() =>
+                                setRows((prev) => removeByUrl(prev, r.url))
+                              }
+                            >
+                              Remove
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
 
       <div className="mt-3 text-xs text-gray-500">
-        Notes: This table now **reads** from <code>/api/watchlist</code>. The
-        “Add” button is a demo — when you’re ready, wire it to{" "}
-        <code>POST /api/watchlist</code> and call <code>load()</code> after
-        success.
+        Uses GET/POST {API_BASE.replace("https://", "")}/watchlist with an
+        Authorization header.
       </div>
+      <Toast />
     </section>
   );
 }
