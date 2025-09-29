@@ -132,8 +132,9 @@ resource "aws_lambda_function" "worker" {
   # pymysql layer you prepared
   layers = [
     aws_lambda_layer_version.mysql_layer.arn,
-    aws_lambda_layer_version.requests_layer.arn
-    ]
+    aws_lambda_layer_version.requests_layer.arn,
+    aws_lambda_layer_version.bs4.arn
+  ]
 
   vpc_config {
     subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
@@ -183,3 +184,43 @@ resource "aws_lambda_event_source_mapping" "sqs_to_worker" {
   batch_size       = 5
   enabled          = true
 }
+
+data "archive_file" "delete_watchlist_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/delete_watchlist"
+  output_path = "${path.module}/delete_watchlist.zip"
+}
+
+# Lambda function
+resource "aws_lambda_function" "delete_watchlist" {
+  function_name = "${var.project}-${var.env}-delete-watchlist"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"
+  filename      = data.archive_file.delete_watchlist_zip.output_path
+  memory_size   = 256
+  timeout       = 15
+  architectures = ["x86_64"]
+
+  # Reuse the same env map you already defined (gives REGION, DB_SECRET_ARN, etc.)
+  environment {
+    variables = {
+      REGION        = local.lambda_env.REGION
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+    }
+  }
+
+  # Same VPC settings as your DB-talking lambdas (so it can reach RDS)
+  vpc_config {
+    subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    # IMPORTANT: use the SAME security group you use for worker/watchlist_read
+    # Replace aws_security_group.lambda.id if your project uses a different one.
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn,
+    aws_lambda_layer_version.requests_layer.arn
+  ]
+}
+

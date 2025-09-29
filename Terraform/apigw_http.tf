@@ -16,14 +16,14 @@ resource "aws_apigatewayv2_api" "http" {
   }
 }
 
-# Stage with auto deploy (no manual deployment resources needed)
+# Stage with auto deploy
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.http.id
   name        = "$default"
   auto_deploy = true
 }
 
-# Authorizer (Cognito)
+# Authorizer (Cognito → JWT)
 resource "aws_apigatewayv2_authorizer" "jwt" {
   api_id           = aws_apigatewayv2_api.http.id
   name             = "cognito-jwt"
@@ -31,19 +31,16 @@ resource "aws_apigatewayv2_authorizer" "jwt" {
   identity_sources = ["$request.header.Authorization"]
 
   jwt_configuration {
-    # Audience must match the App Client ID you created
-    audience = [aws_cognito_user_pool_client.spa.id]
-    # Issuer is the Cognito User Pool issuer
-    issuer = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
+    audience = [aws_cognito_user_pool_client.spa.id] # app client ID
+    issuer   = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
   }
 }
 
 # =========================
-# Integrations (examples)
-# Replace function names with your actual Lambda resources where needed
+# Integrations
 # =========================
 
-# Enqueue (POST /enqueue)
+# POST /enqueue
 resource "aws_apigatewayv2_integration" "enqueue" {
   api_id                 = aws_apigatewayv2_api.http.id
   integration_type       = "AWS_PROXY"
@@ -52,7 +49,7 @@ resource "aws_apigatewayv2_integration" "enqueue" {
   timeout_milliseconds   = 29000
 }
 
-# Watchlist (GET /watchlist)
+# GET /watchlist
 resource "aws_apigatewayv2_integration" "watchlist" {
   api_id                 = aws_apigatewayv2_api.http.id
   integration_type       = "AWS_PROXY"
@@ -61,21 +58,28 @@ resource "aws_apigatewayv2_integration" "watchlist" {
   timeout_milliseconds   = 29000
 }
 
-# (If you have public routes like /health, create their integrations too)
+# DELETE /watchlist
+resource "aws_apigatewayv2_integration" "delete_watchlist" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.delete_watchlist.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
 
 # =========================
-# Routes
+# Routes (protected + public)
 # =========================
 
-# Protected routes (ALL require valid JWT)
 locals {
+  # All JWT-protected routes
   protected_routes = {
-    "POST /enqueue"  = aws_apigatewayv2_integration.enqueue.id
-    "GET /watchlist" = aws_apigatewayv2_integration.watchlist.id
-    # Add more: "GET /something" = aws_apigatewayv2_integration.something.id
+    "POST /enqueue"     = aws_apigatewayv2_integration.enqueue.id
+    "GET /watchlist"    = aws_apigatewayv2_integration.watchlist.id
+    "DELETE /watchlist" = aws_apigatewayv2_integration.delete_watchlist.id
   }
 
-  # Example public routes (keep empty if none)
+  # Add public routes if any (empty by default)
   public_routes = {
     # "GET /health" = aws_apigatewayv2_integration.health.id
   }
@@ -88,6 +92,8 @@ resource "aws_apigatewayv2_route" "protected" {
   target             = "integrations/${each.value}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
+  # If you enforce scopes, uncomment and set:
+  # authorization_scopes = ["watchlist.delete"] # for DELETE route, etc.
 }
 
 resource "aws_apigatewayv2_route" "public" {
@@ -95,27 +101,26 @@ resource "aws_apigatewayv2_route" "public" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = each.key
   target    = "integrations/${each.value}"
-  # No auth here (authorization_type defaults to NONE)
 }
 
 # =========================
 # Lambda permissions (API → Lambda invoke)
 # =========================
 
-resource "aws_lambda_permission" "api_invoke_enqueue" {
-  statement_id  = "AllowAPIGInvokeEnqueue"
+locals {
+  # Function names for permissions
+  lambda_permissions = {
+    enqueue          = aws_lambda_function.enqueue.function_name
+    watchlist_read   = aws_lambda_function.watchlist_read.function_name
+    delete_watchlist = aws_lambda_function.delete_watchlist.function_name
+  }
+}
+
+resource "aws_lambda_permission" "api_invoke" {
+  for_each      = local.lambda_permissions
+  statement_id  = "AllowAPIGInvoke-${each.key}"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.enqueue.function_name
+  function_name = each.value
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }
-
-resource "aws_lambda_permission" "api_invoke_watchlist" {
-  statement_id  = "AllowAPIGInvokeWatchlist"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.watchlist_read.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
-}
-
-# (Add a lambda_permission per Lambda you integrate)

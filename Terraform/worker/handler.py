@@ -1,10 +1,16 @@
 # worker_handler.py  (Handler: worker_handler.lambda_handler)  -- SQS trigger
-import json, os, logging, time
+import json, os, logging, time, re
 import pymysql, requests, boto3
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from botocore.config import Config as BotoConfig
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
+
+# ---------- Optional: BeautifulSoup ----------
+try:
+    from bs4 import BeautifulSoup
+except Exception:
+    BeautifulSoup = None  # we will raise a clear error if it's missing
 
 # -------------------- Logging setup --------------------
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -27,8 +33,9 @@ _api = boto3.client("apigatewaymanagementapi", endpoint_url=WS_ENDPOINT) if WS_E
 
 _secret_cache = {}
 
-
-# -------------------- Secret helpers --------------------
+# =========================
+# Secrets / Config helpers
+# =========================
 def _get_secret(secret_id: str):
     if not secret_id:
         return None
@@ -45,7 +52,6 @@ def _get_secret(secret_id: str):
     _secret_cache[secret_id] = val
     return val
 
-
 def _load_db_cfg():
     s = _get_secret(DB_SECRET_ARN) or {}
     return {
@@ -56,7 +62,6 @@ def _load_db_cfg():
         "database": s.get("database") or os.getenv("DB_NAME"),
     }
 
-
 def _load_scraper_api_key():
     s = _get_secret(SCRAPER_SECRET_ARN)
     if isinstance(s, dict):
@@ -64,8 +69,9 @@ def _load_scraper_api_key():
         return s.get("Scrapper-API") or s.get("ScraperAPI") or s.get("api_key")
     return str(s).strip() if s else None
 
-
-# -------------------- HTTP client --------------------
+# =========================
+# HTTP session
+# =========================
 def _http():
     sess = requests.Session()
     retry = Retry(
@@ -77,16 +83,316 @@ def _http():
     sess.mount("https://", HTTPAdapter(max_retries=retry))
     return sess
 
+# =========================
+# Utils / Normalizers
+# =========================
+NUM_RE = re.compile(r"[\d.,]+")
+TRACKING_SALE_RE = re.compile(r'"pdt_sale_price"\s*:\s*"([^"]+)"')
+TRACKING_PRICE_RE = re.compile(r'"pdt_price"\s*:\s*"([^"]+)"')
+TRACKING_LIST_RE  = re.compile(r'"pdt_list_price"\s*:\s*"([^"]+)"')
 
-# -------------------- ScrapingBee with rich logging --------------------
-def _scrape(url: str, api_key: str):
-    rules = {
-        "summary": (
-            "extract product name as 'product', current price as 'price' (number), "
-            "main product image url as 'image_url', and availability "
-            "(true if Add to Cart is enabled, false otherwise) as 'availability'"
-        )
+V2_SALE_RE   = re.compile(r'<span[^>]*class="[^"]*pdp-v2-product-price-content-salePrice-amount[^"]*"[^>]*>([^<]+)</span>', re.I)
+V2_ORIG_RE   = re.compile(r'<span[^>]*class="[^"]*pdp-v2-product-price-content-originalPrice-amount[^"]*"[^>]*>([^<]+)</span>', re.I)
+
+def _to_float(s: str):
+    if not s:
+        return None
+    m = NUM_RE.search(str(s))
+    if not m:
+        return None
+    try:
+        return float(m.group(0).replace(",", ""))
+    except Exception:
+        return None
+
+def _fallback_product_from_url(url: str) -> str:
+    """Generate a non-empty placeholder to avoid 1048."""
+    p = urlparse(url)
+    tail = (p.path.rsplit("/", 1)[-1] or p.netloc).replace("-", " ").strip() or p.netloc
+    return (tail[:200] or "(unknown product)") or "(unknown product)"
+
+def _norm_url(u: str | None, base: str) -> str | None:
+    """Normalize scheme-relative or relative URLs to absolute https URLs."""
+    if not u:
+        return None
+    u = u.strip().strip('"').strip("'")
+    if u.startswith("//"):
+        return "https:" + u
+    if re.match(r"^https?://", u, re.I):
+        return u
+    try:
+        return urljoin(base, u)
+    except Exception:
+        return u
+
+# =========================
+# Site-specific parsers
+# =========================
+def _parse_lazada(body: str, url: str):
+    """
+    Returns normalized dict:
+    { product, price(final), stock_status, image_url, _debug: {original_price, discount_pct} }
+    """
+    if not BeautifulSoup:
+        raise RuntimeError("BeautifulSoup (bs4) is required. Add it to your layer or package.")
+    soup = BeautifulSoup(body, "html.parser")
+
+    # --- PRODUCT NAME ---
+    product = None
+    for s in soup.select('script[type="application/ld+json"]'):
+        try:
+            data = json.loads(s.get_text(strip=True) or "{}")
+            blocks = data if isinstance(data, list) else [data]
+            for d in blocks:
+                if isinstance(d, dict) and d.get("name"):
+                    product = str(d["name"]).strip()
+                    if product:
+                        break
+            if product:
+                break
+        except Exception:
+            pass
+    if not product:
+        for sel in ["#module_product_title h1",
+                    ".pdp-mod-product-badge-title",
+                    "meta[property='og:title']",
+                    "title"]:
+            el = soup.select_one(sel)
+            if not el:
+                continue
+            product = (el.get("content") if el.name == "meta" else el.get_text()).strip()
+            if product:
+                break
+    if not product:
+        product = _fallback_product_from_url(url)
+
+    # --- IMAGE URL ---
+    image_url = None
+    # JSON-LD image
+    for s in soup.select('script[type="application/ld+json"]'):
+        try:
+            data = json.loads(s.get_text(strip=True) or "{}")
+            blocks = data if isinstance(data, list) else [data]
+            for d in blocks:
+                img = d.get("image")
+                if isinstance(img, list) and img:
+                    image_url = str(img[0]).strip()
+                    break
+                if isinstance(img, str) and img:
+                    image_url = img.strip()
+                    break
+            if image_url:
+                break
+        except Exception:
+            pass
+    if not image_url:
+        m = soup.select_one('meta[property="og:image"], meta[name="og:image"]')
+        if m and m.get("content"):
+            image_url = m["content"].strip()
+
+    image_url = _norm_url(image_url, url)
+
+    # --- PRICES (final & list) ---
+    sale_candidates = []
+    list_candidates = []
+
+    # tracking JSON (sometimes present)
+    m = TRACKING_SALE_RE.search(body)
+    if m:
+        sale_candidates.append(_to_float(m.group(1)))
+
+    m = TRACKING_LIST_RE.search(body)
+    if m:
+        list_candidates.append(_to_float(m.group(1)))
+
+    m = TRACKING_PRICE_RE.search(body)  # pdt_price can be either
+    if m:
+        val = _to_float(m.group(1))
+        if val:
+            sale_candidates.append(val)
+
+    # JSON-LD offers
+    for s in soup.select('script[type="application/ld+json"]'):
+        try:
+            data = json.loads(s.get_text(strip=True) or "{}")
+            blocks = data if isinstance(data, list) else [data]
+            for d in blocks:
+                offers = d.get("offers")
+                offers = offers if isinstance(offers, list) else [offers] if isinstance(offers, dict) else []
+                for o in offers:
+                    sale_val = o.get("price") or (o.get("priceSpecification") or {}).get("price")
+                    if sale_val:
+                        sale_candidates.append(_to_float(str(sale_val)))
+                    if o.get("@type") == "AggregateOffer":
+                        if o.get("lowPrice"):
+                            sale_candidates.append(_to_float(str(o["lowPrice"])))
+                        if o.get("highPrice"):
+                            list_candidates.append(_to_float(str(o["highPrice"])))
+        except Exception:
+            pass
+
+    # DOM buy-box (v2 classes first, then legacy)
+    for sel in [
+        "span.pdp-v2-product-price-content-salePrice-amount",
+        "[data-qa-locator='product-price']",
+        "[data-qa-locator='price']",
+        "[class*='pdp-price']",
+        "meta[itemprop='price']",
+    ]:
+        el = soup.select_one(sel)
+        if not el:
+            continue
+        raw = el.get("content") if el.name == "meta" else el.get_text()
+        val = _to_float(raw)
+        if val:
+            sale_candidates.append(val)
+            break
+
+    # If not found via CSS, fall back to regex on raw HTML for v2 sale price
+    if not sale_candidates:
+        m = V2_SALE_RE.search(body)
+        if m:
+            val = _to_float(m.group(1))
+            if val:
+                sale_candidates.append(val)
+
+    # Original/list (strikethrough etc.; prefer v2 classes)
+    for sel in [
+        "span.pdp-v2-product-price-content-originalPrice-amount",
+        "[data-qa-locator='original-price']",
+        ".pdp-price_type_deleted",
+        ".pdp-price_del",
+        ".pdp-price_product_price__old",
+        ".product-price-original",
+        "del .pdp-price, del, .pdp-price-del",
+    ]:
+        el = soup.select_one(sel)
+        if not el:
+            continue
+        val = _to_float(el.get_text())
+        if val:
+            list_candidates.append(val)
+            break
+
+    if not list_candidates:
+        m = V2_ORIG_RE.search(body)
+        if m:
+            val = _to_float(m.group(1))
+            if val:
+                list_candidates.append(val)
+
+    sale_candidates = [v for v in sale_candidates if v and v > 0]
+    list_candidates = [v for v in list_candidates if v and v > 0]
+
+    price_final = min(sale_candidates) if sale_candidates else None
+    price_list = (max(list_candidates) if list_candidates else None)
+
+    # If inverted, fix it
+    if price_final and price_list and price_final > price_list:
+        price_final, price_list = price_list, price_final
+
+    discount_pct = None
+    if price_final and price_list and price_list > price_final:
+        discount_pct = round((price_list - price_final) / price_list * 100, 2)
+
+    # --- AVAILABILITY ---
+    availability = None
+    for s in soup.select('script[type="application/ld+json"]'):
+        try:
+            data = json.loads(s.get_text(strip=True) or "{}")
+            blocks = data if isinstance(data, list) else [data]
+            for d in blocks:
+                offers = d.get("offers")
+                offers = offers if isinstance(offers, list) else [offers] if isinstance(offers, dict) else []
+                for o in offers:
+                    avail = str(o.get("availability") or "").lower()
+                    if "outofstock" in avail:
+                        availability = "out_of_stock"
+                        break
+                    if "instock" in avail or "preorder" in avail:
+                        availability = "in_stock"
+                        break
+                if availability:
+                    break
+            if availability:
+                break
+        except Exception:
+            pass
+    if availability is None:
+        txt = soup.get_text(" ", strip=True).lower()
+        if any(w in txt for w in ["out of stock", "sold out", "unavailable"]):
+            availability = "out_of_stock"
+        elif any(w in txt for w in ["add to cart", "buy now"]):
+            availability = "in_stock"
+        else:
+            availability = "unknown"
+
+    stock_status = "In Stock" if availability == "in_stock" else ("Out of Stock" if availability == "out_of_stock" else "Unknown")
+
+    return {
+        "product": product,
+        "price": price_final,  # store discounted/final price
+        "stock_status": stock_status,
+        "image_url": image_url,
+        "_debug": {
+            "original_price": price_list,
+            "discount_pct": discount_pct
+        }
     }
+
+def _parse_generic_meta(body: str, url: str):
+    """
+    Very light fallback for unknown domains. You can keep or remove.
+    """
+    if not BeautifulSoup:
+        raise RuntimeError("BeautifulSoup (bs4) is required. Add it to your layer or package.")
+    soup = BeautifulSoup(body, "html.parser")
+    product = None
+    for sel in ["meta[property='og:title']", "title"]:
+        el = soup.select_one(sel)
+        if not el:
+            continue
+        product = (el.get("content") if el.name == "meta" else el.get_text()).strip()
+        if product:
+            break
+    if not product:
+        product = _fallback_product_from_url(url)
+    img = None
+    m = soup.select_one('meta[property="og:image"], meta[name="og:image"]')
+    if m and m.get("content"):
+        img = m["content"].strip()
+    img = _norm_url(img, url)
+    # No reliable price parser here; set None
+    return {"product": product, "price": None, "stock_status": "Unknown", "image_url": img}
+
+# Map host -> parser
+SITE_PARSERS = {
+    # Lazada SG (add more lazada ccTLDs if needed)
+    "www.lazada.sg": _parse_lazada,
+    "lazada.sg": _parse_lazada,
+}
+
+def _choose_parser(host: str):
+    # Exact match first
+    if host in SITE_PARSERS:
+        return SITE_PARSERS[host]
+    # Heuristics
+    if "lazada" in host:
+        return _parse_lazada
+    # Default
+    return _parse_generic_meta
+
+# =========================
+# Scraping via ScrapingBee
+# =========================
+def _scrape(url: str, api_key: str):
+    """
+    Fetches HTML (no AI extract), routes to a site parser, and returns normalized snapshot.
+    """
+    p = urlparse(url)
+    host = p.netloc.lower()
+    parser = _choose_parser(host)
+
     params = {
         "api_key": api_key,
         "url": url,
@@ -95,99 +401,101 @@ def _scrape(url: str, api_key: str):
         "wait": "1000",
         "block_resources": "true",
         "render_js": "false",
-        "ai_extract_rules": json.dumps(rules),
+        "return_page_source": "true",  # HTML mode
     }
 
-    # Log request (redact key)
-    log.info("ScrapingBee request: url=%s country_code=%s stealth=%s render_js=%s",
-             params["url"], params["country_code"], params["stealth_proxy"], params["render_js"])
-
+    log.info("ScrapingBee request(HTML): url=%s host=%s", url, host)
     sess = _http()
+    r = sess.get("https://app.scrapingbee.com/api/v1", params=params, timeout=(5, 120))
+
+    log.info("ScrapingBee response: status=%s headers=%s",
+             r.status_code, {k: v for k, v in r.headers.items() if k.lower() in (
+                 "content-type", "x-remaining-credits", "x-scrapingbee-request-id",
+                 "x-request-id", "date"
+             )})
+
+    body = r.text or ""
+    if r.status_code >= 400 or not body.strip():
+        log.error("ScrapingBee error: %s %s", r.status_code, (body[:LOG_SNIP]))
+        r.raise_for_status()
+
+    # Parse with site-specific parser
+    snap = parser(body, url)
+
+    # Ensure required fields exist / normalize
+    if not (snap.get("product") or "").strip():
+        snap["product"] = _fallback_product_from_url(url)
+
+    # Price must be final (after discount) for storage
+    price_raw = snap.get("price")
     try:
-        r = sess.get("https://app.scrapingbee.com/api/v1", params=params, timeout=(5, 120))
-        # Log status + selected headers
-        log.info("ScrapingBee response: status=%s headers=%s",
-                 r.status_code, {k: v for k, v in r.headers.items() if k.lower() in (
-                     "content-type", "x-remaining-credits", "x-scrapingbee-request-id",
-                     "x-request-id", "date"
-                 )})
+        snap["price"] = float(price_raw) if price_raw is not None else None
+    except Exception:
+        snap["price"] = None
 
-        body_for_log = r.text[:LOG_SNIP] if r.text else ""
-        if r.status_code >= 400:
-            log.error("ScrapingBee error status=%s body=%s", r.status_code, body_for_log)
-            r.raise_for_status()
+    # Stock status normalized
+    ss = (snap.get("stock_status") or "").lower()
+    if "in stock" in ss or ss == "instock":
+        snap["stock_status"] = "In Stock"
+    elif "out of stock" in ss or ss == "out_of_stock":
+        snap["stock_status"] = "Out of Stock"
+    else:
+        snap["stock_status"] = "Unknown"
 
-        # Try parse JSON, fall back to text
+    # If we likely captured only a single (possibly list) price, try one JS render to discover discount
+    only_list_seen = bool(snap.get("price")) and not snap.get("_debug", {}).get("original_price")
+    if only_list_seen:
         try:
-            data = r.json()
-            log.debug("ScrapingBee JSON: %s", json.dumps(data, ensure_ascii=False)[:LOG_SNIP])
-        except Exception as je:
-            log.warning("Failed to parse JSON from ScrapingBee: %s; body(snipped)=%s", je, body_for_log)
-            raise
-
-        # Some variants return {"summary":[{...}]}, others directly dicts
-        item = None
-        if isinstance(data, dict):
-            summary = data.get("summary")
-            if isinstance(summary, list) and summary:
-                item = summary[0]
-            elif isinstance(summary, dict):
-                item = summary
-            else:
-                # try top-level
-                item = data
-        elif isinstance(data, list) and data:
-            item = data[0]
-
-        if not isinstance(item, dict):
-            log.error("Unexpected ScrapingBee payload shape: %s", type(item).__name__)
-            item = {}
-
-        # Log the extracted fields for visibility
-        log.info("Extracted (pre-normalize): %s",
-                 {k: item.get(k) for k in ("product", "product_name", "price", "image_url", "availability")})
-
-        # Normalize fields
-        price_raw = item.get("price")
-        try:
-            price = float(str(price_raw).replace(",", "")) if price_raw is not None else None
+            params_js = {
+                "api_key": api_key,
+                "url": url,
+                "country_code": "sg",
+                "stealth_proxy": "true",
+                "wait": "2500",
+                "block_resources": "true",
+                "render_js": "true",
+                "return_page_source": "true",
+            }
+            r2 = _http().get("https://app.scrapingbee.com/api/v1", params=params_js, timeout=(5, 120))
+            if r2.ok and (r2.text or "").strip():
+                snap2 = parser(r2.text, url)
+                try:
+                    p1 = float(snap.get("price")) if snap.get("price") is not None else None
+                except Exception:
+                    p1 = None
+                try:
+                    p2 = float(snap2.get("price")) if snap2.get("price") is not None else None
+                except Exception:
+                    p2 = None
+                # prefer strictly lower price (discounted)
+                if p2 is not None and (p1 is None or p2 < p1):
+                    ss2 = (snap2.get("stock_status") or snap.get("stock_status"))
+                    img2 = snap2.get("image_url") or snap.get("image_url")
+                    snap = {
+                        "product": snap2.get("product") or snap.get("product"),
+                        "price": p2,
+                        "stock_status": ss2,
+                        "image_url": _norm_url(img2, url),
+                        "_debug": snap2.get("_debug", {}),
+                    }
         except Exception:
-            price = None
+            pass
 
-        stock = "In Stock" if item.get("availability") else "Out of Stock"
-        product_name = item.get("product") or item.get("product_name")
-        image_url = item.get("image_url")
+    log.info("Normalized snapshot: %s", {k: snap.get(k) for k in ("product", "price", "stock_status", "image_url")})
+    return snap
 
-        # Return normalized snapshot + raw for debugging
-        snap = {
-            "product": product_name,
-            "price": price,
-            "stock_status": stock,
-            "image_url": image_url,
-            "_raw": item  # keep raw in memory (not stored), for logs if needed
-        }
-        log.info("Normalized snapshot: %s", {k: snap[k] for k in ("product", "price", "stock_status", "image_url")})
-        return snap
-
-    except requests.RequestException as re:
-        log.exception("ScrapingBee request failed for %s", url)
-        raise
-
-
-# -------------------- DB helpers --------------------
-def _fallback_product_from_url(url: str) -> str:
-    """Generate a non-empty placeholder to avoid 1048."""
-    p = urlparse(url)
-    tail = (p.path.rsplit("/", 1)[-1] or p.netloc).replace("-", " ").strip() or p.netloc
-    return (tail[:200] or "(unknown product)") or "(unknown product)"
-
-
+# =========================
+# DB helpers
+# =========================
 def _insert_snapshot(conn, url: str, snap: dict):
     # Coalesce product to avoid IntegrityError 1048
     product = (snap.get("product") or "").strip()
     if not product:
         product = _fallback_product_from_url(url)
         log.warning("Missing product from scraper; using fallback='%s' for url=%s", product, url)
+
+    # Always normalize image URL before storing
+    img = _norm_url(snap.get("image_url"), url)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -201,29 +509,27 @@ def _insert_snapshot(conn, url: str, snap: dict):
               image_url=VALUES(image_url),
               updated_at=NOW()
             """,
-            (url, product, snap.get("price"), snap.get("stock_status"), snap.get("image_url")),
+            (url, product, snap.get("price"), snap.get("stock_status"), img),
         )
 
-
-# -------------------- WebSocket push helpers --------------------
+# =========================
+# WebSocket push helpers
+# =========================
 def _post_to(cid: str, payload_bytes: bytes):
     try:
         _api.post_to_connection(ConnectionId=cid, Data=payload_bytes)
         return True
     except _api.exceptions.GoneException:
-        # client disconnected; signal caller to delete from table
         return False
     except Exception:
         log.exception("post_to_connection failed for %s", cid)
         return False
-
 
 def _delete_conn(pk: str, sk: str):
     try:
         _ddb.delete_item(TableName=CONN_TABLE, Key={"pk": {"S": pk}, "sk": {"S": sk}})
     except Exception:
         log.exception("Failed to delete stale connection %s/%s", pk, sk)
-
 
 def _fanout_items(user_id: str | None):
     if not CONN_TABLE:
@@ -238,7 +544,6 @@ def _fanout_items(user_id: str | None):
         return resp.get("Items", [])
     resp = _ddb.scan(TableName=CONN_TABLE, ProjectionExpression="pk, sk, connectionId")
     return resp.get("Items", [])
-
 
 def _push_row_upserted(user_id: str | None, row: dict):
     if not (_api and CONN_TABLE):
@@ -255,7 +560,6 @@ def _push_row_upserted(user_id: str | None, row: dict):
         ok = _post_to(cid, payload)
         if not ok and pk and sk:
             _delete_conn(pk, sk)
-
 
 def _push_job_failed(user_id: str | None, url: str, reason: str):
     if not (_api and CONN_TABLE):
@@ -277,8 +581,9 @@ def _push_job_failed(user_id: str | None, url: str, reason: str):
         if not ok and pk and sk:
             _delete_conn(pk, sk)
 
-
-# -------------------- Lambda handler --------------------
+# =========================
+# Lambda handler
+# =========================
 def lambda_handler(event, _ctx):
     db = _load_db_cfg()
     api_key = _load_scraper_api_key()
@@ -294,9 +599,7 @@ def lambda_handler(event, _ctx):
         log.error("Missing config: %s", ", ".join(missing))
         raise RuntimeError("Missing required config: " + ", ".join(missing))
 
-    # Show DB host and user (not password)
-    log.info("DB target: host=%s port=%s user=%s db=%s",
-             db["host"], db["port"], db["user"], db["database"])
+    log.info("DB target: host=%s port=%s user=%s db=%s", db["host"], db["port"], db["user"], db["database"])
     log.info("WS configured: %s (table=%s)", bool(_api), CONN_TABLE or "-")
 
     conn = pymysql.connect(
@@ -312,35 +615,30 @@ def lambda_handler(event, _ctx):
             body = rec.get("body") or "{}"
             payload = json.loads(body)
             url = payload.get("url")
-            user_id = payload.get("user_id")  # may be None if enqueue didn't include it
+            user_id = payload.get("user_id")  # may be None
 
             if not url or not isinstance(url, str):
                 raise ValueError("Record has no 'url'")
 
             log.info("SQS record: id=%s url=%s user=%s", rec_id, url, user_id or "-")
+
             # quick outbound probe (best-effort)
             try:
                 requests.get("https://httpbin.org/ip", timeout=(3, 5))
             except Exception:
                 pass
 
-            # SCRAPE (with detailed logs inside)
             snap = _scrape(url, api_key)
-
-            # INSERT (with product fallback)
             _insert_snapshot(conn, url, snap)
 
-            # Build the row sent to UI
             row = {
                 "url": url,
                 "product": snap.get("product"),
                 "price": snap.get("price"),
                 "stock_status": snap.get("stock_status"),
-                "image_url": snap.get("image_url"),
+                "image_url": _norm_url(snap.get("image_url"), url),
                 "updated_at": int(time.time())
             }
-
-            # Push to WebSocket
             _push_row_upserted(user_id, row)
 
             log.info("Scrape done: %s • %s • %.2f",
@@ -350,20 +648,10 @@ def lambda_handler(event, _ctx):
             log.exception("Record failed: %s", rec_id)
             # Best-effort notify UI so 'adding...' doesn't hang forever
             try:
-                bad_url = None
-                try:
-                    bad_url = json.loads(rec.get("body") or "{}").get("url")
-                except Exception:
-                    pass
-                if bad_url:
-                    _push_job_failed(
-                        (json.loads(rec.get("body") or "{}").get("user_id")),
-                        bad_url,
-                        f"{type(e).__name__}: {e}"
-                    )
+                bad = json.loads(rec.get("body") or "{}")
+                _push_job_failed(bad.get("user_id"), bad.get("url"), f"{type(e).__name__}: {e}")
             except Exception:
                 log.warning("Unable to push job_failed for record %s", rec_id)
-
             failures.append({"itemIdentifier": rec_id})
 
     try:

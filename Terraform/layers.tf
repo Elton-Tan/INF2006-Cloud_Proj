@@ -22,3 +22,10 @@ resource "aws_lambda_layer_version" "requests_layer" {
   filename            = data.archive_file.requests_layer_zip.output_path
   compatible_runtimes = ["python3.12"]
 }
+
+resource "aws_lambda_layer_version" "bs4" {
+  layer_name          = "beautifulsoup4"
+  filename            = "${path.module}/layers/bs4_layer.zip"
+  compatible_runtimes = ["python3.12"] # adjust if your worker uses a different runtime
+  description         = "BeautifulSoup4 + soupsieve for Python Lambda"
+}

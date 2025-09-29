@@ -543,19 +543,24 @@ function BatchAnalytics() {
 type Availability = "in_stock" | "out_of_stock" | "unknown";
 
 function Snapshotter() {
-  // ====== CONFIG ======
-  const API_BASE = "https://unaz4gl673.execute-api.us-east-1.amazonaws.com/dev";
+  // ====== STATE (confirm modal) ======
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmUrl, setConfirmUrl] = useState<string | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
+  // ====== CONFIG ======
+  const API_BASE = "https://gefh3e3249.execute-api.us-east-1.amazonaws.com/dev";
   const AUTH_TOKEN =
-    "eyJraWQiOiJEVjRYZ0VPdEZIRmxDeVloWW8zV2llYzRVekFueTBuUEJPMlVwcEsxQTFjPSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiUy1wOUhaNE9wTFFYV3R0dGNkYlNWUSIsInN1YiI6Ijc0Zjg4NDc4LWIwNzEtNzAyZi1jNzc2LWVlNmNiMTY5OTRlZSIsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX1dqUjdqbjd0VSIsImNvZ25pdG86dXNlcm5hbWUiOiJzcGlydWxpbmEtYWRtaW4iLCJhdWQiOiI3OW51bGpoYTdqbnY1aGNhc3MxcnNkM2pqYyIsImV2ZW50X2lkIjoiNTIwNWNhYmUtZDExOC00NzQ2LWI3OGItMDhlZWMzNTVjNzdiIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3NTg5MDk0NzksImV4cCI6MTc1ODkxMzA3OSwiaWF0IjoxNzU4OTA5NDc5LCJqdGkiOiJiMWU1YWFjNy05MThiLTRmOTAtYTA3ZC04MDhjZTE5Zjc1YTYiLCJlbWFpbCI6ImVsdG9udGFuMDcwOUBnbWFpbC5jb20ifQ.hSh8iXEgwFxHQvPCPulyyIGsyrLShxV5NRWvmMxHTfNxAZAbb6JyEmLRxha68cQEuxMUJdM4ihgpdmuxrPGo6Q0YTTPpQ0qVBeE8LM-Y36J37NXxQVT2HRXCdMinU-KtJn6MKGodd9jFt7x6fE7UVgPzhvKoVb5mrDxj8jSvT5wQLme00QBqyQIHQmlrSvHsETA7d53M43aN0dwx1hnURvMjzeyteB7i5ZZbK8b6_DQyPzSQ-fiY7kKMxJxzVmw86pkj3HapndMzHzKOWe07ibUKVWfUxgRgvZ4mHq8Kpv85YFgQa1ppK82iKH5ZkriYRRZnLCrdXVbebmhTeBVjMw";
+    "eyJraWQiOiI2TlBTQVByUHBhUkxNOXBmalwvam5ncUxaZHRRSFB4UWREa3haa0VsQmhLbz0iLCJhbGciOiJSUzI1NiJ9.eyJhdF9oYXNoIjoiLU52WkRaQldYeE8zVWE1MjdRRU5SUSIsInN1YiI6ImI0MThkNGQ4LWMwYTEtNzA4NC04NzM4LTEyZmRiZjRiNzU1NSIsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX0xJb0o5SldHTSIsImNvZ25pdG86dXNlcm5hbWUiOiJiNDE4ZDRkOC1jMGExLTcwODQtODczOC0xMmZkYmY0Yjc1NTUiLCJhdWQiOiI2Y2prN285bjl1bW5yajJqcTBsOWdpMGJjNSIsImV2ZW50X2lkIjoiZWEzZTk1N2MtZDA5YS00MDlhLTgyYTUtOGJkZTUyZTBkZDE0IiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3NTkxMzQ3MzcsImV4cCI6MTc1OTEzODMzNywiaWF0IjoxNzU5MTM0NzM3LCJqdGkiOiJmZjEzNWU3NS0zNWNjLTRhN2YtOWRhNC0wY2E3OTNlMTg4NTUiLCJlbWFpbCI6ImVsdG9udGFuMDcwOUBnbWFpbC5jb20ifQ.odCJuVZLnhj1_br6oFUuS2vr3OLzDt9rr7u-OU9hq3QohgYeanYTj6ydoTsKn6zew6aqM1Ov2lS2bxaP2zzLBFp-m-9SOGswvxXLIttQ-IYSMXWGNbcweJ_KMweeWlznis7x7hRaWBKsbee2gn_oNjZJtvW_mL4KpS53GKsS1MVGOdSS-J-Ent560jKW9__jQ40IXGO3BoYM13AZIutJJb0bUTOskxCLhtX0dbYVpr8ebFkPushV7fsbey5_SAasfr9sFhJo_BNzxIl-hxlD_gXav1RWk8H78NDKYmfRtlQ6vUpN7AMA_XZAVm0QVG0Gh9kqNCCMmPGIlZNFRo0WOQ";
   const WS_BASE =
     "wss://ccdg38adi2.execute-api.us-east-1.amazonaws.com/production";
-  const USER_ID = "tester";
   const PENDING_KEY = "watchlist.pending.v2";
   const PENDING_TTL_MS = 5 * 60 * 1000;
 
-  // ====== STATE ======
+  // ====== TOAST ======
   const { show, Toast } = useToast();
+
+  // ====== STATE ======
   const [inputUrl, setInputUrl] = useState<string>("");
   const [rows, setRows] = useState<SnapshotRow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -569,9 +574,13 @@ function Snapshotter() {
       if (!raw) return {};
       const parsed = JSON.parse(raw) as Record<string, any>;
       const out: Record<string, PendingEntry> = {};
-      Object.entries(parsed).forEach(([k, v]: [string, any]) => {
+      Object.entries(parsed).forEach(([k, v]) => {
         if (typeof v === "string") out[k] = { url: v, ts: Date.now() };
-        else if (v && typeof v.url === "string" && typeof v.ts === "number")
+        else if (
+          v &&
+          typeof (v as any).url === "string" &&
+          typeof (v as any).ts === "number"
+        )
           out[k] = v as PendingEntry;
       });
       return out;
@@ -591,8 +600,8 @@ function Snapshotter() {
     Authorization: `Bearer ${AUTH_TOKEN}`,
   });
 
-  const canonicalUrl = (raw: string): string => {
-    const trimmed = (raw || "").trim();
+  const canonicalUrl = (raw?: string | null): string => {
+    const trimmed = (raw ?? "").trim();
     if (!trimmed) return "";
     try {
       const u = new URL(trimmed);
@@ -622,6 +631,7 @@ function Snapshotter() {
     if (v.includes("in")) return "in_stock";
     return "unknown";
   };
+
   const toUnix = (t?: number | string | null): number | undefined => {
     if (t == null) return undefined;
     if (typeof t === "number") return t;
@@ -639,32 +649,27 @@ function Snapshotter() {
     updated_at: toUnix(r.updated_at),
   });
 
-  // Upsert into array by canonical URL; preserve order: newest first
+  // Upsert by canonical URL
   const upsertByUrl = (
     list: SnapshotRow[],
     row: SnapshotRow
   ): SnapshotRow[] => {
     const key = canonicalUrl(row.url);
-    const idx = list.findIndex((x: SnapshotRow) => canonicalUrl(x.url) === key);
-    if (idx === -1) {
-      // new → put at top
-      return [row, ...list];
-    }
+    const idx = list.findIndex((x) => canonicalUrl(x.url) === key);
+    if (idx === -1) return [row, ...list];
     const copy = list.slice();
     const old = copy[idx]!;
-    // prefer newer timestamp if available
     const newer = (row.updated_at ?? 0) >= (old.updated_at ?? 0);
     copy[idx] = newer ? { ...old, ...row } : { ...row, ...old };
     return copy;
   };
 
-  // Remove by canonical URL
   const removeByUrl = (list: SnapshotRow[], url: string): SnapshotRow[] => {
     const key = canonicalUrl(url);
-    return list.filter((x: SnapshotRow) => canonicalUrl(x.url) !== key);
+    return list.filter((x) => canonicalUrl(x.url) !== key);
   };
 
-  // ====== SERVER DEDUPE (URL only, no title-based merge) ======
+  // Server dedupe
   const dedupeByUrl = (list: ApiWatchRow[]): ApiWatchRow[] => {
     const byUrl = new Map<string, ApiWatchRow>();
     const isNewer = (a: ApiWatchRow, b?: ApiWatchRow): boolean => {
@@ -698,13 +703,11 @@ function Snapshotter() {
       for (const r of dedupeByUrl(data))
         next = upsertByUrl(next, mapApiToUi(r));
 
-      // Merge pending placeholders (not yet resolved) + expire TTL
+      // Merge pending placeholders with TTL
       const now = Date.now();
-      Object.entries(pending).forEach(([tid, ent]: [string, PendingEntry]) => {
+      Object.entries(pending).forEach(([tid, ent]) => {
         const key = canonicalUrl(ent.url);
-        const resolved = next.some(
-          (x: SnapshotRow) => canonicalUrl(x.url) === key
-        );
+        const resolved = next.some((x) => canonicalUrl(x.url) === key);
         const expired = now - ent.ts > PENDING_TTL_MS;
         if (!resolved && !expired) {
           next = upsertByUrl(next, {
@@ -738,6 +741,41 @@ function Snapshotter() {
   useEffect(() => {
     void load();
   }, []);
+
+  // ====== DELETE ======
+  const deleteByUrl = async (targetUrl: string): Promise<void> => {
+    setConfirmBusy(true);
+    try {
+      const r = await fetch(
+        `${API_BASE}/watchlist?url=${encodeURIComponent(targetUrl)}`,
+        { method: "DELETE", headers: authHeaders() }
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+
+      setRows((prev) => removeByUrl(prev, targetUrl));
+      setPending((p) => {
+        const c = canonicalUrl(targetUrl);
+        const out: Record<string, { url: string; ts: number }> = {};
+        Object.entries(p).forEach(([k, v]) => {
+          if (canonicalUrl(v.url) !== c) out[k] = v;
+        });
+        return out;
+      });
+      show(
+        `Removed ${data.deleted_count ?? 0} entr${
+          (data.deleted_count ?? 0) === 1 ? "y" : "ies"
+        }.`
+      );
+    } catch (e) {
+      console.error(e);
+      show("Failed to delete. Try again.");
+    } finally {
+      setConfirmBusy(false);
+      setConfirmOpen(false);
+      setConfirmUrl(null);
+    }
+  };
 
   // ====== WEBSOCKET ======
   type LiveUpsert = {
@@ -773,7 +811,7 @@ function Snapshotter() {
     let attempts = 0;
     let reconnectTimer: number | undefined;
 
-    const connect = (): void => {
+    const connect = () => {
       try {
         const url = `${WS_BASE}?token=${encodeURIComponent(AUTH_TOKEN)}`;
         ws = new WebSocket(url);
@@ -788,32 +826,25 @@ function Snapshotter() {
           try {
             const msg = JSON.parse(e.data) as LiveMsg;
             if (msg.type === "watchlist.row_upserted") {
-              console.log("[WS] upserted:", msg.row.url);
               const c = canonicalUrl(msg.row.url);
-              setRows((prev: SnapshotRow[]) =>
-                upsertByUrl(prev, mapLiveToUi(msg.row))
-              );
+              setRows((prev) => upsertByUrl(prev, mapLiveToUi(msg.row)));
               setPending((p) => {
                 const out: Record<string, PendingEntry> = {};
-                Object.entries(p).forEach(
-                  ([tid, ent]: [string, PendingEntry]) => {
-                    if (canonicalUrl(ent.url) !== c) out[tid] = ent;
-                  }
-                );
+                Object.entries(p).forEach(([tid, ent]) => {
+                  if (canonicalUrl(ent.url) !== c) out[tid] = ent;
+                });
                 return out;
               });
             } else if (msg.type === "watchlist.job_failed") {
-              setRows((prev: SnapshotRow[]) =>
+              setRows((prev) =>
                 upsertByUrl(prev, { url: msg.url, status: "error" })
               );
               setPending((p) => {
                 const c = canonicalUrl(msg.url);
                 const out: Record<string, PendingEntry> = {};
-                Object.entries(p).forEach(
-                  ([tid, ent]: [string, PendingEntry]) => {
-                    if (canonicalUrl(ent.url) !== c) out[tid] = ent;
-                  }
-                );
+                Object.entries(p).forEach(([tid, ent]) => {
+                  if (canonicalUrl(ent.url) !== c) out[tid] = ent;
+                });
                 return out;
               });
               show("Adding failed — please retry.");
@@ -850,10 +881,9 @@ function Snapshotter() {
         ws?.close();
       } catch {}
     };
-  }, [WS_BASE, AUTH_TOKEN]); // WS_URL stable here
+  }, [WS_BASE, AUTH_TOKEN]);
 
-  // ====== FALLBACK POLLING (only when WS closed and we have pending) ======
-  // Reconcile pending regularly whether WS is open or not
+  // ====== FALLBACK POLLING (when WS may be down & we have pending) ======
   useEffect(() => {
     const hasPending = Object.keys(pending).length > 0;
     if (!hasPending) return;
@@ -861,15 +891,14 @@ function Snapshotter() {
     let timer: number | undefined;
     let stopped = false;
 
-    // Poll faster if WS is down, slower if WS is up
     let delay = wsOpen ? 7000 : 3000;
     const maxDelay = wsOpen ? 15000 : 12000;
 
     const tick = async () => {
       if (stopped) return;
       if (document.visibilityState === "visible") {
-        await load(); // <- this applies your TTL & merges
-        delay = Math.min(delay * 1.8, maxDelay); // backoff
+        await load();
+        delay = Math.min(delay * 1.8, maxDelay);
       }
       timer = window.setTimeout(tick, delay) as unknown as number;
     };
@@ -889,9 +918,8 @@ function Snapshotter() {
       window.removeEventListener("focus", onVisible);
       stopped = true;
     };
-  }, [pending, wsOpen]); // <-- keep both deps
+  }, [pending, wsOpen]);
 
-  // ====== ADD FLOW ======
   // ====== ADD FLOW ======
   const addUrl = async (): Promise<void> => {
     const clean = inputUrl.trim();
@@ -901,7 +929,7 @@ function Snapshotter() {
 
     // prevent duplicates already in UI
     const exists = rows.some(
-      (x: SnapshotRow) =>
+      (x) =>
         canonicalUrl(x.url) === key &&
         (x.status === "ok" || x.status === "adding")
     );
@@ -910,7 +938,7 @@ function Snapshotter() {
       return;
     }
 
-    // (best-effort) server duplicate check
+    // best-effort server duplicate check
     try {
       const res = await fetch(`${API_BASE}/watchlist`, {
         headers: authHeaders(),
@@ -927,7 +955,7 @@ function Snapshotter() {
       }
     } catch {}
 
-    // --- optimistic placeholder (ONCE) ---
+    // optimistic placeholder
     const tempId = `tmp-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 7)}`;
@@ -943,10 +971,10 @@ function Snapshotter() {
 
     // enqueue
     try {
-      const res = await fetch(`${API_BASE}/watchlist`, {
+      const res = await fetch(`${API_BASE}/enqueue`, {
         method: "POST",
-        headers: authHeaders(), // Authorization: Bearer <JWT>
-        body: JSON.stringify({ url: clean }), // ← no user_id here
+        headers: authHeaders(),
+        body: JSON.stringify({ url: clean }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
     } catch (e) {
@@ -960,9 +988,9 @@ function Snapshotter() {
       return;
     }
 
-    // --- reconciliation loop (ALWAYS run; exits on success) ---
+    // reconciliation loop
     const START = Date.now();
-    const TIMEOUT = 5 * 60 * 1000; // match your TTL window if you like
+    const TIMEOUT = 5 * 60 * 1000;
     const INTERVAL = 3000;
 
     const loop = async (): Promise<void> => {
@@ -979,20 +1007,27 @@ function Snapshotter() {
               const { [tempId]: _, ...rest } = p;
               return rest;
             });
-            return; // done
+            return;
           }
         }
       } catch {}
       if (Date.now() - START < TIMEOUT) setTimeout(loop, INTERVAL);
-      // else: your watchdog effect + TTL will flip it to error
     };
 
     setTimeout(loop, INTERVAL);
-    // small nudge for perceived speed
-    setTimeout(() => {
-      void load();
-    }, 4000);
+    setTimeout(() => void load(), 4000);
   };
+
+  // ====== SELECTED ROW / DISPLAY TEXT FOR CONFIRM MODAL ======
+  const selectedRow = React.useMemo(() => {
+    if (!confirmUrl) return null;
+    const key = canonicalUrl(confirmUrl);
+    return rows.find((r) => canonicalUrl(r.url) === key) ?? null;
+  }, [confirmUrl, rows]);
+
+  const confirmDisplayText =
+    (selectedRow?.product && selectedRow.product.trim()) ||
+    canonicalUrl(selectedRow?.url || confirmUrl);
 
   // ====== RENDER ======
   return (
@@ -1008,9 +1043,7 @@ function Snapshotter() {
           className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm"
           placeholder="https://www.lazada.sg/products/..."
           value={inputUrl}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setInputUrl(e.target.value)
-          }
+          onChange={(e) => setInputUrl(e.target.value)}
         />
         <button
           className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
@@ -1020,9 +1053,7 @@ function Snapshotter() {
         </button>
         <button
           className="rounded-xl bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
-          onClick={() => {
-            void load();
-          }}
+          onClick={() => void load()}
         >
           Refresh
         </button>
@@ -1044,34 +1075,35 @@ function Snapshotter() {
               <th className="px-3 py-2">Price</th>
               <th className="px-3 py-2">Stock</th>
               <th className="px-3 py-2">URL / Status</th>
+              <th className="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
                   Loading…
                 </td>
               </tr>
             )}
             {!loading && error && (
               <tr>
-                <td className="px-3 py-6 text-center text-rose-600" colSpan={5}>
+                <td className="px-3 py-6 text-center text-rose-600" colSpan={6}>
                   {error}
                 </td>
               </tr>
             )}
             {!loading && !error && rows.length === 0 && (
               <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
                   No items yet.
                 </td>
               </tr>
             )}
             {!loading &&
               !error &&
-              rows.map((r: SnapshotRow) => {
-                const key = canonicalUrl(r.url); // key by URL (prevents dupes)
+              rows.map((r) => {
+                const key = canonicalUrl(r.url);
                 return (
                   <tr key={key} className="border-t">
                     <td className="px-3 py-2">
@@ -1164,6 +1196,17 @@ function Snapshotter() {
                         )}
                       </div>
                     </td>
+                    <td className="px-3 py-2">
+                      <button
+                        className="rounded-md border border-rose-300 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
+                        onClick={() => {
+                          setConfirmUrl(r.url);
+                          setConfirmOpen(true);
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -1175,6 +1218,58 @@ function Snapshotter() {
         Uses GET/POST {API_BASE.replace("https://", "")}/watchlist with an
         Authorization header.
       </div>
+
+      {confirmOpen && confirmUrl && (
+        <>
+          <div className="fixed inset-0 z-[10000] bg-black/40" />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed left-1/2 top-1/2 z-[10001] w-[min(92vw,480px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rose-300 bg-white shadow-2xl"
+          >
+            <div className="rounded-t-2xl border-b bg-rose-600/90 p-3 text-white">
+              <div className="text-sm font-semibold">Remove from watchlist</div>
+            </div>
+            <div className="p-4 text-sm text-gray-800">
+              <p className="mb-2">
+                This will remove{" "}
+                <span className="font-medium">all entries</span> that match:
+              </p>
+              <div
+                className="mb-4 rounded-lg bg-gray-50 p-2 text-xs text-gray-700"
+                title={confirmUrl}
+              >
+                {confirmDisplayText}
+              </div>
+              <p>
+                Are you sure you want to remove product from watchlist? This
+                action will delete all data related to the product. This action
+                is IRREVERSIBLE.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t p-3">
+              <button
+                className="rounded-md px-3 py-1.5 text-sm hover:bg-gray-100"
+                onClick={() => {
+                  setConfirmOpen(false);
+                  setConfirmUrl(null);
+                }}
+                disabled={confirmBusy}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60"
+                onClick={() => confirmUrl && deleteByUrl(confirmUrl)}
+                disabled={confirmBusy}
+              >
+                {confirmBusy ? "Removing…" : "Remove"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <Toast />
     </section>
   );

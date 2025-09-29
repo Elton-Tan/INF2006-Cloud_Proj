@@ -56,3 +56,88 @@ variable "allowed_ssh_cidr" {
   type        = string
   default     = "0.0.0.0/0" # tighten this!
 }
+
+# ASG/ALB params
+variable "app_instance_type" {
+  description = "Instance type for app ASG"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "app_min_size" {
+  type    = number
+  default = 2
+}
+
+variable "app_max_size" {
+  type    = number
+  default = 4
+}
+
+variable "app_desired_capacity" {
+  type    = number
+  default = 2
+}
+
+variable "alb_target_response_p90_ms" {
+  type    = number
+  default = 1500
+}
+
+variable "cf_total_latency_p90_ms" {
+  type    = number
+  default = 1500
+}
+
+variable "api_latency_p95_ms" {
+  type    = number
+  default = 1200
+}
+
+variable "alb_5xx_threshold" {
+  type    = number
+  default = 10
+}
+
+variable "cf_5xx_rate_threshold" {
+  type    = number
+  default = 1
+}
+
+variable "api_5xx_threshold" {
+  type    = number
+  default = 5
+}
+
+variable "waf_blocked_threshold" {
+  type    = number
+  default = 200
+}
+
+
+variable "app_health_check_path" {
+  description = "ALB target health check path"
+  type        = string
+  default     = "/"
+}
+
+variable "alert_emails" {
+  description = "Emails to subscribe to alarm notifications"
+  type        = list(string)
+  default     = []
+}
+
+variable "existing_alb_name" {
+  type    = string
+  default = "spirulina-dev-alb"
+}
+
+variable "existing_tg_name" {
+  type    = string
+  default = "spirulina-dev-tg"
+}
+
+variable "bastion_key_name" {
+  type    = string
+  default = null
+} 
