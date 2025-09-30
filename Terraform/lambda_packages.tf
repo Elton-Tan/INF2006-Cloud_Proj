@@ -223,4 +223,40 @@ resource "aws_lambda_function" "delete_watchlist" {
     aws_lambda_layer_version.requests_layer.arn
   ]
 }
+# ========== ZIP the new scheduler lambda ==========
+data "archive_file" "schedule_enqueue_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/schedule_enqueue"
+  output_path = "${path.module}/dist/schedule_enqueue.zip"
+}
 
+# ========== Lambda function ==========
+resource "aws_lambda_function" "schedule_enqueue" {
+  function_name = "${var.project}-${var.env}-schedule-enqueue"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"
+  filename      = data.archive_file.schedule_enqueue_zip.output_path
+  timeout       = 30
+  memory_size   = 256
+
+  # Needs VPC access to reach RDS (same as worker/watchlist_read)
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  # Reuse layers that include PyMySQL/requests if you want (PyMySQL required)
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn,
+    aws_lambda_layer_version.requests_layer.arn
+  ]
+
+  environment {
+    variables = {
+      REGION        = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+      QUEUE_URL     = local.lambda_env.QUEUE_URL
+    }
+  }
+}

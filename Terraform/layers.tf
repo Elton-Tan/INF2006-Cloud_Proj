@@ -29,3 +29,5 @@ resource "aws_lambda_layer_version" "bs4" {
   compatible_runtimes = ["python3.12"] # adjust if your worker uses a different runtime
   description         = "BeautifulSoup4 + soupsieve for Python Lambda"
 }
+
+

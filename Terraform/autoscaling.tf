@@ -1,67 +1,14 @@
-############################################
-# Subnets to place ASG instances
-############################################
-locals {
-  asg_subnets_map = {
-    private = [aws_subnet.private_a.id, aws_subnet.private_b.id]
-    public  = [aws_subnet.public_a.id, aws_subnet.public_b.id]
-  }
-  asg_subnets = local.asg_subnets_map[var.app_subnets_to_use]
-}
-
-############################################
-# Look up your existing ALB & Target Group
-############################################
-data "aws_lb" "by_name" {
-  name = var.existing_alb_name
-}
-
-data "aws_lb_target_group" "by_name" {
-  name = var.existing_tg_name
-}
-
-############################################
-# Launch Template for app instances
-# (reuses data.aws_ami.al2023 from ec2.tf)
-############################################
-resource "aws_launch_template" "app" {
-  name_prefix   = "${var.project}-${var.env}-app-"
-  image_id      = data.aws_ami.al2023.id
-  instance_type = var.app_instance_type
-
-  network_interfaces {
-    associate_public_ip_address = var.app_subnets_to_use == "public" ? true : false
-    security_groups             = [aws_security_group.app.id]
-  }
-
-  key_name = var.bastion_key_name
-
-  user_data = base64encode(<<-BASH
-    #!/bin/bash
-    dnf -y update
-    dnf -y install nginx
-    echo "<h1>${var.project} ${var.env} app server</h1>" > /usr/share/nginx/html/index.html
-    systemctl enable --now nginx
-  BASH
-  )
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = { Name = "${var.project}-${var.env}-app" }
-  }
-}
-
-############################################
-# Auto Scaling Group (registers to existing TG)
-############################################
+########################
+# Auto Scaling Group
+########################
 resource "aws_autoscaling_group" "app" {
   name                      = "${var.project}-${var.env}-asg"
-  min_size                  = var.app_min_size
-  max_size                  = var.app_max_size
-  desired_capacity          = var.app_desired_capacity
   vpc_zone_identifier       = local.asg_subnets
+  min_size                  = 2
+  max_size                  = 4
+  desired_capacity          = 2
   health_check_type         = "ELB"
-  health_check_grace_period = 90
+  health_check_grace_period = 120
   capacity_rebalance        = true
 
   launch_template {
@@ -69,9 +16,12 @@ resource "aws_autoscaling_group" "app" {
     version = "$Latest"
   }
 
-  target_group_arns = [data.aws_lb_target_group.by_name.arn]
+  # Register instances into the TG we create above
+  target_group_arns = [aws_lb_target_group.app.arn]
 
-  lifecycle { create_before_destroy = true }
+  lifecycle {
+    create_before_destroy = true
+  }
 
   instance_refresh {
     strategy = "Rolling"
@@ -86,16 +36,20 @@ resource "aws_autoscaling_group" "app" {
     value               = "${var.project}-${var.env}-app"
     propagate_at_launch = true
   }
+
+  depends_on = [aws_lb_listener.http]
 }
 
-############################################
-# Target tracking scaling policies
-############################################
+########################
+# Example scaling policies
+########################
 
+# CPU target tracking
 resource "aws_autoscaling_policy" "tt_cpu" {
   name                   = "${var.project}-${var.env}-tt-cpu"
   policy_type            = "TargetTrackingScaling"
   autoscaling_group_name = aws_autoscaling_group.app.name
+
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
@@ -104,15 +58,37 @@ resource "aws_autoscaling_policy" "tt_cpu" {
   }
 }
 
+# ALB RequestCountPerTarget target tracking
 resource "aws_autoscaling_policy" "tt_alb_rps" {
   name                   = "${var.project}-${var.env}-tt-alb-rps"
   policy_type            = "TargetTrackingScaling"
   autoscaling_group_name = aws_autoscaling_group.app.name
+
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ALBRequestCountPerTarget"
-      resource_label         = "${data.aws_lb.by_name.arn_suffix}/${data.aws_lb_target_group.by_name.arn_suffix}"
+      # Format must be "<lb arn_suffix>/<tg arn_suffix>"
+      resource_label = "${aws_lb.app.arn_suffix}/${aws_lb_target_group.app.arn_suffix}"
     }
     target_value = 100
   }
+}
+
+# Optional simple alarm (scale-out hint), harmless to keep
+resource "aws_cloudwatch_metric_alarm" "high_rps" {
+  alarm_name          = "${var.project}-${var.env}-scale-out"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "RequestCountPerTarget"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 100
+
+  dimensions = {
+    TargetGroup  = aws_lb_target_group.app.arn_suffix
+    LoadBalancer = aws_lb.app.arn_suffix
+  }
+
+  alarm_description = "Scale out when ALB RPS per target > 100"
 }
