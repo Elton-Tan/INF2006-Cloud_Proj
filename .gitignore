@@ -27,3 +27,4 @@ yarn-error.log*
 *.tfstate
 *.tfstate.*
 crash.log
+tfstate.json

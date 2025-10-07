@@ -1,0 +1,11 @@
+[
+  { "aspect": "Scent", "docs": 179112, "share": 0.19361 },
+  { "aspect": "Feel", "docs": 485086, "share": 0.524351 },
+  { "aspect": "Hydration", "docs": 418832, "share": 0.452734 },
+  { "aspect": "Irritation", "docs": 185147, "share": 0.200134 },
+  { "aspect": "ResidueFinish", "docs": 33515, "share": 0.036228 },
+  { "aspect": "Longevity", "docs": 65634, "share": 0.070947 },
+  { "aspect": "ValuePrice", "docs": 139930, "share": 0.151257 },
+  { "aspect": "Packaging", "docs": 82968, "share": 0.089684 },
+  { "aspect": "RoutineUsage", "docs": 183259, "share": 0.198093 }
+]

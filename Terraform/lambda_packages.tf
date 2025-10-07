@@ -47,6 +47,14 @@ data "archive_file" "watchlist_zip" {
   output_path = "${path.module}/dist/watchlist.zip"
 }
 
+# --------- Zip the new series lambda FOLDER (handler.py inside) ----------
+data "archive_file" "watchlist_series_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/watchlist_series"
+  output_path = "${path.module}/dist/watchlist_series.zip"
+}
+
+
 # =========================
 # Functions (Python 3.12)  #
 # =========================
@@ -176,6 +184,38 @@ resource "aws_lambda_function" "watchlist_read" {
     }
   }
 }
+
+
+# WATCHLIST (time-series: day/week/month)
+resource "aws_lambda_function" "watchlist_series" {
+  function_name = "${var.project}-${var.env}-watchlist-series"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler" # file: watchlist_series/handler.py
+  filename      = data.archive_file.watchlist_series_zip.output_path
+  timeout       = 15
+  memory_size   = 256
+  architectures = ["x86_64"]
+
+  # Ensure TF updates code when the zip changes
+  source_code_hash = filebase64sha256(data.archive_file.watchlist_series_zip.output_path)
+
+  # Uses your existing PyMySQL layer
+  layers = [aws_lambda_layer_version.mysql_layer.arn]
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = {
+      REGION        = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+    }
+  }
+}
+
 
 # SQS → worker trigger
 resource "aws_lambda_event_source_mapping" "sqs_to_worker" {

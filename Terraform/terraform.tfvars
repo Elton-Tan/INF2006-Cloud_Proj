@@ -6,4 +6,4 @@ ssh_public_key           = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE3bTMVJc9oEZygz
 db_username              = "spirulina_app"
 db_name                  = "spirulinadb"
 scrapingbee_secret_value = "REPLACE_SECRET_IN_SECRET_MANAGER_LATER"
-cloudfront_url           = "https://d84l1y8p4kdic.cloudfront.net/"
+cloudfront_url           = "https://dfp7iv1t22kle.cloudfront.net/"

@@ -1,0 +1,8 @@
+{
+  "last_updated": 1759759465,
+  "rows_seen": 925117,
+  "docs_with_aspect": 800683,
+  "min_term_freq": 100,
+  "bigrams": true,
+  "vader": false
+}

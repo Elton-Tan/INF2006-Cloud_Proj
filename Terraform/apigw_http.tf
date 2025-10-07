@@ -11,7 +11,7 @@ resource "aws_apigatewayv2_api" "http" {
     allow_credentials = false
     allow_headers     = ["authorization", "content-type"]
     allow_methods     = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-    allow_origins     = [var.cloudfront_url, "http://localhost:5173"]
+    allow_origins     = [var.cloudfront_url, "http://localhost:5173", "*"]
     max_age           = 86400
   }
 }
@@ -67,6 +67,16 @@ resource "aws_apigatewayv2_integration" "delete_watchlist" {
   timeout_milliseconds   = 29000
 }
 
+# GET /watchlist/series
+resource "aws_apigatewayv2_integration" "watchlist_series" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.watchlist_series.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
+
 # =========================
 # Routes (protected + public)
 # =========================
@@ -74,9 +84,10 @@ resource "aws_apigatewayv2_integration" "delete_watchlist" {
 locals {
   # All JWT-protected routes
   protected_routes = {
-    "POST /enqueue"     = aws_apigatewayv2_integration.enqueue.id
-    "GET /watchlist"    = aws_apigatewayv2_integration.watchlist.id
-    "DELETE /watchlist" = aws_apigatewayv2_integration.delete_watchlist.id
+    "POST /enqueue"         = aws_apigatewayv2_integration.enqueue.id
+    "GET /watchlist"        = aws_apigatewayv2_integration.watchlist.id
+    "DELETE /watchlist"     = aws_apigatewayv2_integration.delete_watchlist.id
+    "GET /watchlist/series" = aws_apigatewayv2_integration.watchlist_series.id
   }
 
   # Add public routes if any (empty by default)
@@ -113,6 +124,7 @@ locals {
     enqueue          = aws_lambda_function.enqueue.function_name
     watchlist_read   = aws_lambda_function.watchlist_read.function_name
     delete_watchlist = aws_lambda_function.delete_watchlist.function_name
+    watchlist_series = aws_lambda_function.watchlist_series.function_name
   }
 }
 

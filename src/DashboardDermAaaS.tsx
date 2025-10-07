@@ -64,8 +64,117 @@ type SnapshotRow = {
   availability?: Availability;
   imageUrl?: string | null;
   status?: "adding" | "ok" | "error";
-  updated_at?: number; // unix seconds
+  updated_at?: number;
 };
+
+// ===== Aspect types =====
+type AspectSummaryRow = {
+  aspect: string;
+  docs: number;
+  share: number; // 0..1
+};
+
+type TopTerm = {
+  term: string;
+  n: number;
+  lift: number;
+};
+
+type AspectTopTerms = Record<string, TopTerm[]>;
+
+// Simple JSON fetcher w/ loading + error
+function useJson<T>(url: string) {
+  const [data, setData] = React.useState<T | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as T;
+        if (alive) setData(json);
+      } catch (e: any) {
+        if (alive) setError(e?.message || "Failed to fetch");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+
+  return { data, loading, error };
+}
+
+const ASPECT_CONFIG = {
+  SUMMARY_URL: "/data/aspects_summary.json", // e.g. served by your app
+  TOP_TERMS_URL: "/data/aspect_top_terms.json", // same folder as above
+};
+
+const CONFIG = {
+  API_BASE: "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev",
+  WS_BASE: "https://d1n59ypscvrsxd.cloudfront.net/production",
+  // Put your Cognito **ID token** here (or inject via env at build time)
+  AUTH_TOKEN:
+    "eyJraWQiOiI4blFndENlNzVNYzdDSmljS2RGQmVxazkxZ3VZcXp0WXBqbDJ0c1M2RFlFPSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiZ2Z6ZjZka2VianhFQ19USWhQU3poZyIsInN1YiI6ImI0ZDg3NDE4LWIwMjEtNzAxNC0xNWExLTJiMTJkZTliYmY1OCIsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xXzh3YU9rZG9VUiIsImNvZ25pdG86dXNlcm5hbWUiOiJiNGQ4NzQxOC1iMDIxLTcwMTQtMTVhMS0yYjEyZGU5YmJmNTgiLCJhdWQiOiJvaDJ2ZjlpbWxlMWw1Nm5razZmbWt0ZTBpIiwiZXZlbnRfaWQiOiJjNzhkZTNkYi0wOGJiLTQ2YTAtOWNiZC03ZTYwMTAwN2IwMmIiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTc1OTM4NDgxMCwiZXhwIjoxNzU5Mzg4NDEwLCJpYXQiOjE3NTkzODQ4MTAsImp0aSI6IjljYTQ5NmJjLWE3NTEtNGQzMy1iOWM0LTZkYmY0MjNlZTgxMiIsImVtYWlsIjoic3VhbmZpeEB0aGVmb290cHJhY3RpY2UuY29tIn0.atSyZb-MLmxveLRjNiXIL3FVlRwYCz74nIBqKi5b93_XDexkGq91OM6-PPnnxi1gBqbDc70-v5tTAi2O1MXQQMnYiF_zkITJLk-dcZF3ZXHdu-wnkdD1peWzVG4b34tr2jiQSBppMqZzY-_wwqfXg4G283MGIJcDZfjyDF7hfB45HjKOxlGzbMY2BiFxSrn8TRys-gu800wiz0kI7Ctvy74VC3POZ-_livTOLe2XBaLqrU8TOWWcW4FbrcG28S0CN6N72jfyBK1ENzXjMVon7kMS80QTY7OX3tRFW-0edGU9-QIzhIDCDTTxaCYv6FDeml4RbHR9QKNrt8h7_TTjzg",
+};
+
+const fmtSgt = (t?: number | string | null): string => {
+  if (t == null) return "—";
+  // Our API now returns ISO with +08:00, but we still handle unix seconds just in case
+  const d = typeof t === "number" ? new Date(t * 1000) : new Date(String(t));
+  // Force-render in Asia/Singapore
+  return d.toLocaleString("en-SG", {
+    timeZone: "Asia/Singapore",
+    hour12: false,
+  });
+};
+
+const trunc = (s: string, n = 48) =>
+  s.length > n ? s.slice(0, n - 1) + "…" : s;
+
+const buildWsUrl = (baseHttpsUrl: string, token: string) => {
+  const u = new URL(baseHttpsUrl);
+  u.protocol = u.protocol === "http:" ? "ws:" : "wss:";
+  u.searchParams.set("token", token);
+  return u.toString();
+};
+
+type AuthCtx = { apiBase: string; wsBase: string; token: string };
+const AuthContext = React.createContext<AuthCtx | null>(null);
+const useAuth = (): AuthCtx => {
+  const ctx = React.useContext(AuthContext);
+  if (!ctx) throw new Error("AuthContext missing");
+  return ctx;
+};
+
+// Lightweight app-wide event bus (for cross-component notifications)
+const BusContext = React.createContext<EventTarget | null>(null);
+const useBus = (): EventTarget | null => React.useContext(BusContext);
+
+// Provider wrapper
+function AppProviders({ children }: { children: React.ReactNode }) {
+  const [auth] = React.useState<AuthCtx>({
+    apiBase: CONFIG.API_BASE,
+    wsBase: CONFIG.WS_BASE,
+    token: CONFIG.AUTH_TOKEN,
+  });
+
+  // Single EventTarget instance for pub/sub
+  const [bus] = React.useState<EventTarget>(() => new EventTarget());
+
+  return (
+    <AuthContext.Provider value={auth}>
+      <BusContext.Provider value={bus}>{children}</BusContext.Provider>
+    </AuthContext.Provider>
+  );
+}
 
 function useToast() {
   const [msg, setMsg] = useState<string | null>(null);
@@ -227,8 +336,16 @@ const NAV = [
 type NavKey = (typeof NAV)[number]["key"];
 
 export default function SpiruvitaDashboardV2() {
-  const [nav, setNav] = useState<NavKey>("live");
+  return (
+    <AppProviders>
+      <DashboardShell />
+    </AppProviders>
+  );
+}
 
+// Move your previous component body into this:
+function DashboardShell() {
+  const [nav, setNav] = useState<NavKey>("live");
   return (
     <div className="min-h-screen w-full bg-gray-50 text-gray-900">
       {/* Top bar */}
@@ -239,6 +356,7 @@ export default function SpiruvitaDashboardV2() {
 
       {/* Shell */}
       <div className="mx-auto grid max-w-7xl grid-cols-12 gap-4 px-4 py-4">
+        {/* Sidebar */}
         {/* Sidebar */}
         <aside className="col-span-12 h-full rounded-2xl border bg-white p-2 shadow-sm md:col-span-3 lg:col-span-2">
           <nav className="flex flex-col gap-1">
@@ -254,6 +372,7 @@ export default function SpiruvitaDashboardV2() {
               </button>
             ))}
           </nav>
+
           <div className="mt-4 rounded-xl border bg-gray-50 p-3 text-xs text-gray-600">
             <div className="font-medium">Hint</div>
             <p>
@@ -282,9 +401,36 @@ export default function SpiruvitaDashboardV2() {
 // VIEW 1 — LIVE FEED (unchanged)
 // ===============================================================
 
+function LiveBadge() {
+  const bus = useBus();
+  const [on, setOn] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!bus) return;
+    let t: number | null = null;
+    const handler = () => {
+      setOn(true);
+      if (t) window.clearTimeout(t);
+      t = window.setTimeout(() => setOn(false), 1200);
+    };
+    bus.addEventListener("watchlist:changed", handler);
+    return () => {
+      bus.removeEventListener("watchlist:changed", handler);
+      if (t) window.clearTimeout(t);
+    };
+  }, [bus]);
+
+  if (!on) return null;
+  return (
+    <span className="ml-2 align-middle rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+      live
+    </span>
+  );
+}
+
 function LiveFeed() {
   const [alerts, setAlerts] = useState<Alert[]>(() => MOCK_ALERTS_SEED);
-
+  type SeriesPoint = { bucket: string; [product: string]: number | string };
   useEffect(() => {
     const t = setInterval(() => {
       const now = new Date();
@@ -408,52 +554,358 @@ function LiveFeed() {
 
       <section className="rounded-2xl border bg-white p-4 shadow-sm md:col-span-2">
         <h2 className="mb-1 text-lg font-semibold">
-          Competitor Aggregate Prices — Past Week (mock)
+          Competitor Prices <LiveBadge />
         </h2>
         <p className="mb-3 text-sm text-gray-500">
-          Average prices across PDPs in market SG
+          Average prices across PDPs (SGT buckets). Switch Day/Week/Month.
         </p>
-        <div className="h-72">
+        <PriceSeries />
+      </section>
+    </div>
+  );
+}
+
+function PriceSeries() {
+  type SeriesPoint = { bucket: string; [product: string]: number | string };
+
+  const { apiBase, token } = useAuth();
+  const bus = useBus();
+
+  const [range, setRange] = React.useState<"day" | "week" | "month">("week");
+  const [series, setSeries] = React.useState<SeriesPoint[]>([]);
+  const [products, setProducts] = React.useState<string[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const authHeaders = React.useCallback(
+    () => ({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    [token]
+  );
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${apiBase}/watchlist/series?range=${range}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setSeries(data.series || []);
+      setProducts(data.products || []);
+    } catch (e) {
+      console.error(e);
+      setError("Failed to load price series");
+      setSeries([]);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiBase, range, authHeaders]);
+
+  // initial + on range change
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  // === Pub/Sub: refresh when watchlist data changes ===
+  React.useEffect(() => {
+    if (!bus) return;
+    let debounce: number | null = null;
+    const onChange = () => {
+      // debounce rapid bursts (e.g., multiple rows within a short time)
+      if (debounce) window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => {
+        void load();
+        debounce = null;
+      }, 800);
+    };
+    bus.addEventListener("watchlist:changed", onChange);
+    return () => {
+      bus.removeEventListener("watchlist:changed", onChange);
+      if (debounce) window.clearTimeout(debounce);
+    };
+  }, [bus, load]);
+
+  return (
+    <>
+      {/* Range selector */}
+      <div className="mb-3 inline-flex rounded-xl border bg-white p-1">
+        {(["day", "week", "month"] as const).map((opt) => (
+          <button
+            key={opt}
+            onClick={() => setRange(opt)}
+            className={`px-3 py-1.5 text-sm rounded-lg transition ${
+              range === opt ? "bg-gray-900 text-white" : "hover:bg-gray-100"
+            }`}
+          >
+            {opt === "day"
+              ? "Day (hourly)"
+              : opt === "week"
+              ? "Week (daily)"
+              : "Month (daily)"}
+          </button>
+        ))}
+      </div>
+
+      <div className="h-72">
+        {loading ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-500">
+            Loading…
+          </div>
+        ) : error ? (
+          <div className="flex h-full items-center justify-center text-sm text-rose-600">
+            {error}
+          </div>
+        ) : series.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-500">
+            No data yet.
+          </div>
+        ) : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={MOCK_PRICES}
+              data={series}
               margin={{ top: 10, right: 20, bottom: 10, left: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
+              <XAxis
+                dataKey="bucket"
+                tick={{ fontSize: 12 }}
+                tickFormatter={(s: string) =>
+                  range === "day" ? s.slice(11, 16) : s
+                }
+              />
               <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="avg_price_spiruvita"
-                name="Spiruvita"
+              <Tooltip
+                formatter={(value: any, name: string) => [
+                  value,
+                  <span title={name}>{trunc(name)}</span>,
+                ]}
               />
-              <Line
-                type="monotone"
-                dataKey="avg_price_canesten"
-                name="Canesten"
+              <Legend
+                formatter={(value: string) => (
+                  <span title={value}>{trunc(value)}</span>
+                )}
               />
-              <Line
-                type="monotone"
-                dataKey="avg_price_lamisil"
-                name="Lamisil"
-              />
+
+              {products.map((p) => (
+                <Line
+                  key={p}
+                  type="monotone"
+                  dataKey={p}
+                  name={p}
+                  strokeWidth={2}
+                  dot={{ r: 3 }} // dot at EVERY bucket (hour/day)
+                  activeDot={{ r: 5 }} // a bit larger on hover
+                  isAnimationActive={false}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
-        </div>
-      </section>
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 
 // ===============================================================
 // VIEW 2 — BATCH ANALYTICS (unchanged)
 // ===============================================================
+function AspectFlipPoster(props: { summaryUrl: string; termsUrl: string }) {
+  const {
+    data: summary,
+    loading: loadSum,
+    error: errSum,
+  } = useJson<AspectSummaryRow[]>(props.summaryUrl);
+  const {
+    data: topTerms,
+    loading: loadTerms,
+    error: errTerms,
+  } = useJson<AspectTopTerms>(props.termsUrl);
+
+  const [mode, setMode] = React.useState<"strips" | "words">("strips");
+
+  const loading = loadSum || loadTerms;
+  const error = errSum || errTerms;
+
+  // pick 6–8 visible aspects by share
+  const visible = React.useMemo(() => {
+    if (!summary) return [];
+    return [...summary].sort((a, b) => b.share - a.share).slice(0, 7);
+  }, [summary]);
+
+  // utility: palette for strips (kept subtle)
+  const colors = [
+    "bg-emerald-50 border-emerald-200",
+    "bg-sky-50 border-sky-200",
+    "bg-amber-50 border-amber-200",
+    "bg-violet-50 border-violet-200",
+    "bg-rose-50 border-rose-200",
+    "bg-lime-50 border-lime-200",
+    "bg-cyan-50 border-cyan-200",
+  ];
+
+  // Make a quick “weight” for words: by lift first, then n
+  function topNWords(aspect: string, k = 10): TopTerm[] {
+    const arr = (topTerms && topTerms[aspect]) || [];
+    return [...arr]
+      .sort((a, b) => {
+        if (b.lift !== a.lift) return b.lift - a.lift;
+        return b.n - a.n;
+      })
+      .slice(0, k);
+  }
+
+  // small helper for % text
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+  return (
+    <section className="relative rounded-2xl border bg-white p-4 shadow-sm">
+      {/* Header */}
+      <div className="mb-1 flex items-start justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Keywords Analytics</h2>
+          <p className="text-sm text-gray-500">
+            Which aspects do customers focus on?
+          </p>
+        </div>
+
+        {/* Flip button */}
+        <button
+          onClick={() => setMode((m) => (m === "words" ? "strips" : "words"))}
+          className="inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-sm hover:bg-gray-50"
+          title={mode === "words" ? "Show Strip Poster" : "Show Frequent Words"}
+        >
+          {mode === "words" ? (
+            <>
+              <span>View Summary</span>
+              <span aria-hidden>⟲</span>
+            </>
+          ) : (
+            <>
+              <span>View Common Words</span>
+              <span aria-hidden>⟲</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="min-h-[240px]">
+        {loading ? (
+          <div className="flex h-60 items-center justify-center text-sm text-gray-500">
+            Loading…
+          </div>
+        ) : error ? (
+          <div className="flex h-60 items-center justify-center text-sm text-rose-600">
+            {error}
+          </div>
+        ) : !summary || !topTerms ? (
+          <div className="flex h-60 items-center justify-center text-sm text-gray-500">
+            No data.
+          </div>
+        ) : mode === "words" ? (
+          // ===== Mode A: Frequent words preview per aspect (tile grid) =====
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {visible.map((row, i) => {
+              const terms = topNWords(row.aspect, 12);
+              return (
+                <div
+                  key={row.aspect}
+                  className={`rounded-xl border p-3 ${
+                    colors[i % colors.length]
+                  }`}
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="text-sm font-semibold">
+                      {row.aspect.replace(/([a-z])([A-Z])/g, "$1 $2")}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {pct(row.share)} of reviews
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {terms.map((t, idx) => {
+                      // scale font-size by lift (cap 0.9..1.3em)
+                      const w = Math.max(
+                        0.9,
+                        Math.min(
+                          1.3,
+                          0.9 + (t.lift / (terms[0]?.lift || 1)) * 0.4
+                        )
+                      );
+                      return (
+                        <span
+                          key={idx}
+                          className="rounded-full bg-white/70 px-2 py-1 text-[0.85rem] shadow-sm ring-1 ring-black/5"
+                          style={{ fontSize: `${w}em` }}
+                          title={`n=${t.n} • lift=${t.lift}`}
+                        >
+                          {t.term.replace(/_/g, " ")}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          // ===== Mode B: Strip poster (one strip per aspect, width ~ share) =====
+          <div className="flex flex-col gap-2">
+            {visible.map((row, i) => {
+              const terms = topNWords(row.aspect, 8)
+                .map((t) => t.term.replace(/_/g, " "))
+                .join(" • ");
+              const widthPct = Math.max(16, Math.round(row.share * 100)); // keep visible
+              return (
+                <div key={row.aspect} className="flex items-center gap-3">
+                  <div className="w-28 shrink-0 text-right text-xs text-gray-600">
+                    {row.aspect.replace(/([a-z])([A-Z])/g, "$1 $2")}
+                  </div>
+                  <div
+                    className={`h-10 rounded-xl border px-3 py-2 text-sm leading-none ${
+                      colors[i % colors.length]
+                    } overflow-hidden`}
+                    style={{ width: `${widthPct}%` }}
+                    title={`${pct(row.share)} of reviews`}
+                  >
+                    <div className="truncate">
+                      <span className="font-medium">{pct(row.share)}</span>
+                      <span className="mx-2 text-gray-400">|</span>
+                      <span className="opacity-80">{terms}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Footer hint */}
+      <div className="mt-3 text-xs text-gray-500">
+        Note: Sum may not add to 100% because words of multiple aspects can
+        appear in the same single review
+      </div>
+    </section>
+  );
+}
 
 function BatchAnalytics() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
+      <section className="rounded-2xl border bg-white p-4 shadow-sm md:col-span-2">
+        <AspectFlipPoster
+          summaryUrl={ASPECT_CONFIG.SUMMARY_URL}
+          termsUrl={ASPECT_CONFIG.TOP_TERMS_URL}
+        />
+      </section>
+
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-lg font-semibold">Aspect Sentiment (batch)</h2>
         <p className="mb-3 text-sm text-gray-500">
@@ -549,11 +1001,8 @@ function Snapshotter() {
   const [confirmBusy, setConfirmBusy] = useState(false);
 
   // ====== CONFIG ======
-  const API_BASE = "https://gefh3e3249.execute-api.us-east-1.amazonaws.com/dev";
-  const AUTH_TOKEN =
-    "eyJraWQiOiI2TlBTQVByUHBhUkxNOXBmalwvam5ncUxaZHRRSFB4UWREa3haa0VsQmhLbz0iLCJhbGciOiJSUzI1NiJ9.eyJhdF9oYXNoIjoiLU52WkRaQldYeE8zVWE1MjdRRU5SUSIsInN1YiI6ImI0MThkNGQ4LWMwYTEtNzA4NC04NzM4LTEyZmRiZjRiNzU1NSIsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX0xJb0o5SldHTSIsImNvZ25pdG86dXNlcm5hbWUiOiJiNDE4ZDRkOC1jMGExLTcwODQtODczOC0xMmZkYmY0Yjc1NTUiLCJhdWQiOiI2Y2prN285bjl1bW5yajJqcTBsOWdpMGJjNSIsImV2ZW50X2lkIjoiZWEzZTk1N2MtZDA5YS00MDlhLTgyYTUtOGJkZTUyZTBkZDE0IiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3NTkxMzQ3MzcsImV4cCI6MTc1OTEzODMzNywiaWF0IjoxNzU5MTM0NzM3LCJqdGkiOiJmZjEzNWU3NS0zNWNjLTRhN2YtOWRhNC0wY2E3OTNlMTg4NTUiLCJlbWFpbCI6ImVsdG9udGFuMDcwOUBnbWFpbC5jb20ifQ.odCJuVZLnhj1_br6oFUuS2vr3OLzDt9rr7u-OU9hq3QohgYeanYTj6ydoTsKn6zew6aqM1Ov2lS2bxaP2zzLBFp-m-9SOGswvxXLIttQ-IYSMXWGNbcweJ_KMweeWlznis7x7hRaWBKsbee2gn_oNjZJtvW_mL4KpS53GKsS1MVGOdSS-J-Ent560jKW9__jQ40IXGO3BoYM13AZIutJJb0bUTOskxCLhtX0dbYVpr8ebFkPushV7fsbey5_SAasfr9sFhJo_BNzxIl-hxlD_gXav1RWk8H78NDKYmfRtlQ6vUpN7AMA_XZAVm0QVG0Gh9kqNCCMmPGIlZNFRo0WOQ";
-  const WS_BASE =
-    "wss://ccdg38adi2.execute-api.us-east-1.amazonaws.com/production";
+  const { apiBase: API_BASE, token: AUTH_TOKEN, wsBase: WS_BASE } = useAuth();
+  const bus = useBus();
   const PENDING_KEY = "watchlist.pending.v2";
   const PENDING_TTL_MS = 5 * 60 * 1000;
 
@@ -669,7 +1118,6 @@ function Snapshotter() {
     return list.filter((x) => canonicalUrl(x.url) !== key);
   };
 
-  // Server dedupe
   const dedupeByUrl = (list: ApiWatchRow[]): ApiWatchRow[] => {
     const byUrl = new Map<string, ApiWatchRow>();
     const isNewer = (a: ApiWatchRow, b?: ApiWatchRow): boolean => {
@@ -686,7 +1134,7 @@ function Snapshotter() {
     return Array.from(byUrl.values());
   };
 
-  // ====== LOAD / REFRESH ======
+  // ====== LOAD ONCE (no periodic refresh) ======
   const load = async (): Promise<void> => {
     try {
       setError(null);
@@ -739,7 +1187,7 @@ function Snapshotter() {
   };
 
   useEffect(() => {
-    void load();
+    void load(); // initial fetch only
   }, []);
 
   // ====== DELETE ======
@@ -754,6 +1202,7 @@ function Snapshotter() {
       const data = await r.json();
 
       setRows((prev) => removeByUrl(prev, targetUrl));
+      bus?.dispatchEvent(new Event("watchlist:changed"));
       setPending((p) => {
         const c = canonicalUrl(targetUrl);
         const out: Record<string, { url: string; ts: number }> = {};
@@ -777,7 +1226,6 @@ function Snapshotter() {
     }
   };
 
-  // ====== WEBSOCKET ======
   type LiveUpsert = {
     type: "watchlist.row_upserted";
     row: {
@@ -796,6 +1244,39 @@ function Snapshotter() {
   };
   type LiveMsg = LiveUpsert | LiveFailed;
 
+  function isRecord(v: unknown): v is Record<string, unknown> {
+    return !!v && typeof v === "object";
+  }
+
+  function isLiveUpsert(v: unknown): v is LiveUpsert {
+    if (!isRecord(v)) return false;
+    if (v.type !== "watchlist.row_upserted") return false;
+    const row = v.row;
+    return (
+      isRecord(row) &&
+      typeof row.url === "string" &&
+      (row.updated_at == null || typeof row.updated_at === "number")
+    );
+  }
+
+  function isLiveFailed(v: unknown): v is LiveFailed {
+    return (
+      isRecord(v) &&
+      v.type === "watchlist.job_failed" &&
+      typeof v.url === "string"
+    );
+  }
+
+  function parseLiveMsg(raw: string): LiveMsg | null {
+    try {
+      const data = JSON.parse(raw);
+      if (isLiveUpsert(data) || isLiveFailed(data)) return data;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   const mapLiveToUi = (r: LiveUpsert["row"]): SnapshotRow => ({
     url: r.url,
     product: r.product ?? undefined,
@@ -810,51 +1291,81 @@ function Snapshotter() {
     let ws: WebSocket | null = null;
     let attempts = 0;
     let reconnectTimer: number | undefined;
+    let heartbeat: number | undefined;
 
     const connect = () => {
       try {
-        const url = `${WS_BASE}?token=${encodeURIComponent(AUTH_TOKEN)}`;
+        const url = buildWsUrl(WS_BASE, AUTH_TOKEN);
         ws = new WebSocket(url);
         attempts += 1;
 
         ws.onopen = () => {
           attempts = 0;
           setWsOpen(true);
+          heartbeat = window.setInterval(() => {
+            try {
+              ws?.readyState === WebSocket.OPEN && ws.send('{"type":"ping"}');
+            } catch {}
+          }, 30000) as unknown as number;
         };
 
         ws.onmessage = (e: MessageEvent<string>) => {
-          try {
-            const msg = JSON.parse(e.data) as LiveMsg;
-            if (msg.type === "watchlist.row_upserted") {
-              const c = canonicalUrl(msg.row.url);
-              setRows((prev) => upsertByUrl(prev, mapLiveToUi(msg.row)));
-              setPending((p) => {
-                const out: Record<string, PendingEntry> = {};
-                Object.entries(p).forEach(([tid, ent]) => {
-                  if (canonicalUrl(ent.url) !== c) out[tid] = ent;
-                });
-                return out;
-              });
-            } else if (msg.type === "watchlist.job_failed") {
-              setRows((prev) =>
-                upsertByUrl(prev, { url: msg.url, status: "error" })
-              );
-              setPending((p) => {
-                const c = canonicalUrl(msg.url);
-                const out: Record<string, PendingEntry> = {};
-                Object.entries(p).forEach(([tid, ent]) => {
-                  if (canonicalUrl(ent.url) !== c) out[tid] = ent;
-                });
-                return out;
-              });
-              show("Adding failed — please retry.");
+          const msg = parseLiveMsg(e.data);
+          if (!msg) return; // ignore unknown messages
+
+          if (msg.type === "watchlist.row_upserted") {
+            const uiRow = mapLiveToUi(msg.row);
+
+            // optional: normalize updated_at (server sends seconds; ensure seconds)
+            if (
+              typeof uiRow.updated_at === "number" &&
+              uiRow.updated_at > 1e12
+            ) {
+              // looks like ms, convert to s
+              uiRow.updated_at = Math.floor(uiRow.updated_at / 1000);
             }
-          } catch (err) {
-            console.error("WS parse error", err);
+
+            const c = canonicalUrl(msg.row.url);
+            setRows((prev) => upsertByUrl(prev, uiRow));
+
+            // clear any pending placeholders for this URL
+            setPending((p) => {
+              const out: Record<string, PendingEntry> = {};
+              Object.entries(p).forEach(([tid, ent]) => {
+                if (canonicalUrl(ent.url) !== c) out[tid] = ent;
+              });
+              return out;
+            });
+
+            // notify the app bus so charts refresh
+            bus?.dispatchEvent(new Event("watchlist:changed"));
+          }
+
+          if (msg.type === "watchlist.job_failed") {
+            setRows((prev) =>
+              upsertByUrl(prev, { url: msg.url, status: "error" })
+            );
+
+            setPending((p) => {
+              const c = canonicalUrl(msg.url);
+              const out: Record<string, PendingEntry> = {};
+              Object.entries(p).forEach(([tid, ent]) => {
+                if (canonicalUrl(ent.url) !== c) out[tid] = ent;
+              });
+              return out;
+            });
+
+            // optional: toast + notify charts (e.g., a row disappeared)
+            show("Adding failed — please retry.");
+            bus?.dispatchEvent(new Event("watchlist:changed"));
           }
         };
 
         ws.onclose = () => {
+          if (heartbeat) {
+            clearInterval(heartbeat);
+            heartbeat = undefined;
+          }
           setWsOpen(false);
           const delay = Math.min(1000 * Math.max(1, attempts), 10000);
           reconnectTimer = window.setTimeout(
@@ -877,50 +1388,14 @@ function Snapshotter() {
     connect();
     return () => {
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (heartbeat) clearInterval(heartbeat); // add this
       try {
         ws?.close();
       } catch {}
     };
-  }, [WS_BASE, AUTH_TOKEN]);
+  }, [WS_BASE, AUTH_TOKEN, bus]);
 
-  // ====== FALLBACK POLLING (when WS may be down & we have pending) ======
-  useEffect(() => {
-    const hasPending = Object.keys(pending).length > 0;
-    if (!hasPending) return;
-
-    let timer: number | undefined;
-    let stopped = false;
-
-    let delay = wsOpen ? 7000 : 3000;
-    const maxDelay = wsOpen ? 15000 : 12000;
-
-    const tick = async () => {
-      if (stopped) return;
-      if (document.visibilityState === "visible") {
-        await load();
-        delay = Math.min(delay * 1.8, maxDelay);
-      }
-      timer = window.setTimeout(tick, delay) as unknown as number;
-    };
-
-    timer = window.setTimeout(tick, delay) as unknown as number;
-
-    const onVisible = () => {
-      delay = wsOpen ? 7000 : 3000;
-      void load();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
-
-    return () => {
-      if (timer) clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
-      stopped = true;
-    };
-  }, [pending, wsOpen]);
-
-  // ====== ADD FLOW ======
+  // ====== ADD FLOW (no reconciliation polling; rely on WS or manual Refresh) ======
   const addUrl = async (): Promise<void> => {
     const clean = inputUrl.trim();
     if (!clean) return;
@@ -977,6 +1452,7 @@ function Snapshotter() {
         body: JSON.stringify({ url: clean }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // No reconciliation loop — expect WS to upsert; user can hit Refresh if needed.
     } catch (e) {
       console.error(e);
       setRows((prev) => upsertByUrl(prev, { url: clean, status: "error" }));
@@ -987,35 +1463,6 @@ function Snapshotter() {
       show("Failed to add. Try again.");
       return;
     }
-
-    // reconciliation loop
-    const START = Date.now();
-    const TIMEOUT = 5 * 60 * 1000;
-    const INTERVAL = 3000;
-
-    const loop = async (): Promise<void> => {
-      try {
-        const r = await fetch(`${API_BASE}/watchlist`, {
-          headers: authHeaders(),
-        });
-        if (r.ok) {
-          const arr = (await r.json()) as ApiWatchRow[];
-          const hit = dedupeByUrl(arr).find((x) => canonicalUrl(x.url) === key);
-          if (hit) {
-            setRows((prev) => upsertByUrl(prev, mapApiToUi(hit)));
-            setPending((p) => {
-              const { [tempId]: _, ...rest } = p;
-              return rest;
-            });
-            return;
-          }
-        }
-      } catch {}
-      if (Date.now() - START < TIMEOUT) setTimeout(loop, INTERVAL);
-    };
-
-    setTimeout(loop, INTERVAL);
-    setTimeout(() => void load(), 4000);
   };
 
   // ====== SELECTED ROW / DISPLAY TEXT FOR CONFIRM MODAL ======
@@ -1062,7 +1509,7 @@ function Snapshotter() {
       <div className="mb-2 text-xs">
         Live:&nbsp;
         <span className={wsOpen ? "text-emerald-600" : "text-amber-600"}>
-          {wsOpen ? "connected" : "reconnecting / fallback polling"}
+          {wsOpen ? "connected" : "reconnecting"}
         </span>
       </div>
 
@@ -1075,6 +1522,7 @@ function Snapshotter() {
               <th className="px-3 py-2">Price</th>
               <th className="px-3 py-2">Stock</th>
               <th className="px-3 py-2">URL / Status</th>
+              <th className="px-3 py-2">Last Updated</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -1125,6 +1573,7 @@ function Snapshotter() {
                       </div>
                     </td>
                     <td className="px-3 py-2">
+                      $
                       {typeof r.price === "number" ? (
                         r.price
                       ) : (
@@ -1142,11 +1591,11 @@ function Snapshotter() {
                         </span>
                       ) : r.availability === "in_stock" ? (
                         <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
-                          in stock
+                          In Stock
                         </span>
                       ) : r.availability === "out_of_stock" ? (
                         <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">
-                          out of stock
+                          Out of Stock
                         </span>
                       ) : (
                         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
@@ -1154,6 +1603,7 @@ function Snapshotter() {
                         </span>
                       )}
                     </td>
+
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
                         <a
@@ -1197,15 +1647,24 @@ function Snapshotter() {
                       </div>
                     </td>
                     <td className="px-3 py-2">
-                      <button
-                        className="rounded-md border border-rose-300 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
-                        onClick={() => {
-                          setConfirmUrl(r.url);
-                          setConfirmOpen(true);
-                        }}
-                      >
-                        Remove
-                      </button>
+                      <div className="text-xs text-gray-700">
+                        {fmtSgt(r.updated_at)}{" "}
+                        <span className="text-gray-400">SGT</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      {/* Hide delete while adding */}
+                      {r.status !== "adding" && (
+                        <button
+                          className="rounded-md border border-rose-300 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
+                          onClick={() => {
+                            setConfirmUrl(r.url);
+                            setConfirmOpen(true);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
