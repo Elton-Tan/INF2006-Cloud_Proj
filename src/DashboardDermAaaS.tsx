@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { startCognitoAuth, login } from "./cognitoAuth";
+
 import {
   ResponsiveContainer,
   LineChart,
@@ -113,16 +115,21 @@ function useJson<T>(url: string) {
 }
 
 const ASPECT_CONFIG = {
-  SUMMARY_URL: "/data/aspects_summary.json", // e.g. served by your app
-  TOP_TERMS_URL: "/data/aspect_top_terms.json", // same folder as above
+  SUMMARY_URL: "https://d2g31fqhakzf6l.cloudfront.net/aspects_summary.json", // e.g. served by your app
+  TOP_TERMS_URL: "https://d2g31fqhakzf6l.cloudfront.net/aspect_top_terms.json", // same folder as above
 };
 
 const CONFIG = {
   API_BASE: "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev",
   WS_BASE: "https://d1n59ypscvrsxd.cloudfront.net/production",
-  // Put your Cognito **ID token** here (or inject via env at build time)
-  AUTH_TOKEN:
-    "eyJraWQiOiI4blFndENlNzVNYzdDSmljS2RGQmVxazkxZ3VZcXp0WXBqbDJ0c1M2RFlFPSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiZ2Z6ZjZka2VianhFQ19USWhQU3poZyIsInN1YiI6ImI0ZDg3NDE4LWIwMjEtNzAxNC0xNWExLTJiMTJkZTliYmY1OCIsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xXzh3YU9rZG9VUiIsImNvZ25pdG86dXNlcm5hbWUiOiJiNGQ4NzQxOC1iMDIxLTcwMTQtMTVhMS0yYjEyZGU5YmJmNTgiLCJhdWQiOiJvaDJ2ZjlpbWxlMWw1Nm5razZmbWt0ZTBpIiwiZXZlbnRfaWQiOiJjNzhkZTNkYi0wOGJiLTQ2YTAtOWNiZC03ZTYwMTAwN2IwMmIiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTc1OTM4NDgxMCwiZXhwIjoxNzU5Mzg4NDEwLCJpYXQiOjE3NTkzODQ4MTAsImp0aSI6IjljYTQ5NmJjLWE3NTEtNGQzMy1iOWM0LTZkYmY0MjNlZTgxMiIsImVtYWlsIjoic3VhbmZpeEB0aGVmb290cHJhY3RpY2UuY29tIn0.atSyZb-MLmxveLRjNiXIL3FVlRwYCz74nIBqKi5b93_XDexkGq91OM6-PPnnxi1gBqbDc70-v5tTAi2O1MXQQMnYiF_zkITJLk-dcZF3ZXHdu-wnkdD1peWzVG4b34tr2jiQSBppMqZzY-_wwqfXg4G283MGIJcDZfjyDF7hfB45HjKOxlGzbMY2BiFxSrn8TRys-gu800wiz0kI7Ctvy74VC3POZ-_livTOLe2XBaLqrU8TOWWcW4FbrcG28S0CN6N72jfyBK1ENzXjMVon7kMS80QTY7OX3tRFW-0edGU9-QIzhIDCDTTxaCYv6FDeml4RbHR9QKNrt8h7_TTjzg",
+};
+
+const COGNITO = {
+  domain: "spirulina.auth.us-east-1.amazoncognito.com",
+  clientId: "oh2vf9imle1l56nkk6fmkte0i",
+  redirectUri: "http://localhost:3001/",
+  scopes: ["openid", "email"],
+  useIdToken: true,
 };
 
 const fmtSgt = (t?: number | string | null): string => {
@@ -146,6 +153,27 @@ const buildWsUrl = (baseHttpsUrl: string, token: string) => {
   return u.toString();
 };
 
+// Put this near buildWsUrl(...)
+function doLogout() {
+  // 1) Clear local/session storage so UI immediately drops to "signed out"
+  try {
+    sessionStorage.clear();
+    localStorage.removeItem("cognito.tokens.v1");
+    localStorage.removeItem("cognito.pkce.verifier");
+  } catch {}
+
+  // 2) Hosted UI sign-out (make sure this logout URL is allowed in Cognito)
+  try {
+    const url = new URL(`https://${COGNITO.domain}/logout`);
+    url.searchParams.set("client_id", COGNITO.clientId);
+    url.searchParams.set("logout_uri", COGNITO.redirectUri);
+    window.location.href = url.toString();
+  } catch {
+    // Fallback: just go back to the app
+    window.location.assign(COGNITO.redirectUri);
+  }
+}
+
 type AuthCtx = { apiBase: string; wsBase: string; token: string };
 const AuthContext = React.createContext<AuthCtx | null>(null);
 const useAuth = (): AuthCtx => {
@@ -158,16 +186,124 @@ const useAuth = (): AuthCtx => {
 const BusContext = React.createContext<EventTarget | null>(null);
 const useBus = (): EventTarget | null => React.useContext(BusContext);
 
-// Provider wrapper
 function AppProviders({ children }: { children: React.ReactNode }) {
-  const [auth] = React.useState<AuthCtx>({
-    apiBase: CONFIG.API_BASE,
-    wsBase: CONFIG.WS_BASE,
-    token: CONFIG.AUTH_TOKEN,
-  });
-
-  // Single EventTarget instance for pub/sub
+  const [auth, setAuth] = React.useState<AuthCtx | null>(null);
+  const [loading, setLoading] = React.useState(true);
   const [bus] = React.useState<EventTarget>(() => new EventTarget());
+
+  // tiny helper: read a stored token your helper might have saved
+  function readStoredToken(): string | null {
+    try {
+      // adjust these keys to whatever your cognitoAuth writes
+      const raw =
+        sessionStorage.getItem("cognito.tokens.v1") ||
+        localStorage.getItem("cognito.tokens.v1");
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      return obj?.id_token || obj?.access_token || null;
+    } catch {
+      return null;
+    }
+  }
+
+  const ensureAuthed = React.useCallback(async () => {
+    const url = new URL(window.location.href);
+    const hasCode = url.searchParams.has("code");
+
+    // 1) Restore existing session if available
+    const stored = readStoredToken();
+    if (stored && !auth) {
+      setAuth({
+        apiBase: CONFIG.API_BASE,
+        wsBase: CONFIG.WS_BASE,
+        token: stored,
+      });
+      setLoading(false);
+      return;
+    }
+
+    // 2) Exchange code (first sign-in callback)
+    if (hasCode) {
+      const res = await startCognitoAuth(
+        {
+          domain: COGNITO.domain,
+          clientId: COGNITO.clientId,
+          redirectUri: COGNITO.redirectUri,
+          scopes: COGNITO.scopes,
+        },
+        { persist: true, preferIdToken: COGNITO.useIdToken } // <-- persist!
+      );
+
+      if (res.ready && res.token) {
+        setAuth({
+          apiBase: CONFIG.API_BASE,
+          wsBase: CONFIG.WS_BASE,
+          token: res.token,
+        });
+      }
+
+      // strip only the query to avoid re-exchange on refresh (keeps current path)
+      const clean = `${url.origin}${url.pathname}${url.hash || ""}`;
+      window.history.replaceState(null, "", clean);
+
+      setLoading(false);
+      return;
+    }
+
+    // 3) No session, no code — show Sign in
+    setLoading(false);
+  }, [auth]);
+
+  // Guard against StrictMode double-run
+  const ranRef = React.useRef(false);
+  React.useEffect(() => {
+    if (ranRef.current) return;
+    ranRef.current = true;
+    void ensureAuthed();
+  }, [ensureAuthed]);
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
+          <div className="text-sm text-gray-600">Loading…</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!auth) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-gray-50 px-4">
+        <div className="w-[min(420px,92vw)] rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="mb-4">
+            <h1 className="text-lg font-semibold">
+              Welcome to Spiruvita Intelligence
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Please sign in to continue.
+            </p>
+          </div>
+          <button
+            className="w-full rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-black"
+            onClick={() =>
+              login({
+                domain: COGNITO.domain,
+                clientId: COGNITO.clientId,
+                redirectUri: COGNITO.redirectUri,
+                scopes: COGNITO.scopes,
+              })
+            }
+          >
+            Login with Cognito
+          </button>
+          <p className="mt-3 text-center text-xs text-gray-500">
+            You’ll be redirected to the secure sign-in page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={auth}>
@@ -346,17 +482,32 @@ export default function SpiruvitaDashboardV2() {
 // Move your previous component body into this:
 function DashboardShell() {
   const [nav, setNav] = useState<NavKey>("live");
+  const { token } = useAuth(); // signed-in context (for showing Sign out)
+
   return (
     <div className="min-h-screen w-full bg-gray-50 text-gray-900">
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex h-14 items-center border-b bg-white/80 px-4 backdrop-blur">
         <div className="flex-1 font-semibold">Spiruvita Intelligence</div>
-        <div className="text-xs text-gray-500">Prototype • v2</div>
+
+        <div className="flex items-center gap-2">
+          <div className="hidden text-xs text-gray-500 sm:block">
+            Prototype • v2
+          </div>
+          {token && (
+            <button
+              onClick={doLogout}
+              className="ml-2 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+              title="Sign out"
+            >
+              Sign out
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Shell */}
       <div className="mx-auto grid max-w-7xl grid-cols-12 gap-4 px-4 py-4">
-        {/* Sidebar */}
         {/* Sidebar */}
         <aside className="col-span-12 h-full rounded-2xl border bg-white p-2 shadow-sm md:col-span-3 lg:col-span-2">
           <nav className="flex flex-col gap-1">
