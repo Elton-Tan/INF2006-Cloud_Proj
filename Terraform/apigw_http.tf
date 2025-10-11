@@ -77,6 +77,15 @@ resource "aws_apigatewayv2_integration" "watchlist_series" {
 }
 
 
+resource "aws_apigatewayv2_integration" "trends_daily" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.trends_read.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
+
 # =========================
 # Routes (protected + public)
 # =========================
@@ -88,6 +97,7 @@ locals {
     "GET /watchlist"        = aws_apigatewayv2_integration.watchlist.id
     "DELETE /watchlist"     = aws_apigatewayv2_integration.delete_watchlist.id
     "GET /watchlist/series" = aws_apigatewayv2_integration.watchlist_series.id
+    "GET /trends/daily"     = aws_apigatewayv2_integration.trends_daily.id
   }
 
   # Add public routes if any (empty by default)
@@ -125,6 +135,7 @@ locals {
     watchlist_read   = aws_lambda_function.watchlist_read.function_name
     delete_watchlist = aws_lambda_function.delete_watchlist.function_name
     watchlist_series = aws_lambda_function.watchlist_series.function_name
+    trends_read      = aws_lambda_function.trends_read.function_name
   }
 }
 
