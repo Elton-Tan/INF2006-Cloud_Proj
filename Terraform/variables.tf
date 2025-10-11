@@ -140,4 +140,10 @@ variable "existing_tg_name" {
 variable "bastion_key_name" {
   type    = string
   default = null
-} 
+}
+
+# variables.tf
+variable "awswrangler_layer_arn" {
+  type        = string
+  description = "AWS-managed pandas+numpy layer ARN"
+}

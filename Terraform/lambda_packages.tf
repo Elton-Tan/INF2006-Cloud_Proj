@@ -54,6 +54,14 @@ data "archive_file" "watchlist_series_zip" {
   output_path = "${path.module}/dist/watchlist_series.zip"
 }
 
+# --------- Zip the daily trends lambda FOLDER (handler.py inside) ----------
+data "archive_file" "trends_daily_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/trends_daily" # folder with handler.py
+  output_path = "${path.module}/dist/trends_daily.zip"
+}
+
+
 
 # =========================
 # Functions (Python 3.12)  #
@@ -270,6 +278,12 @@ data "archive_file" "schedule_enqueue_zip" {
   output_path = "${path.module}/dist/schedule_enqueue.zip"
 }
 
+data "archive_file" "trends_read_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/trends_read"
+  output_path = "${path.module}/dist/trends_read.zip"
+}
+
 # ========== Lambda function ==========
 resource "aws_lambda_function" "schedule_enqueue" {
   function_name = "${var.project}-${var.env}-schedule-enqueue"
@@ -300,3 +314,86 @@ resource "aws_lambda_function" "schedule_enqueue" {
     }
   }
 }
+
+# GOOGLE TRENDS (daily ingest)
+resource "aws_lambda_function" "trends_daily" {
+  function_name = "${var.project}-${var.env}-trends-daily"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler" # file: trends_daily/handler.py
+  filename      = data.archive_file.trends_daily_zip.output_path
+  timeout       = 60
+  memory_size   = 768
+  architectures = ["x86_64"]
+
+  # Force re-deploy when code zip changes
+  source_code_hash = filebase64sha256(data.archive_file.trends_daily_zip.output_path)
+
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn,
+    aws_lambda_layer_version.requests_layer.arn, # you already have this
+    var.awswrangler_layer_arn,
+    aws_lambda_layer_version.pytrends_layer.arn
+  ]
+
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = {
+      REGION        = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+      TABLE_NAME    = "google_trends_daily"
+      GEO           = "SG"
+      DB_NAME       = "spirulinadb"
+
+      # Groups: antifungal|antifungal cream ; spirulina ; skin cream
+      KEYWORD_GROUPS = "antifungal|antifungal cream;spirulina;skin cream"
+
+      DAYS_BACK     = "400" # ~13 months, daily
+      MAX_KEYS_PER  = "5"
+      SLEEP_BETWEEN = "1.2"
+      CATEGORY      = "0"
+    }
+  }
+}
+
+
+# TRENDS (read)
+resource "aws_lambda_function" "trends_read" {
+  function_name = "${var.project}-${var.env}-trends-read"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"
+  filename      = data.archive_file.trends_read_zip.output_path
+  timeout       = 10
+  memory_size   = 256
+  architectures = ["x86_64"]
+
+  # Auto-redeploy when zip changes
+  source_code_hash = filebase64sha256(data.archive_file.trends_read_zip.output_path)
+
+  # Reuse your MySQL/PyMySQL layer
+  layers = [aws_lambda_layer_version.mysql_layer.arn]
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = {
+      REGION        = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+      TABLE_NAME    = "google_trends_daily"
+      GEO           = "SG"
+      DB_NAME       = "spirulinadb"
+      # optional caps
+      MAX_SLUGS = "20"
+    }
+  }
+}
+
