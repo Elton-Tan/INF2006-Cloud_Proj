@@ -15,7 +15,35 @@ export default function Snapshotter() {
   const PENDING_KEY = "watchlist.pending.v2";
   const PENDING_TTL_MS = 5 * 60 * 1000;
 
+  function isLazadaPdp(raw?: string | null): boolean {
+    const s = (raw ?? "").trim();
+    if (!s) return false;
+
+    // helper to test a URL instance
+    const looksLike = (u: URL) => {
+      const host = u.hostname.replace(/^www\.|^m\./i, "");
+      // no leading \. — match root or subdomain
+      const hostOk =
+        /(^|\.)lazada\.(sg|co\.id|com\.my|com\.ph|co\.th|vn)$/i.test(host);
+      if (!hostOk) return false;
+      const p = u.pathname.toLowerCase();
+      return p.includes("/products/") || /-i\d+\.html$/.test(p);
+    };
+
+    try {
+      return looksLike(new URL(s));
+    } catch {
+      // allow no-protocol paste
+      try {
+        return looksLike(new URL(`https://${s}`));
+      } catch {
+        return false;
+      }
+    }
+  }
+
   const [inputUrl, setInputUrl] = React.useState<string>("");
+  const isValidPdp = React.useMemo(() => isLazadaPdp(inputUrl), [inputUrl]);
   const [rows, setRows] = React.useState<SnapshotRow[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -54,11 +82,11 @@ export default function Snapshotter() {
     } catch {}
   }, [pending]);
 
-  const headers = (): Record<string, string> => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${AUTH_TOKEN}`,
-  });
-
+  const headers = (): Record<string, string> => {
+    const h: Record<string, string> = { "Content-Type": "application/json" };
+    if (AUTH_TOKEN) h.Authorization = `Bearer ${AUTH_TOKEN}`;
+    return h;
+  };
   const canonicalUrl = (raw?: string | null): string => {
     const trimmed = (raw ?? "").trim();
     if (!trimmed) return "";
@@ -139,6 +167,11 @@ export default function Snapshotter() {
   };
 
   const load = async () => {
+    if (!AUTH_TOKEN) {
+      setError("Your session has expired. Please sign in again.");
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       setLoading(true);
@@ -187,6 +220,11 @@ export default function Snapshotter() {
   }, []);
 
   const deleteByUrl = async (targetUrl: string) => {
+    if (!AUTH_TOKEN) {
+      setError("Your session has expired. Please sign in again.");
+      setLoading(false);
+      return;
+    }
     setConfirmBusy(true);
     try {
       const r = await fetch(
@@ -275,6 +313,8 @@ export default function Snapshotter() {
   });
 
   React.useEffect(() => {
+    if (!AUTH_TOKEN) return;
+
     let ws: WebSocket | null = null;
     let attempts = 0;
     let reconnectTimer: number | undefined;
@@ -364,10 +404,20 @@ export default function Snapshotter() {
       } catch {}
     };
   }, [WS_BASE, AUTH_TOKEN, bus]);
-
   const addUrl = async () => {
+    if (!AUTH_TOKEN) {
+      setError("Your session has expired. Please sign in again.");
+      setLoading(false);
+      return;
+    }
     const clean = inputUrl.trim();
     if (!clean) return;
+
+    if (!isValidPdp) {
+      show("Only Lazada product URLs are supported for now.");
+      return;
+    }
+
     const key = canonicalUrl(clean);
 
     const exists = rows.some(
@@ -443,25 +493,57 @@ export default function Snapshotter() {
         with scroll.
       </p>
 
-      <div className="mb-3 flex gap-2">
-        <input
-          className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm"
-          placeholder="https://www.lazada.sg/products/..."
-          value={inputUrl}
-          onChange={(e) => setInputUrl(e.target.value)}
-        />
-        <button
-          className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
-          onClick={addUrl}
-        >
-          Add
-        </button>
-        <button
-          className="rounded-xl bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
-          onClick={() => void load()}
-        >
-          Refresh
-        </button>
+      <div className="mb-3">
+        {/* Red alert shown when user typed something and it's NOT a Lazada PDP */}
+        {inputUrl.trim() && !isValidPdp && (
+          <div className="mb-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            Only Lazada product URLs are supported for now.
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <input
+            className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 ${
+              inputUrl.trim() && !isValidPdp
+                ? "border-rose-400 ring-rose-200"
+                : "focus:ring-gray-200"
+            }`}
+            placeholder="https://www.lazada.sg/products/..."
+            value={inputUrl}
+            onChange={(e) => setInputUrl(e.target.value)}
+            aria-invalid={!!(inputUrl.trim() && !isValidPdp)}
+            aria-describedby={
+              inputUrl.trim() && !isValidPdp ? "pdp-help" : undefined
+            }
+          />
+          <button
+            className={`rounded-xl px-4 py-2 text-sm font-medium text-white ${
+              isValidPdp
+                ? "bg-gray-900 hover:bg-black"
+                : "bg-gray-300 cursor-not-allowed"
+            }`}
+            onClick={addUrl}
+            disabled={!isValidPdp}
+            title={
+              !isValidPdp ? "Only Lazada product URLs are supported" : "Add"
+            }
+          >
+            Add
+          </button>
+          <button
+            className="rounded-xl bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
+            onClick={() => void load()}
+          >
+            Refresh
+          </button>
+        </div>
+
+        {/* Hidden accessibility helper text ID referenced by aria-describedby */}
+        {inputUrl.trim() && !isValidPdp && (
+          <p id="pdp-help" className="sr-only">
+            Only Lazada product URLs are supported for now.
+          </p>
+        )}
       </div>
 
       <div className="mb-2 text-xs">

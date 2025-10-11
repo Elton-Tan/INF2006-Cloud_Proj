@@ -61,6 +61,12 @@ data "archive_file" "trends_daily_zip" {
   output_path = "${path.module}/dist/trends_daily.zip"
 }
 
+data "archive_file" "trends_forecast_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/trends_forecast"      # folder containing trainer_forecast_handler.py as handler.py
+  output_path = "${path.module}/dist/trends_forecast.zip"
+}
+
 
 
 # =========================
@@ -393,6 +399,53 @@ resource "aws_lambda_function" "trends_read" {
       DB_NAME       = "spirulinadb"
       # optional caps
       MAX_SLUGS = "20"
+    }
+  }
+}
+
+resource "aws_lambda_function" "trends_forecast" {
+  function_name = "${var.project}-${var.env}-trends-forecast"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"             # file: trends_forecast/handler.py
+  filename      = data.archive_file.trends_forecast_zip.output_path
+  timeout       = 120
+  memory_size   = 1024
+  architectures = ["x86_64"]
+
+  # Auto-redeploy when zip changes
+  source_code_hash = filebase64sha256(data.archive_file.trends_forecast_zip.output_path)
+
+  # Reuse layers you already have:
+  # - mysql_layer        : PyMySQL to talk to RDS
+  # - var.awswrangler... : brings in numpy/pandas without you shipping a big layer
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn,
+    var.awswrangler_layer_arn
+  ]
+
+  # Same VPC setup as your DB-talking lambdas
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = {
+      REGION          = var.region
+      DB_SECRET_ARN   = local.lambda_env.DB_SECRET_ARN
+      TABLE_NAME      = "google_trends_daily"          # historical table (same as trends_read)
+      KW_TABLE        = "trend_keywords"               # to enumerate active slugs/groups
+      FORECAST_TABLE  = "google_trends_forecast"       # bounded forecast table (PK (geo,slug,day))
+
+      GEO             = "SG"
+
+      # Trainer knobs (safe defaults; tweak via TF vars later if you want)
+      HISTORY_DAYS    = "420"
+      FORECAST_DAYS   = "7"
+      MIN_TRAIN_DAYS  = "120"
+      CV_FOLDS        = "5"
+      RIDGE_ALPHAS    = "0,0.1,0.3,1,3,10"
     }
   }
 }

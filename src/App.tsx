@@ -1,9 +1,13 @@
+// src/App.tsx
 import React from "react";
 import { AppProviders, useAuth } from "./contexts";
-import { doLogout } from "./utils";
+import { onAuthExpired } from "./cognitoAuth";
+import { login } from "./cognitoAuth";
+import { COGNITO } from "./config";
 import LiveFeed from "./views/LiveFeed";
 import BatchAnalytics from "./views/BatchAnalytics";
 import Snapshotter from "./views/Snapshotter";
+import { doLogout } from "./utils";
 
 const NAV = [
   { key: "live", label: "Live Feed" },
@@ -12,12 +16,64 @@ const NAV = [
 ] as const;
 type NavKey = (typeof NAV)[number]["key"];
 
+function SessionExpiredModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose(): void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+        <div className="mb-2 text-lg font-semibold">Token Expired</div>
+        <p className="mb-4 text-sm text-gray-600">
+          For security reasons, the authentication token expires and require
+          refresh every 4 hours. This helps to keep the site secure.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() =>
+              login(
+                {
+                  domain: COGNITO.domain,
+                  clientId: COGNITO.clientId,
+                  redirectUri: COGNITO.redirectUri,
+                  scopes: COGNITO.scopes,
+                },
+                true // persist
+              )
+            }
+            className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            Refresh Token
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DashboardShell() {
   const [nav, setNav] = React.useState<NavKey>("live");
   const { token } = useAuth();
 
+  const [expiredOpen, setExpiredOpen] = React.useState(false);
+
+  // Open modal when the auth lib emits "expired"
+  React.useEffect(() => {
+    const off = onAuthExpired(() => setExpiredOpen(true));
+    return off;
+  }, []);
+
   return (
     <div className="min-h-screen w-full bg-gray-50 text-gray-900">
+      <SessionExpiredModal
+        open={expiredOpen}
+        onClose={() => setExpiredOpen(false)}
+      />
+
       <header className="sticky top-0 z-30 flex h-14 items-center border-b bg-white/80 px-4 backdrop-blur">
         <div className="flex-1 font-semibold">Spiruvita Intelligence</div>
         <div className="flex items-center gap-2">

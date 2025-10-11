@@ -1,4 +1,5 @@
 import { COGNITO } from "./config";
+import { logout } from "./cognitoAuth";
 
 export const fmtSgt = (t?: number | string | null): string => {
   if (t == null) return "—";
