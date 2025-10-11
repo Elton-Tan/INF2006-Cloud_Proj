@@ -1,4 +1,4 @@
-# handler.py  (Python 3.12)
+# handler.py  (Python 3.12)  -- FORECASTER with Pub/Sub
 import os, json, logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple
 import boto3, pymysql
 import pandas as pd
 import numpy as np
+from botocore.config import Config as BotoConfig
 
 # =====================
 # ENV / CONFIG
@@ -29,8 +30,84 @@ LAGS               = [1,2,3,4,5,6,7,14,21]
 USE_MA7            = True
 USE_WEEKDAY_ONEHOT = True
 
+# --- Pub/Sub (same infra as your worker / scraper) ---
+AWS_REGION   = os.getenv("AWS_REGION") or os.getenv("REGION") or "ap-southeast-1"
+WS_ENDPOINT  = os.getenv("WS_ENDPOINT")     # https://...execute-api.../prod
+CONN_TABLE   = os.getenv("CONN_TABLE")      # DynamoDB table with connections
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+_boto_cfg = BotoConfig(retries={"max_attempts": 3, "mode": "standard"})
+_ddb = boto3.client("dynamodb", region_name=AWS_REGION, config=_boto_cfg) if CONN_TABLE else None
+_api = boto3.client("apigatewaymanagementapi", endpoint_url=WS_ENDPOINT, config=_boto_cfg) if WS_ENDPOINT else None
+
+# =====================
+# Pub/Sub helpers
+# =====================
+def _fanout_items(user_id: str | None = None):
+    """
+    If you later scope by tenant/user, pass user_id and ensure your DDB pk scheme matches.
+    For now: broadcast to all connections.
+    """
+    if not _ddb or not CONN_TABLE:
+        return []
+    if user_id:
+        resp = _ddb.query(
+            TableName=CONN_TABLE,
+            KeyConditionExpression="pk = :pk",
+            ExpressionAttributeValues={":pk": {"S": f"user#{user_id}"}},
+            ProjectionExpression="pk, sk, connectionId"
+        )
+        return resp.get("Items", [])
+    resp = _ddb.scan(TableName=CONN_TABLE, ProjectionExpression="pk, sk, connectionId")
+    return resp.get("Items", [])
+
+def _post_to(cid: str, payload: bytes) -> bool:
+    try:
+        _api.post_to_connection(ConnectionId=cid, Data=payload)
+        return True
+    except Exception:
+        return False
+
+def _delete_conn(pk: str, sk: str):
+    try:
+        _ddb.delete_item(TableName=CONN_TABLE, Key={"pk": {"S": pk}, "sk": {"S": sk}})
+    except Exception:
+        pass
+
+def _push_trends_updated(geo: str, slugs: list[str], *, kind: str, horizon: int):
+    """
+    Keep a single event type 'trends.updated' used by the UI listener.
+    Include 'kind' so front-end knows this is a forecast refresh.
+    """
+    if not (_api and _ddb and CONN_TABLE):
+        return
+    if not slugs:
+        return
+    payload = json.dumps({
+        "type": "trends.updated",
+        "geo": geo,
+        "kind": kind,                 # "forecast"
+        "slugs": sorted(list(set(slugs))),
+        "horizon": horizon,
+        "ts": datetime.utcnow().isoformat() + "Z",
+    }).encode("utf-8")
+    items = _fanout_items(user_id=None)
+    sent, dead = 0, 0
+    for it in items:
+        cid = (it.get("connectionId") or {}).get("S")
+        pk  = (it.get("pk") or {}).get("S")
+        sk  = (it.get("sk") or {}).get("S")
+        if not cid:
+            continue
+        if _post_to(cid, payload):
+            sent += 1
+        else:
+            dead += 1
+            if pk and sk:
+                _delete_conn(pk, sk)
+    logger.info("trends.updated(kind=%s) pushed: sent=%d cleaned=%d", kind, sent, dead)
 
 # =====================
 # DB Helpers
@@ -285,6 +362,7 @@ def lambda_handler(_event, _ctx):
         total_upsert = 0
         trained = 0
         skipped = []
+        touched_slugs: list[str] = []
 
         for slug in slugs:
             try:
@@ -300,11 +378,20 @@ def lambda_handler(_event, _ctx):
                     start_next=(last_obs_date + timedelta(days=1)),
                     preds=preds
                 )
+                if up > 0:
+                    touched_slugs.append(slug)
                 total_upsert += up
                 trained += 1
             except Exception as e:
                 logger.exception(f"slug {slug} failed")
                 skipped.append({"slug": slug, "reason": str(e)})
+
+        # Pub/Sub notify UI if any forecast rows were written
+        try:
+            if total_upsert > 0 and touched_slugs:
+                _push_trends_updated(GEO, touched_slugs, kind="forecast", horizon=FORECAST_DAYS)
+        except Exception:
+            logger.warning("trends.updated(forecast) push failed", exc_info=True)
 
         body = {
             "geo": GEO,
