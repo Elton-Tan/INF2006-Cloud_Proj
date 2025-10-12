@@ -3,29 +3,23 @@ This project is about cloud computing INF2006. REQUIRE NODE JS 21 using tailwind
 Next steps:
 1. To solve scrapper bot issue by creating dummy amazon account and set up IP rotation to prevent IP ban <- OK but no amazon. Need to expand to the website Tim is talking about but thats not the highest priority for now.
 
-2. See if we can use google keyword appearances to forecast demand. --> This is NEXT!
+2. See if we can use google keyword appearances to forecast demand. (OK)
 3. Focus to build infra for POC before proceeding on real implement 
 4. Snapshot (done)
 5. Meta ad library to know whether competitor uploaded any ads and what kind
 6. Keyword analysis - OK!
 
-To kick off front-end testing with Tim (industry partner). Gather feedback and then put in report! --> This is NEXT
+To kick off front-end testing with Tim (industry partner). Gather feedback and then put in report! --> READY
 
 CloudFront OK, Cognito Hook up OK, all looking good to begin front end testing with TIM ----> to confirm via meeting (Reminder for myself: Please remember to recheck this. Get at least 1 user testing phase before the submission to align expectations!!! IMPORTANT)
 
 
-To access JWT token: 
-https://us-east-1wjr7jn7tu.auth.us-east-1.amazoncognito.com/login?client_id=79nuljha7jnv5hcass1rsd3jjc&response_type=token&scope=openid+email+phone&redirect_uri=https%3A%2F%2Fd84l1y8p4kdic.cloudfront.net%2F
-^PURELY for dev use only! I will remove this token access method once the final project is ready! <- This access method is removed temporarily as i hook the cognito for the mid way submission!!!!! Please do not be surprised! test without jwt, then once all OK, enable jwt
+Dont authorise API first. Test on POSTMAN. Only authorise when OK to make it less troublesom
 
 
 
+then npm start
 
-run server.js node server.js
-
-then npm start react 
-
-npm start build, then host on S3. ONLY ACCEPT STATIC FILES because we are using S3! If your function require more than that, please discuss with me!
-
+npm start build, then host on S3. ONLY ACCEPT STATIC FILES because we are using S3! 
 
 
