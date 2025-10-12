@@ -8,11 +8,13 @@ import LiveFeed from "./views/LiveFeed";
 import BatchAnalytics from "./views/BatchAnalytics";
 import Snapshotter from "./views/Snapshotter";
 import { doLogout } from "./utils";
+import WordsOfInterest from "./views/WordsOfInterest";
 
 const NAV = [
   { key: "live", label: "Live Feed" },
   { key: "batch", label: "Batch Analytics" },
   { key: "snapshot", label: "Snapshotter" },
+  { key: "words", label: "Words of Interest" },
 ] as const;
 type NavKey = (typeof NAV)[number]["key"];
 
@@ -107,23 +109,13 @@ function DashboardShell() {
               </button>
             ))}
           </nav>
-          <div className="mt-4 rounded-xl border bg-gray-50 p-3 text-xs text-gray-600">
-            <div className="font-medium">Hint</div>
-            <p>
-              Replace mock arrays with API calls:{" "}
-              <code className="rounded bg-gray-100 px-1">/api/alerts</code>,
-              <code className="rounded bg-gray-100 px-1">/api/trends</code>,
-              <code className="rounded bg-gray-100 px-1">/api/prices</code>,
-              <code className="rounded bg-gray-100 px-1">/api/sentiment</code>,
-              <code className="rounded bg-gray-100 px-1">/api/watchlist</code>.
-            </p>
-          </div>
         </aside>
 
         <main className="col-span-12 grid gap-4 md:col-span-9 lg:col-span-10">
           {nav === "live" && <LiveFeed />}
           {nav === "batch" && <BatchAnalytics />}
           {nav === "snapshot" && <Snapshotter />}
+          {nav === "words" && <WordsOfInterest />}
         </main>
       </div>
     </div>

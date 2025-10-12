@@ -489,8 +489,8 @@ export default function Snapshotter() {
     <section className="rounded-2xl border bg-white p-4 shadow-sm">
       <h2 className="mb-1 text-lg font-semibold">Snapshotter</h2>
       <p className="mb-3 text-sm text-gray-500">
-        Enter a Lazada PDP URL to add to the queue. Below table is fixed height
-        with scroll.
+        Enter a Lazada Product URL to add to the queue. Currently accepts only
+        Lazada Products URL
       </p>
 
       <div className="mb-3">
@@ -551,6 +551,13 @@ export default function Snapshotter() {
         <span className={wsOpen ? "text-emerald-600" : "text-amber-600"}>
           {wsOpen ? "connected" : "reconnecting"}
         </span>
+      </div>
+
+      <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-800 text-sm leading-tight">
+        Please exercise restrain in adding new urls when testing. The project is
+        currently built with
+        <b className="font-semibold"> Free Credits.</b> Unnecessary addition
+        will incur more costs.{" "}
       </div>
 
       <div className="max-h-80 overflow-auto rounded-xl border">
@@ -709,11 +716,6 @@ export default function Snapshotter() {
               })}
           </tbody>
         </table>
-      </div>
-
-      <div className="mt-3 text-xs text-gray-500">
-        Uses GET/POST {CONFIG.API_BASE.replace("https://", "")}/watchlist with
-        an Authorization header.
       </div>
 
       {confirmOpen && confirmUrl && (

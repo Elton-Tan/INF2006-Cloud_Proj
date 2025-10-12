@@ -192,7 +192,6 @@ export function PriceSeries() {
 }
 
 /* ------------------------------ Trends ------------------------------ */
-
 /** Live Google Trends chart — last 7 days (SGT) + next 7 days forecast with keyword (slug) dropdown */
 function TrendsTrends() {
   const { apiBase, token } = useAuth();
@@ -201,22 +200,33 @@ function TrendsTrends() {
   type CatalogItem = {
     slug: string;
     total_rows: number;
-    first_day: string;
-    last_day: string;
+    first_day: string; // "YYYY-MM-DD"
+    last_day: string; // "YYYY-MM-DD"
   };
   type SeriesRow = { period: string; [slug: string]: number | string | null };
   type SeriesResp = {
     geo: string;
     granularity: "day";
     start: string; // e.g., 2025-10-05
-    end: string; // e.g., 2025-10-11 (last historical day)
+    end: string; // e.g., 2025-10-12 (last historical day)
     slugs: string[];
     rows: SeriesRow[];
     forecast?: { included: boolean; days: number };
   };
 
+  // --- SGT helpers (UTC+8, no DST) -----------------------------------------
+  const todaySGT = React.useMemo(() => {
+    const now = Date.now();
+    const sgtMs = now + 8 * 60 * 60 * 1000;
+    return new Date(sgtMs).toISOString().slice(0, 10); // YYYY-MM-DD in SGT
+  }, []);
+  const isUpToDate = React.useCallback(
+    (d: string | undefined | null) => !!d && d === todaySGT,
+    [todaySGT]
+  );
+
   const [catalog, setCatalog] = React.useState<CatalogItem[]>([]);
-  const [selected, setSelected] = React.useState<string[]>([]); // slugs
+  const [selected, setSelected] = React.useState<string[]>([]);
   const [openDD, setOpenDD] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -240,7 +250,7 @@ function TrendsTrends() {
     return map;
   }, [catalog]);
 
-  // Load catalog
+  // Load catalog (filter to "up-to-date in SGT" only)
   React.useEffect(() => {
     if (!token) return;
     let abort = false;
@@ -252,10 +262,19 @@ function TrendsTrends() {
         if (!res.ok) throw new Error(`catalog HTTP ${res.status}`);
         const j = await res.json();
         if (abort) return;
-        const slugs: CatalogItem[] = (j.slugs || []) as CatalogItem[];
-        setCatalog(slugs);
-        const defaults = slugs.slice(0, 3).map((s) => s.slug);
-        setSelected((prev) => (prev.length ? prev : defaults));
+        const all: CatalogItem[] = (j.slugs || []) as CatalogItem[];
+
+        // show ONLY slugs whose last_day == today (SGT)
+        const ready = all.filter((c) => isUpToDate(c.last_day));
+        setCatalog(ready);
+
+        // seed defaults from ready-only set
+        setSelected((prev) => {
+          const prevReady = prev.filter((s) => ready.some((c) => c.slug === s));
+          if (prevReady.length) return prevReady;
+          const defaults = ready.slice(0, 3).map((s) => s.slug);
+          return defaults;
+        });
       } catch (e) {
         console.error(e);
         if (!abort) setError("Failed to load keywords");
@@ -264,7 +283,7 @@ function TrendsTrends() {
     return () => {
       abort = true;
     };
-  }, [apiBase, headers, token]);
+  }, [apiBase, headers, token, isUpToDate]);
 
   const fetchSeries = React.useCallback(async () => {
     if (!token || selected.length === 0) return;
@@ -281,7 +300,14 @@ function TrendsTrends() {
       const res = await fetch(url.toString(), { headers: headers() });
       if (!res.ok) throw new Error(`series HTTP ${res.status}`);
       const j = (await res.json()) as SeriesResp;
-      setData(j);
+
+      // Guard: only accept series whose end == today (SGT)
+      if (!isUpToDate(j.end)) {
+        setData(null);
+        setError("Selected keywords are not up-to-date yet (SGT).");
+      } else {
+        setData(j);
+      }
     } catch (e) {
       console.error(e);
       setError("Failed to load trend series");
@@ -289,7 +315,7 @@ function TrendsTrends() {
     } finally {
       setLoading(false);
     }
-  }, [apiBase, headers, selected, token]);
+  }, [apiBase, headers, selected, token, isUpToDate]);
 
   // initial + when selection changes
   React.useEffect(() => {
@@ -310,6 +336,7 @@ function TrendsTrends() {
       prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
     );
 
+  // The dropdown should only list the ready catalog
   const allChecked = selected.length === catalog.length && catalog.length > 0;
   const someChecked = selected.length > 0 && selected.length < catalog.length;
 
@@ -323,7 +350,6 @@ function TrendsTrends() {
         .slice(0, 10)
     : "";
 
-  // Render hollow dots only for forecast dates (must always return an SVG element)
   type DotRenderer = (props: any) => React.ReactElement<SVGElement>;
   const ForecastDot =
     (endISO: string): DotRenderer =>
@@ -377,7 +403,7 @@ function TrendsTrends() {
                       else setSelected(catalog.map((c) => c.slug));
                     }}
                   />
-                  <span>Select all</span>
+                  <span>Select all (up-to-date)</span>
                 </label>
                 <button
                   className="text-xs text-gray-500 hover:text-gray-700"
@@ -411,6 +437,11 @@ function TrendsTrends() {
                     </span>
                   </label>
                 ))}
+                {catalog.length === 0 && (
+                  <div className="px-2 py-1.5 text-xs text-gray-500">
+                    No keywords are up-to-date yet (SGT).
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -418,7 +449,8 @@ function TrendsTrends() {
       </div>
 
       <p className="mb-3 text-sm text-gray-500">
-        Data Gathered from Google Trends
+        Data gathered from Google Trends (showing only keywords updated for{" "}
+        <b>{todaySGT}</b> SGT).
       </p>
 
       {data?.forecast?.included && (
@@ -437,7 +469,7 @@ function TrendsTrends() {
           <div className="flex h-full items-center justify-center text-sm text-rose-600">
             {error}
           </div>
-        ) : !data || !rows.length ? (
+        ) : !data || rows.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-500">
             No data.
           </div>
@@ -643,7 +675,7 @@ export default function LiveFeed() {
       {/* Real-time alerts */}
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-lg font-semibold">
-          Real-time Alerts <LiveBadge />
+          Real-time Alerts (In-Progress) <LiveBadge />
         </h2>
         <p className="mb-3 text-sm text-gray-500">
           Examples: competitor ad posts, stockouts, price drops.
@@ -658,7 +690,8 @@ export default function LiveFeed() {
         <div className="flex max-h-80 flex-col gap-3 overflow-auto pr-2">
           {alerts.length === 0 ? (
             <div className="flex h-24 items-center justify-center text-sm text-gray-500">
-              Waiting for live alerts…
+              This visualisation is currently in working progress and is
+              currently unavailable
             </div>
           ) : (
             alerts.map((a) => (

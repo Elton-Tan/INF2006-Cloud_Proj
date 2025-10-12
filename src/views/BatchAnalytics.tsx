@@ -199,7 +199,9 @@ export default function BatchAnalytics() {
       </section>
 
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="mb-1 text-lg font-semibold">Aspect Sentiment (batch)</h2>
+        <h2 className="mb-1 text-lg font-semibold">
+          Aspect Sentiment (Placeholder)
+        </h2>
         <p className="mb-3 text-sm text-gray-500">
           From offline ABSA over historical reviews
         </p>
@@ -231,7 +233,9 @@ export default function BatchAnalytics() {
       </section>
 
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="mb-1 text-lg font-semibold">Promo Impact (example)</h2>
+        <h2 className="mb-1 text-lg font-semibold">
+          Promo Impact (Placeholder)
+        </h2>
         <p className="mb-3 text-sm text-gray-500">
           Baseline vs Promo lift (placeholder)
         </p>
@@ -257,20 +261,6 @@ export default function BatchAnalytics() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </section>
-
-      <section className="rounded-2xl border bg-white p-4 shadow-sm md:col-span-2">
-        <h2 className="mb-1 text-lg font-semibold">Notes</h2>
-        <ul className="list-inside list-disc text-sm text-gray-700">
-          <li>
-            Connect this view to your batch pipeline outputs (e.g.,
-            RDS/Postgres/Athena).
-          </li>
-          <li>
-            Populate charts with API responses like <code>/api/sentiment</code>,{" "}
-            <code>/api/promo-impact</code>.
-          </li>
-        </ul>
       </section>
     </div>
   );
