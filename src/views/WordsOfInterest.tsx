@@ -3,23 +3,23 @@ import { useAuth, useBus } from "../contexts";
 import { fmtSgt } from "../utils";
 
 // =============================
-// Types (align to future API)
+// Types (align to API)
 // =============================
 export type KeywordRow = {
-  id: number | string;
+  id?: number | string; // optional if backend doesn't return
   slug: string; // the actual search term
-  active?: 0 | 1 | boolean; // enabled for collection (not shown in UI)
+  active?: 0 | 1 | boolean; // enabled (not shown in UI)
   created_at?: string | number | null; // ISO or unix seconds
 };
 
-// What our API is expected to return for GET /trends/keywords
-export type KeywordListResponse = {
-  items: KeywordRow[];
-};
+export type KeywordListResponse = { items: KeywordRow[] };
 
-// What our API will accept for POST /trends/keywords
-export type CreateKeywordRequest = {
-  slug: string;
+export type CreateKeywordRequest = { slug: string };
+
+// Add this near your types
+type ApiKeywordRow = Partial<KeywordRow> & {
+  keyword?: string; // backend name
+  created_at?: number | string | null; // can be number or string
 };
 
 // =============================
@@ -27,29 +27,76 @@ export type CreateKeywordRequest = {
 // =============================
 const toBool = (v: any): boolean => (typeof v === "number" ? v === 1 : !!v);
 
-const normalize = (r: KeywordRow): KeywordRow => ({
-  ...r,
-  slug: (r.slug || "").trim(),
-  active: toBool(r.active ?? 1),
-  created_at: r.created_at ?? null,
-});
+const toUnixSeconds = (v: any): number | null => {
+  if (v == null) return null;
+  if (typeof v === "number" && Number.isFinite(v)) return Math.trunc(v);
+  if (typeof v === "string") {
+    // numeric string?
+    if (/^\d+(\.\d+)?$/.test(v)) return Math.trunc(Number(v));
+    // ISO/RFC date string?
+    const ms = Date.parse(v);
+    if (Number.isFinite(ms)) return Math.trunc(ms / 1000);
+  }
+  return null;
+};
 
+const normalize = (raw: ApiKeywordRow): KeywordRow => {
+  const slugRaw = (raw.slug ?? raw.keyword ?? "").toString().trim();
+  return {
+    id: (raw.id ?? slugRaw) as any,
+    slug: slugRaw,
+    active: toBool(raw.active ?? 1),
+    created_at: toUnixSeconds(raw.created_at),
+  };
+};
+
+// ---- new: recency helpers
+const THREE_DAYS_S = 3 * 24 * 60 * 60;
+const isNewlyCreated = (createdAt?: number | string | null) => {
+  if (createdAt == null) return false;
+  const t =
+    typeof createdAt === "number"
+      ? Math.trunc(createdAt)
+      : Math.trunc(Number(createdAt));
+  if (!Number.isFinite(t)) return false;
+  const nowS = Math.trunc(Date.now() / 1000);
+  return nowS - t < THREE_DAYS_S;
+};
+
+// =============================
+// Tiny toast with variants
+// =============================
+type ToastVariant = "success" | "error" | "info";
 function useToast() {
   const [msg, setMsg] = React.useState<string | null>(null);
-  const show = (m: string, ms = 2000) => {
+  const [variant, setVariant] = React.useState<ToastVariant>("success");
+
+  const show = (m: string, opts?: { ms?: number; variant?: ToastVariant }) => {
+    const ms = opts?.ms ?? 2200;
+    const v = opts?.variant ?? "success";
+    setVariant(v);
     setMsg(m);
     window.clearTimeout((show as any)._t);
     (show as any)._t = window.setTimeout(() => setMsg(null), ms);
   };
+
   const Toast = () =>
     msg ? (
       <div
         role="alert"
-        className="fixed left-1/2 top-1/2 z-[9999] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-emerald-300 bg-emerald-600 px-4 py-2 text-white shadow-2xl"
+        className={[
+          "fixed left-1/2 top-1/2 z-[9999] -translate-x-1/2 -translate-y-1/2 rounded-xl border px-4 py-2 text-white shadow-2xl",
+          variant === "success" && "border-emerald-300 bg-emerald-600",
+          variant === "error" && "border-rose-300 bg-rose-600",
+          variant === "info" && "border-sky-300 bg-sky-600",
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         <div className="text-sm font-medium">{msg}</div>
       </div>
     ) : null;
+
   return { show, Toast };
 }
 
@@ -78,7 +125,7 @@ export default function WordsOfInterest() {
   const headers = React.useCallback(
     () => ({
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     }),
     [token]
   );
@@ -121,47 +168,64 @@ export default function WordsOfInterest() {
   }, [load]);
 
   // -----------------------------
-  // Add (POST /trends/keywords)
+  // Add one (programmatic) — avoids setState race for bulk
   // -----------------------------
-  const add = async () => {
-    const clean = term.trim();
-    if (!clean) return;
+  const addSlug = React.useCallback(
+    async (slugRaw: string): Promise<boolean> => {
+      const clean = slugRaw.trim();
+      if (!clean) return false;
 
-    // prevent dupes (case-insensitive)
-    const exists = rows.some(
-      (r) => r.slug.toLowerCase() === clean.toLowerCase()
-    );
-    if (exists) {
-      show("Already in list");
-      return;
-    }
+      // prevent dupes (case-insensitive)
+      const exists = rows.some(
+        (r) => r.slug.toLowerCase() === clean.toLowerCase()
+      );
+      if (exists) return false;
 
-    // optimistic row
-    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const optimistic: KeywordRow = normalize({
-      id: tmpId,
-      slug: clean,
-      active: 1,
-    });
-    setRows((prev) => [optimistic, ...prev]);
-    setTerm("");
-
-    try {
-      const res = await fetch(`${apiBase}/trends/keywords`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ slug: clean } satisfies CreateKeywordRequest),
+      // optimistic row
+      const tmpId = `tmp-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 7)}`;
+      const optimistic: KeywordRow = normalize({
+        id: tmpId,
+        slug: clean,
+        active: 1,
+        // ensure Note shows immediately if within 3 days
+        created_at: Math.trunc(Date.now() / 1000),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const saved = normalize(await res.json());
-      setRows((prev) => prev.map((r) => (r.id === tmpId ? saved : r)));
-      bus?.dispatchEvent(new Event("keywords:changed"));
-      show("Added");
-    } catch (e) {
-      console.error(e);
-      // revert optimistic
-      setRows((prev) => prev.filter((r) => r.id !== tmpId));
-      show("Add failed");
+      setRows((prev) => [optimistic, ...prev]);
+
+      try {
+        const res = await fetch(`${apiBase}/trends/keywords`, {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({ slug: clean } satisfies CreateKeywordRequest),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const saved = normalize(await res.json());
+        setRows((prev) => prev.map((r) => (r.id === tmpId ? saved : r)));
+        bus?.dispatchEvent(new Event("keywords:changed"));
+        return true;
+      } catch (e) {
+        console.error(e);
+        // revert optimistic
+        setRows((prev) => prev.filter((r) => r.id !== tmpId));
+        return false;
+      }
+    },
+    [apiBase, headers, rows, bus]
+  );
+
+  // -----------------------------
+  // Add from input button (calls programmatic add)
+  // -----------------------------
+  const addFromInput = async () => {
+    const ok = await addSlug(term);
+    if (ok) {
+      setTerm("");
+      show("Added", { variant: "success" });
+    } else {
+      // ---- red background for failure
+      show("Add failed or duplicate", { variant: "error" });
     }
   };
 
@@ -169,49 +233,69 @@ export default function WordsOfInterest() {
   // Delete (DELETE /trends/keywords?id= or ?slug=)
   // -----------------------------
   const remove = async (row: KeywordRow) => {
-    const idParam = encodeURIComponent(String(row.id ?? ""));
+    const idParam = row.id != null ? encodeURIComponent(String(row.id)) : "";
     const slugParam = encodeURIComponent(row.slug);
 
     // optimistic
-    setRows((prev) => prev.filter((r) => r.id !== row.id));
+    setRows((prev) => prev.filter((r) => r !== row));
 
     try {
-      const res = await fetch(
-        `${apiBase}/trends/keywords?${
-          row.id ? `id=${idParam}` : `slug=${slugParam}`
-        }`,
-        { method: "DELETE", headers: headers() }
-      );
+      const q = row.id != null ? `id=${idParam}` : `slug=${slugParam}`;
+      const res = await fetch(`${apiBase}/trends/keywords?${q}`, {
+        method: "DELETE",
+        headers: headers(),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       bus?.dispatchEvent(new Event("keywords:changed"));
-      show("Removed");
+      show("Removed", { variant: "success" });
     } catch (e) {
       console.error(e);
       // restore
       setRows((prev) => [row, ...prev]);
-      show("Delete failed");
+      show("Delete failed", { variant: "error" });
     }
   };
 
   // -----------------------------
-  // Bulk helpers (still handy)
-  // -----------------------------
-  // -----------------------------
-  // Bulk helpers
+  // Bulk import (.txt, one per line)
   // -----------------------------
   const importLines = async (text: string) => {
+    // Keep regex on ONE line to avoid unterminated literal issues.
     // prettier-ignore
-    const lines = text.split(/\r?\n/) // <-- keep this regex on ONE line
-    .map((s: string) => s.trim())
-    .filter((s) => s.length > 0);
+    const rawLines = text.split(/\r?\n/).map((s: string) => s.trim()).filter((s) => s.length > 0);
 
-    if (lines.length === 0) return;
-
-    for (const ln of lines) {
-      setTerm(ln);
-      // eslint-disable-next-line no-await-in-loop
-      await add();
+    if (rawLines.length === 0) {
+      show("No terms found in file", { variant: "info" });
+      return;
     }
+
+    // Case-insensitive dedupe (within file) and exclude ones already present
+    const inFileSet = new Set<string>();
+    const presentSet = new Set(rows.map((r) => r.slug.toLowerCase()));
+    const toAdd: string[] = [];
+    for (const s of rawLines) {
+      const lower = s.toLowerCase();
+      if (!inFileSet.has(lower) && !presentSet.has(lower)) {
+        inFileSet.add(lower);
+        toAdd.push(s);
+      }
+    }
+    if (toAdd.length === 0) {
+      show("All terms were already in the list", { variant: "info" });
+      return;
+    }
+
+    // Add sequentially to keep backend polite; show a tiny progress.
+    let ok = 0;
+    for (const s of toAdd) {
+      // eslint-disable-next-line no-await-in-loop
+      const added = await addSlug(s);
+      if (added) ok += 1;
+    }
+    show(
+      `Imported ${ok}/${toAdd.length} new term${toAdd.length === 1 ? "" : "s"}`,
+      { variant: "success" }
+    );
   };
 
   const exportJson = () => {
@@ -226,6 +310,25 @@ export default function WordsOfInterest() {
     URL.revokeObjectURL(url);
   };
 
+  // ---- sort earliest first; null created_at last
+  const sortedRows = React.useMemo(() => {
+    const asNum = (x: any) => {
+      if (x == null) return null;
+      if (typeof x === "number") return Math.trunc(x);
+      if (typeof x === "string" && /^\d+(\.\d+)?$/.test(x))
+        return Math.trunc(Number(x));
+      return null;
+    };
+    return [...rows].sort((a, b) => {
+      const aa = asNum(a.created_at);
+      const bb = asNum(b.created_at);
+      if (aa == null && bb == null) return 0;
+      if (aa == null) return 1; // nulls last
+      if (bb == null) return -1; // nulls last
+      return aa - bb; // ascending (earliest first)
+    });
+  }, [rows]);
+
   // =============================
   // Render
   // =============================
@@ -233,11 +336,16 @@ export default function WordsOfInterest() {
     <section className="rounded-2xl border bg-white p-4 shadow-sm">
       <h2 className="mb-1 text-lg font-semibold">Words of Interest</h2>
       <p className="mb-3 text-sm text-gray-500">
-        Manage your own Google Trends terms. Choose the words of interests to
-        track in your Live-Feed page
+        Manage your own Google Trends terms. Choose the words of interest to
+        track in your Live-Feed page.
       </p>
 
-      {/* Warning */}
+      <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-800 text-sm leading-tight">
+        Please exercise restrain in adding new terms when testing. The project
+        is currently built with
+        <b className="font-semibold"> Free Credits.</b> Unnecessary addition
+        will incur more costs.{" "}
+      </div>
 
       {/* Add form */}
       <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-12">
@@ -246,13 +354,16 @@ export default function WordsOfInterest() {
           placeholder="e.g. antifungal"
           value={term}
           onChange={(e) => setTerm(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && term.trim()) void addFromInput();
+          }}
         />
         <div className="sm:col-span-2 flex gap-2">
           <button
             className={`flex-1 rounded-xl px-4 py-2 text-sm font-medium text-white ${
               term.trim() ? "bg-gray-900 hover:bg-black" : "bg-gray-300"
             }`}
-            onClick={add}
+            onClick={addFromInput}
             disabled={!term.trim()}
           >
             Add
@@ -293,8 +404,9 @@ export default function WordsOfInterest() {
         <span className="text-gray-500">{rows.length} terms</span>
       </div>
 
+      {/* Notice */}
       <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-800 text-sm leading-tight">
-        Newly added words of interests added can take up to{" "}
+        Newly added words of interest can take up to{" "}
         <b className="font-semibold">3 days</b> to appear in the Live-Feed page,
         even if they are shown here.{" "}
         <button
@@ -306,7 +418,7 @@ export default function WordsOfInterest() {
         .
       </div>
 
-      {/* Table (Term, Created) */}
+      {/* Table (Term, Created, Note) */}
       <div className="max-h-80 overflow-auto rounded-xl border">
         <table className="min-w-full text-left text-sm">
           <thead className="sticky top-0 bg-gray-50 text-gray-600">
@@ -314,41 +426,45 @@ export default function WordsOfInterest() {
               <th className="px-3 py-2">Term</th>
               <th className="px-3 py-2">Created</th>
               <th className="px-3 py-2"></th>
+              <th className="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={3}>
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={4}>
                   Loading…
                 </td>
               </tr>
             )}
             {!loading && error && (
               <tr>
-                <td className="px-3 py-6 text-center text-rose-600" colSpan={3}>
+                <td className="px-3 py-6 text-center text-rose-600" colSpan={4}>
                   {error}
                 </td>
               </tr>
             )}
-            {!loading && !error && rows.length === 0 && (
+            {!loading && !error && sortedRows.length === 0 && (
               <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={3}>
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={4}>
                   No terms yet.
                 </td>
               </tr>
             )}
             {!loading &&
               !error &&
-              rows.map((r) => {
+              sortedRows.map((r) => {
                 const created = (() => {
                   const t = r.created_at;
                   if (!t) return "—";
-                  if (typeof t === "number") return fmtSgt(t);
-                  return fmtSgt(t);
+                  const n = typeof t === "string" ? Number(t) : t;
+                  return Number.isFinite(n) ? fmtSgt(n as number) : "—";
                 })();
+
+                const showNewNote = isNewlyCreated(r.created_at);
+
                 return (
-                  <tr key={String(r.id)} className="border-t">
+                  <tr key={String(r.id ?? r.slug)} className="border-t">
                     <td className="px-3 py-2">
                       <div
                         className="max-w-xs truncate font-medium"
@@ -359,6 +475,18 @@ export default function WordsOfInterest() {
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-600">
                       {created}
+                    </td>
+                    <td className="px-3 py-2">
+                      {showNewNote ? (
+                        <span
+                          className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                          title="Keyword may not show on the graph yet as it is newly created"
+                        >
+                          New
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       <button
@@ -397,7 +525,8 @@ export default function WordsOfInterest() {
                 history in batches.
               </p>
               <p>
-                When new keywords are added, backfilling takes longer. Once
+                When new keywords are added, backfilling takes longer since the
+                past 1 year of data for the keywords needs to be gathered. Once
                 enough history is gathered, the term will automatically appear
                 in the graph and be included in future daily updates.
               </p>

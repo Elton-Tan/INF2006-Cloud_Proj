@@ -86,6 +86,24 @@ resource "aws_apigatewayv2_integration" "trends_daily" {
 }
 
 
+resource "aws_apigatewayv2_integration" "trends_keywords_read" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.trends_keywords_read.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
+
+resource "aws_apigatewayv2_integration" "trends_keywords_write" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.trends_keywords_write.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
+
 # =========================
 # Routes (protected + public)
 # =========================
@@ -98,6 +116,8 @@ locals {
     "DELETE /watchlist"     = aws_apigatewayv2_integration.delete_watchlist.id
     "GET /watchlist/series" = aws_apigatewayv2_integration.watchlist_series.id
     "GET /trends/daily"     = aws_apigatewayv2_integration.trends_daily.id
+    "GET /trends/keywords"  = aws_apigatewayv2_integration.trends_keywords_read.id
+    "POST /trends/keywords" = aws_apigatewayv2_integration.trends_keywords_write.id
   }
 
   # Add public routes if any (empty by default)
@@ -131,11 +151,13 @@ resource "aws_apigatewayv2_route" "public" {
 locals {
   # Function names for permissions
   lambda_permissions = {
-    enqueue          = aws_lambda_function.enqueue.function_name
-    watchlist_read   = aws_lambda_function.watchlist_read.function_name
-    delete_watchlist = aws_lambda_function.delete_watchlist.function_name
-    watchlist_series = aws_lambda_function.watchlist_series.function_name
-    trends_read      = aws_lambda_function.trends_read.function_name
+    enqueue               = aws_lambda_function.enqueue.function_name
+    watchlist_read        = aws_lambda_function.watchlist_read.function_name
+    delete_watchlist      = aws_lambda_function.delete_watchlist.function_name
+    watchlist_series      = aws_lambda_function.watchlist_series.function_name
+    trends_read           = aws_lambda_function.trends_read.function_name
+    trends_keywords_read  = aws_lambda_function.trends_keywords_read.function_name
+    trends_keywords_write = aws_lambda_function.trends_keywords_write.function_name
   }
 }
 

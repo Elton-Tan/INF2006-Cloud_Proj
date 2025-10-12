@@ -48,7 +48,7 @@ resource "aws_cognito_user_pool_client" "spa" {
   # You want the tokens right in the URL after login:
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["implicit"]
-  allowed_oauth_scopes                 = ["openid", "email", "phone"]
+  allowed_oauth_scopes                 = ["openid", "email"]
 
   # Your SPA origins (CloudFront + localhost for dev)
   callback_urls = [
