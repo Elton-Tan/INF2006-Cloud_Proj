@@ -19,7 +19,6 @@ const NAVY = {}; // noop – keeps file lean
 /* -------------------------- Shared helpers -------------------------- */
 
 function buildWsUrl(base: string, jwt: string): string {
-  // Accepts https:// or wss:// — converts http(s) → ws(s)
   const url = base.replace(/^http/i, "ws");
   const u = new URL(url);
   u.searchParams.set("auth", jwt);
@@ -37,7 +36,6 @@ function LiveBadge() {
       if (t) window.clearTimeout(t);
       t = window.setTimeout(() => setOn(false), 1200);
     };
-    // Reuse the same glow for any realtime update we dispatch
     const events = [
       "watchlist:changed",
       "trends:updated",
@@ -59,10 +57,9 @@ function LiveBadge() {
 }
 
 /* -------------------------- Time helpers (SGT) -------------------------- */
-const SGT_TZ = "Asia/Singapore"; // UTC+8, no DST
-const GRACE_HOUR_SGT = 9; // allow "yesterday SGT" until 09:00 local
+const SGT_TZ = "Asia/Singapore";
+const GRACE_HOUR_SGT = 9;
 
-/** Format a Date to YYYY-MM-DD in a target TZ */
 function ymdInTz(d: Date, tz: string): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
@@ -71,8 +68,6 @@ function ymdInTz(d: Date, tz: string): string {
     day: "2-digit",
   }).format(d);
 }
-
-/** Hour (0-23) in a target TZ */
 function hourInTz(d: Date, tz: string): number {
   return Number(
     new Intl.DateTimeFormat("en-GB", {
@@ -82,8 +77,6 @@ function hourInTz(d: Date, tz: string): number {
     }).format(d)
   );
 }
-
-/** Treat a YYYY-MM-DD as “fresh enough” for SGT: before grace → only yesterday; after grace → today or yesterday. */
 function makeFreshDailySgtPredicate(graceHour = GRACE_HOUR_SGT) {
   const now = new Date();
   const todaySgt = ymdInTz(now, SGT_TZ);
@@ -96,7 +89,6 @@ function makeFreshDailySgtPredicate(graceHour = GRACE_HOUR_SGT) {
   const acceptable = new Set<string>(
     hourSgt < graceHour ? [yesterdaySgt] : [todaySgt, yesterdaySgt]
   );
-
   return (d?: string | null) => !!d && acceptable.has(d);
 }
 
@@ -142,11 +134,10 @@ export function PriceSeries() {
   }, [apiBase, range, headers]);
 
   React.useEffect(() => {
-    if (!token) return; // wait for token
+    if (!token) return;
     void load();
   }, [token, load]);
 
-  // 🔔 PubSub: refresh when backend broadcasts price updates
   React.useEffect(() => {
     if (!bus) return;
     const onPricesUpdated = () => void load();
@@ -234,40 +225,46 @@ export function PriceSeries() {
 }
 
 /* ------------------------------ Trends ------------------------------ */
-/** Live Google Trends chart — last 7 days (SGT) + next 7 days forecast with keyword (slug) dropdown */
 function TrendsTrends() {
   const { apiBase, token } = useAuth();
   const bus = useBus();
 
+  // ---------- Types ----------
   type CatalogItem = {
     slug: string;
     total_rows: number;
-    first_day: string; // "YYYY-MM-DD"
-    last_day: string; // "YYYY-MM-DD"
+    first_day: string;
+    last_day: string;
   };
-  type SeriesRow = { period: string; [slug: string]: number | string | null };
+  type SeriesRowLong = {
+    period: string;
+    slug: string;
+    interest: number | null;
+  };
+  type SeriesRowWide = {
+    period: string;
+    [slug: string]: number | string | null;
+  };
   type SeriesResp = {
     geo: string;
     granularity: "day";
-    start: string; // e.g., 2025-10-05
-    end: string; // e.g., 2025-10-12 (last historical day, from API)
+    start: string; // YYYY-MM-DD
+    end: string; // last historical YYYY-MM-DD
     slugs: string[];
-    rows: SeriesRow[];
+    rows: SeriesRowLong[];
     forecast?: { included: boolean; days: number };
   };
 
-  // Freshness predicate (today or yesterday in SGT, with morning grace)
-  const isFreshDailySGT = React.useMemo(() => makeFreshDailySgtPredicate(), []);
-
-  // SGT "today" and "yesterday" for display/normalization
+  // ---------- SGT helpers ----------
   const todaySgt = React.useMemo(() => ymdInTz(new Date(), SGT_TZ), []);
   const yesterdaySgt = React.useMemo(() => {
-    const now = new Date();
-    const y = new Date(now);
+    const y = new Date();
     y.setUTCDate(y.getUTCDate() - 1);
     return ymdInTz(y, SGT_TZ);
   }, []);
+  const isFreshDailySGT = React.useMemo(() => makeFreshDailySgtPredicate(), []);
 
+  // ---------- State ----------
   const [catalog, setCatalog] = React.useState<CatalogItem[]>([]);
   const [selected, setSelected] = React.useState<string[]>([]);
   const [openDD, setOpenDD] = React.useState(false);
@@ -281,7 +278,7 @@ function TrendsTrends() {
     return h;
   }, [token]);
 
-  // ---- Dynamic color palette (stable across renders) ----
+  // ---------- Colors ----------
   const colorMap = React.useMemo<Record<string, string>>(() => {
     const slugs = catalog.map((c) => c.slug);
     const n = Math.max(1, slugs.length);
@@ -293,49 +290,30 @@ function TrendsTrends() {
     return map;
   }, [catalog]);
 
-  // Normalize API end date against SGT day boundary
+  // ---------- Normalize API end for SGT ----------
   const normalizeEndForSGT = React.useCallback(
     (endISO?: string | null) => {
       if (!endISO) return undefined as string | undefined;
       const hour = hourInTz(new Date(), SGT_TZ);
-      // If API says end == today but we're before grace, clamp to yesterday
-      if (endISO === todaySgt && hour < GRACE_HOUR_SGT) {
-        return yesterdaySgt;
-      }
-      // If API reports a day ahead of local SGT today (very rare), clamp too
+      if (endISO === todaySgt && hour < GRACE_HOUR_SGT) return yesterdaySgt;
       if (endISO > todaySgt) return yesterdaySgt;
       return endISO;
     },
     [todaySgt, yesterdaySgt]
   );
 
-  const [effectiveEnd, setEffectiveEnd] = React.useState<string | undefined>(
-    undefined
-  );
-
+  // ---------- Latest day label ----------
   const latestDay = React.useMemo(() => {
-    // Prefer normalized end if we have a series loaded
-    if (effectiveEnd) return effectiveEnd;
-
     const nowHour = hourInTz(new Date(), SGT_TZ);
-    const selectedMeta = catalog.filter((c) => selected.includes(c.slug));
-    if (selectedMeta.length === 0) return "—";
-
-    // Take max reported last_day from catalog
-    let maxDay = selectedMeta
-      .map((c) => c.last_day)
-      .reduce((a, b) => (a > b ? a : b));
-
-    // Before grace, never show "today" from catalog; clamp to yesterday
-    if (nowHour < GRACE_HOUR_SGT && maxDay === todaySgt) {
-      maxDay = yesterdaySgt;
-    }
-    // Never show a date after today
+    const meta = catalog.filter((c) => selected.includes(c.slug));
+    if (meta.length === 0) return "—";
+    let maxDay = meta.map((c) => c.last_day).reduce((a, b) => (a > b ? a : b));
+    if (nowHour < GRACE_HOUR_SGT && maxDay === todaySgt) maxDay = yesterdaySgt;
     if (maxDay > todaySgt) maxDay = todaySgt;
     return maxDay;
-  }, [effectiveEnd, catalog, selected, todaySgt, yesterdaySgt]);
+  }, [catalog, selected, todaySgt, yesterdaySgt]);
 
-  // Load catalog (filter to "fresh enough in SGT" only)
+  // ---------- Load catalog (fresh only) ----------
   React.useEffect(() => {
     if (!token) return;
     let abort = false;
@@ -348,17 +326,13 @@ function TrendsTrends() {
         const j = await res.json();
         if (abort) return;
         const all: CatalogItem[] = (j.slugs || []) as CatalogItem[];
-
-        // Show ONLY slugs whose last_day is "fresh enough" by SGT
         const ready = all.filter((c) => isFreshDailySGT(c.last_day));
         setCatalog(ready);
-
-        // seed defaults from ready-only set
         setSelected((prev) => {
           const prevReady = prev.filter((s) => ready.some((c) => c.slug === s));
-          if (prevReady.length) return prevReady;
-          const defaults = ready.slice(0, 3).map((s) => s.slug);
-          return defaults;
+          return prevReady.length
+            ? prevReady
+            : ready.slice(0, 3).map((s) => s.slug);
         });
       } catch (e) {
         console.error(e);
@@ -370,6 +344,7 @@ function TrendsTrends() {
     };
   }, [apiBase, headers, token, isFreshDailySGT]);
 
+  // ---------- Fetch series ----------
   const fetchSeries = React.useCallback(async () => {
     if (!token || selected.length === 0) return;
     setLoading(true);
@@ -378,42 +353,54 @@ function TrendsTrends() {
       const url = new URL(`${apiBase}/trends/daily`);
       url.searchParams.set("mode", "series");
       url.searchParams.set("slugs", selected.join(","));
-      url.searchParams.set("g", "day"); // daily points
-      url.searchParams.set("window", "week"); // last 7 days (SGT)
-      url.searchParams.set("include_forecast", "true"); // ask for next 7 days
+      url.searchParams.set("g", "day");
+      url.searchParams.set("window", "week");
+      url.searchParams.set("include_forecast", "true");
       url.searchParams.set("forecast_days", "7");
+
       const res = await fetch(url.toString(), { headers: headers() });
       if (!res.ok) throw new Error(`series HTTP ${res.status}`);
       const j = (await res.json()) as SeriesResp;
 
-      const normEnd = normalizeEndForSGT(j.end);
-
-      // Guard: accept series if normalized end is "fresh enough" by SGT
-      if (!isFreshDailySGT(normEnd)) {
+      const endAligned = normalizeEndForSGT(j.end);
+      if (!endAligned) {
         setData(null);
-        setEffectiveEnd(undefined);
-        setError("Selected keywords are not up-to-date yet.");
-      } else {
-        setData(j);
-        setEffectiveEnd(normEnd);
+        setError("Series missing end date.");
+        return;
       }
+      j.end = endAligned;
+
+      // Pivot long -> wide
+      const byDay = new Map<string, SeriesRowWide>();
+      for (const r of j.rows || []) {
+        const p = String(r.period);
+        const s = String((r as any).slug);
+        const v =
+          typeof (r as any).interest === "number" ? (r as any).interest : null;
+        const row = byDay.get(p) ?? { period: p };
+        (row as any)[s] = v;
+        byDay.set(p, row);
+      }
+      (j as any).rows = Array.from(byDay.values()).sort((a, b) =>
+        String(a.period) < String(b.period) ? -1 : 1
+      );
+
+      setData(j);
     } catch (e) {
       console.error(e);
       setError("Failed to load trend series");
       setData(null);
-      setEffectiveEnd(undefined);
     } finally {
       setLoading(false);
     }
-  }, [apiBase, headers, selected, token, isFreshDailySGT, normalizeEndForSGT]);
+  }, [apiBase, headers, selected, token, normalizeEndForSGT]);
 
-  // initial + when selection changes
   React.useEffect(() => {
     if (!token || selected.length === 0) return;
     void fetchSeries();
   }, [token, selected, fetchSeries]);
 
-  // 🔔 PubSub: refresh when backend broadcasts trend updates
+  // pubsub refresh
   React.useEffect(() => {
     if (!bus) return;
     const onTrendsUpdated = () => void fetchSeries();
@@ -426,43 +413,32 @@ function TrendsTrends() {
       prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
     );
 
-  // The dropdown should only list the ready catalog
   const allChecked = selected.length === catalog.length && catalog.length > 0;
   const someChecked = selected.length > 0 && selected.length < catalog.length;
 
-  // --- Helpers to style forecast zone ---
-  const endHist = effectiveEnd ?? ""; // normalized YYYY-MM-DD
-  const rows = data?.rows ?? [];
-  // Compute the first and last forecast rows based on normalized endHist
-  const futureIdxStart = React.useMemo(() => {
-    if (!rows.length || !endHist) return -1;
-    return rows.findIndex((r) => String(r.period) > endHist);
-  }, [rows, endHist]);
-
-  const futureIdxEnd = React.useMemo(() => {
-    if (futureIdxStart === -1) return -1;
-    // last index where period > endHist
-    let i = rows.length - 1;
-    while (i >= futureIdxStart && !(String(rows[i].period) > endHist)) i--;
-    return i;
-  }, [rows, endHist, futureIdxStart]);
-
-  const hasForecastRange =
-    futureIdxStart !== -1 && futureIdxEnd >= futureIdxStart;
-  const x1Forecast = hasForecastRange
-    ? String(rows[futureIdxStart].period)
+  // ---------- Chart prep (categorical axis) ----------
+  const rowsWide: SeriesRowWide[] = React.useMemo(
+    () => (data?.rows as unknown as SeriesRowWide[]) ?? [],
+    [data?.rows]
+  );
+  const slugs: string[] = React.useMemo(() => data?.slugs ?? [], [data?.slugs]); // <-- removes TS warning
+  const endHist = data?.end ?? ""; // "YYYY-MM-DD"
+  const lastPeriod = rowsWide.at(-1)?.period ?? "";
+  const futureStart = endHist
+    ? new Date(new Date(endHist + "T00:00:00Z").getTime() + 86400000)
+        .toISOString()
+        .slice(0, 10)
     : "";
-  const x2Forecast = hasForecastRange ? String(rows[futureIdxEnd].period) : "";
 
+  // Only draw a dot on future points (string compare is fine w/ ISO dates)
   type DotRenderer = (props: any) => React.ReactElement<SVGElement>;
   const ForecastDot =
     (endISO: string): DotRenderer =>
     (props: any) => {
-      const { cx, cy, payload, stroke } = props;
+      const { cx, cy, payload, value, stroke } = props;
       const isFuture =
         typeof payload?.period === "string" && payload.period > endISO;
-      if (!isFuture)
-        return (<g />) as unknown as React.ReactElement<SVGElement>;
+      if (!isFuture || value == null) return (<g />) as any;
       return (
         <circle
           cx={cx}
@@ -472,23 +448,22 @@ function TrendsTrends() {
           stroke={stroke}
           strokeWidth={2}
         />
-      ) as unknown as React.ReactElement<SVGElement>;
+      ) as any;
     };
 
-  // Banner if we're still showing yesterday (grace window / delayed refresh)
-  const awaitingToday = React.useMemo(() => {
-    return latestDay !== "—" && latestDay < todaySgt;
-  }, [latestDay, todaySgt]);
+  const awaitingToday = React.useMemo(
+    () => latestDay !== "—" && latestDay < todaySgt,
+    [latestDay, todaySgt]
+  );
 
+  // ---------- Render ----------
   return (
     <section className="rounded-2xl border bg-white p-4 shadow-sm">
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          Interest in Words for Past 7-Days
-          <LiveBadge />
+          Interest in Words for Past 7-Days <LiveBadge />
         </h2>
 
-        {/* Keyword dropdown with color chips + checkboxes */}
         <div className="relative">
           <button
             className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
@@ -564,17 +539,14 @@ function TrendsTrends() {
       {awaitingToday && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           Today’s SGT data isn’t available yet. Showing the most recent complete
-          day. New points typically arrive later in the morning (UTC-based
-          refresh).
+          day.
         </div>
       )}
 
-      {hasForecastRange && (
-        <div className="mb-2 flex items-center gap-2 text-xs text-gray-600">
-          <span className="inline-block h-3 w-6 rounded bg-black/5 ring-1 ring-black/10" />
-          <span>Forecast for next 7 days</span>
-        </div>
-      )}
+      <div className="mb-2 flex items-center gap-2 text-xs text-gray-600">
+        <span className="inline-block h-3 w-6 rounded bg-black/5 ring-1 ring-black/10" />
+        <span>Forecast window</span>
+      </div>
 
       <div className="h-72">
         {loading ? (
@@ -585,30 +557,20 @@ function TrendsTrends() {
           <div className="flex h-full items-center justify-center text-sm text-rose-600">
             {error}
           </div>
-        ) : !data || rows.length === 0 ? (
+        ) : rowsWide.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-500">
             No data.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={rows}
+              data={rowsWide}
               margin={{ top: 10, right: 20, bottom: 10, left: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-
-              {/* Shade forecast area if there are any future points */}
-              {hasForecastRange && (
-                <ReferenceArea
-                  x1={x1Forecast}
-                  x2={x2Forecast}
-                  fill="#000"
-                  fillOpacity={0.05}
-                  ifOverflow="hidden"
-                />
-              )}
               <XAxis dataKey="period" tick={{ fontSize: 12 }} />
               <YAxis domain={[0, 100]} />
+
               <Tooltip
                 formatter={(value: any, name: string, ctx: any) => {
                   const isFuture = ctx?.payload?.period > endHist;
@@ -626,17 +588,32 @@ function TrendsTrends() {
                 )}
               />
 
-              {/* Lines: no dots for history; hollow dots for forecast points only */}
-              {data.slugs.map((s) => (
+              {/* Shade tomorrow..last point if forecast included */}
+              {Boolean(data?.forecast?.included) &&
+                futureStart &&
+                lastPeriod &&
+                futureStart <= lastPeriod && (
+                  <ReferenceArea
+                    x1={futureStart}
+                    x2={lastPeriod}
+                    fill="#000"
+                    fillOpacity={0.05}
+                  />
+                )}
+
+              {/* One line per slug; dot only shows for future buckets */}
+              {slugs.map((s) => (
                 <Line
                   key={s}
                   type="monotone"
                   dataKey={s}
-                  dot={ForecastDot(endHist)} // only renders on future points
-                  activeDot={{ r: 5 }}
+                  name={s}
+                  stroke={colorMap[s]}
                   strokeWidth={2}
                   isAnimationActive={false}
-                  stroke={colorMap[s] ?? undefined}
+                  dot={ForecastDot(endHist)}
+                  activeDot={{ r: 5 }}
+                  connectNulls
                 />
               ))}
             </LineChart>
@@ -650,13 +627,12 @@ function TrendsTrends() {
 /* ---------------------------- Page wrapper --------------------------- */
 
 export default function LiveFeed() {
-  const { apiBase, token, wsBase } = useAuth(); // wsBase needed for WS
+  const { apiBase, token, wsBase } = useAuth();
   const bus = useBus();
 
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const [wsOpen, setWsOpen] = React.useState<boolean>(false);
 
-  // 🔌 Single WebSocket for the whole page → dispatch onto `bus`
   React.useEffect(() => {
     if (!token || !wsBase) return;
 
@@ -673,7 +649,6 @@ export default function LiveFeed() {
 
         ws.onopen = () => {
           setWsOpen(true);
-          // heartbeat
           heartbeat = window.setInterval(() => {
             try {
               ws?.readyState === WebSocket.OPEN && ws.send('{"type":"ping"}');
@@ -690,7 +665,6 @@ export default function LiveFeed() {
           }
           if (!msg || typeof msg !== "object") return;
 
-          // Fan-out to bus with small namespaced events
           if (msg.type === "trends.updated") {
             bus?.dispatchEvent(
               new CustomEvent("trends:updated", { detail: msg })
@@ -723,7 +697,6 @@ export default function LiveFeed() {
               );
             }
           } else if (msg.type === "watchlist.row_upserted") {
-            // If you also want price refreshes tied to this
             bus?.dispatchEvent(new Event("prices:updated"));
           }
         };
