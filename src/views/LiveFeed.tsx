@@ -572,7 +572,7 @@ function TrendsTrends() {
       {hasForecastRange && (
         <div className="mb-2 flex items-center gap-2 text-xs text-gray-600">
           <span className="inline-block h-3 w-6 rounded bg-black/5 ring-1 ring-black/10" />
-          <span>Shaded area: forecast (next 7 days)</span>
+          <span>Forecast for next 7 days</span>
         </div>
       )}
 
