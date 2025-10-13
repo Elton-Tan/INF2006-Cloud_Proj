@@ -214,12 +214,33 @@ function TrendsTrends() {
     forecast?: { included: boolean; days: number };
   };
 
+  // --- Replace todaySGT + isUpToDate with this ---
+  const todayUTC = React.useMemo(() => {
+    return new Date().toISOString().slice(0, 10); // YYYY-MM-DD in UTC
+  }, []);
+
+  const yesterdayUTC = React.useMemo(() => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
+  const isRecentUTC = React.useCallback(
+    (d?: string | null) => !!d && (d === todayUTC || d === yesterdayUTC),
+    [todayUTC, yesterdayUTC]
+  );
+
   // --- SGT helpers (UTC+8, no DST) -----------------------------------------
   const todaySGT = React.useMemo(() => {
-    const now = Date.now();
-    const sgtMs = now + 8 * 60 * 60 * 1000;
-    return new Date(sgtMs).toISOString().slice(0, 10); // YYYY-MM-DD in SGT
+    // en-CA gives YYYY-MM-DD
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Singapore",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date()); // e.g., 2025-10-13
   }, []);
+
   const isUpToDate = React.useCallback(
     (d: string | undefined | null) => !!d && d === todaySGT,
     [todaySGT]
@@ -265,7 +286,7 @@ function TrendsTrends() {
         const all: CatalogItem[] = (j.slugs || []) as CatalogItem[];
 
         // show ONLY slugs whose last_day == today (SGT)
-        const ready = all.filter((c) => isUpToDate(c.last_day));
+        const ready = all.filter((c) => isRecentUTC(c.last_day));
         setCatalog(ready);
 
         // seed defaults from ready-only set
@@ -302,9 +323,9 @@ function TrendsTrends() {
       const j = (await res.json()) as SeriesResp;
 
       // Guard: only accept series whose end == today (SGT)
-      if (!isUpToDate(j.end)) {
+      if (!isRecentUTC(j.end)) {
         setData(null);
-        setError("Selected keywords are not up-to-date yet (SGT).");
+        setError("Selected keywords are not up-to-date yet.");
       } else {
         setData(j);
       }
@@ -449,8 +470,8 @@ function TrendsTrends() {
       </div>
 
       <p className="mb-3 text-sm text-gray-500">
-        Data gathered from Google Trends (showing only keywords updated for{" "}
-        <b>{todaySGT}</b> SGT).
+        Data gathered from Google Trends (latest day:{" "}
+        <b>{data?.end ?? todayUTC}</b>).
       </p>
 
       {data?.forecast?.included && (
