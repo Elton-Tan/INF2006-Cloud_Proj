@@ -13,7 +13,7 @@ import WordsOfInterest from "./views/WordsOfInterest";
 const NAV = [
   { key: "live", label: "Live Feed" },
   { key: "batch", label: "Batch Analytics" },
-  { key: "snapshot", label: "Snapshotter" },
+  { key: "snapshot", label: "Product Watchlist" },
   { key: "words", label: "Words of Interest" },
 ] as const;
 type NavKey = (typeof NAV)[number]["key"];
@@ -29,10 +29,10 @@ function SessionExpiredModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
       <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
-        <div className="mb-2 text-lg font-semibold">Token Expired</div>
+        <div className="mb-2 text-lg font-semibold">Session Expired</div>
         <p className="mb-4 text-sm text-gray-600">
-          For security reasons, the authentication token expires and require
-          refresh every 4 hours. This helps to keep the site secure.
+          For security reasons, the session token expires and require a login
+          every 4 hours. This helps to keep the site secure.
         </p>
         <div className="flex justify-end gap-2">
           <button
