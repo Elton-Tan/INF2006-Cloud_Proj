@@ -133,6 +133,17 @@ export function PriceSeries() {
     }
   }, [apiBase, range, headers]);
 
+  // Pick distinct HSL colors for the current set of products
+  const colorMap = React.useMemo<Record<string, string>>(() => {
+    const n = Math.max(1, products.length);
+    const map: Record<string, string> = {};
+    products.forEach((p, i) => {
+      const hue = Math.round((360 * i) / n); // spread around the wheel
+      map[p] = `hsl(${hue} 70% 45%)`; // good contrast
+    });
+    return map;
+  }, [products]);
+
   React.useEffect(() => {
     if (!token) return;
     void load();
@@ -210,6 +221,7 @@ export function PriceSeries() {
                   type="monotone"
                   dataKey={p}
                   name={p}
+                  stroke={colorMap[p]}
                   strokeWidth={2}
                   dot={{ r: 3 }}
                   activeDot={{ r: 5 }}
