@@ -84,10 +84,6 @@ variable "alb_target_response_p90_ms" {
   default = 1500
 }
 
-variable "cf_total_latency_p90_ms" {
-  type    = number
-  default = 1500
-}
 
 variable "api_latency_p95_ms" {
   type    = number
@@ -97,21 +93,6 @@ variable "api_latency_p95_ms" {
 variable "alb_5xx_threshold" {
   type    = number
   default = 10
-}
-
-variable "cf_5xx_rate_threshold" {
-  type    = number
-  default = 1
-}
-
-variable "api_5xx_threshold" {
-  type    = number
-  default = 5
-}
-
-variable "waf_blocked_threshold" {
-  type    = number
-  default = 200
 }
 
 
@@ -146,4 +127,148 @@ variable "bastion_key_name" {
 variable "awswrangler_layer_arn" {
   type        = string
   description = "AWS-managed pandas+numpy layer ARN"
+}
+
+
+variable "lambda_functions" {
+  description = "Lambda function names to alarm on (Errors/Throttles/Duration)"
+  type        = list(string)
+  default     = []
+}
+
+variable "sqs_queues" {
+  description = "Map of SQS queue names to their DLQ name (empty string if none)"
+  type = map(object({
+    dlq_name = string
+  }))
+  default = {}
+}
+
+variable "rds_instance_id" {
+  description = "DBInstanceIdentifier; leave empty to disable RDS alarms"
+  type        = string
+  default     = ""
+}
+
+variable "cognito_user_pool_id" {
+  description = "Cognito User Pool ID (ap-southeast-1_XXXX); empty to skip"
+  type        = string
+  default     = ""
+}
+
+variable "s3_bucket_name" {
+  description = "S3 bucket with Request Metrics enabled; empty to skip"
+  type        = string
+  default     = ""
+}
+
+variable "s3_request_metrics_filter_id" {
+  description = "S3 request-metrics filter ID (often 'EntireBucket')"
+  type        = string
+  default     = "EntireBucket"
+}
+
+variable "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID; empty to skip"
+  type        = string
+  default     = ""
+}
+
+variable "api_gateway_id" {
+  description = "HTTP API (API Gateway v2) ID; empty to skip"
+  type        = string
+  default     = ""
+}
+
+variable "api_gateway_stage" {
+  description = "HTTP API stage name"
+  type        = string
+  default     = "$default"
+}
+
+variable "eventbridge_rule_names" {
+  description = "EventBridge rule names to monitor for FailedInvocations"
+  type        = list(string)
+  default     = []
+}
+
+#######################################
+# Thresholds (tune per env)
+#######################################
+variable "rds_cpu_high_pct" {
+  description = "RDS CPU high threshold (%)"
+  type        = number
+  default     = 70
+}
+
+variable "rds_free_storage_low_mb" {
+  description = "RDS free storage low threshold (MB)"
+  type        = number
+  default     = 2048 # 2 GB
+}
+
+variable "rds_conn_high" {
+  description = "RDS database connections high threshold"
+  type        = number
+  default     = 80
+}
+
+variable "lambda_errors_threshold" {
+  description = "Lambda Errors sum per minute that triggers alarm"
+  type        = number
+  default     = 0
+}
+
+variable "lambda_throttles_threshold" {
+  description = "Lambda Throttles sum per minute that triggers alarm"
+  type        = number
+  default     = 0
+}
+
+variable "lambda_p95_ms" {
+  description = "Lambda p95 duration threshold (ms)"
+  type        = number
+  default     = 2000
+}
+
+variable "sqs_depth_threshold" {
+  description = "SQS ApproximateNumberOfMessagesVisible threshold"
+  type        = number
+  default     = 100
+}
+
+variable "sqs_age_oldest_sec" {
+  description = "SQS ApproximateAgeOfOldestMessage threshold (seconds)"
+  type        = number
+  default     = 300
+}
+
+variable "cf_5xx_rate_threshold" {
+  description = "CloudFront 5xx error rate threshold (percent)"
+  type        = number
+  default     = 1
+}
+
+variable "cf_total_latency_p90_ms" {
+  description = "CloudFront TotalLatency p90 threshold (ms)"
+  type        = number
+  default     = 800
+}
+
+variable "api_5xx_threshold" {
+  description = "API Gateway 5xx sum threshold (per 5 minutes)"
+  type        = number
+  default     = 5
+}
+
+variable "api_p95_ms" {
+  description = "API Gateway p95 latency threshold (ms)"
+  type        = number
+  default     = 1500
+}
+
+variable "waf_blocked_threshold" {
+  description = "WAF BlockedRequests sum threshold (per 5 minutes)"
+  type        = number
+  default     = 100
 }
