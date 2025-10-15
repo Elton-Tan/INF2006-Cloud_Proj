@@ -1,0 +1,4707 @@
+{
+  "summary": [
+    {
+      "aspect": "Scent",
+      "docs": 179112,
+      "share": 0.19361,
+      "sent_mean": 0.424,
+      "sent_bins": {
+        "pos": 147217,
+        "neu": 29716,
+        "neg": 29059
+      }
+    },
+    {
+      "aspect": "Feel",
+      "docs": 485086,
+      "share": 0.524351,
+      "sent_mean": 0.4938,
+      "sent_bins": {
+        "pos": 462894,
+        "neu": 168520,
+        "neg": 58466
+      }
+    },
+    {
+      "aspect": "Hydration",
+      "docs": 418832,
+      "share": 0.452734,
+      "sent_mean": 0.469,
+      "sent_bins": {
+        "pos": 389305,
+        "neu": 187910,
+        "neg": 62462
+      }
+    },
+    {
+      "aspect": "Irritation",
+      "docs": 185147,
+      "share": 0.200134,
+      "sent_mean": 0.2167,
+      "sent_bins": {
+        "pos": 123967,
+        "neu": 53026,
+        "neg": 62418
+      }
+    },
+    {
+      "aspect": "ResidueFinish",
+      "docs": 33515,
+      "share": 0.036228,
+      "sent_mean": 0.2565,
+      "sent_bins": {
+        "pos": 20212,
+        "neu": 8289,
+        "neg": 7235
+      }
+    },
+    {
+      "aspect": "Longevity",
+      "docs": 65634,
+      "share": 0.070947,
+      "sent_mean": 0.2663,
+      "sent_bins": {
+        "pos": 36711,
+        "neu": 27397,
+        "neg": 7048
+      }
+    },
+    {
+      "aspect": "ValuePrice",
+      "docs": 139930,
+      "share": 0.151257,
+      "sent_mean": 0.3767,
+      "sent_bins": {
+        "pos": 115637,
+        "neu": 28281,
+        "neg": 21898
+      }
+    },
+    {
+      "aspect": "Packaging",
+      "docs": 82968,
+      "share": 0.089684,
+      "sent_mean": 0.413,
+      "sent_bins": {
+        "pos": 65944,
+        "neu": 20510,
+        "neg": 13734
+      }
+    },
+    {
+      "aspect": "RoutineUsage",
+      "docs": 183259,
+      "share": 0.198093,
+      "sent_mean": 0.3764,
+      "sent_bins": {
+        "pos": 132520,
+        "neu": 69101,
+        "neg": 18184
+      }
+    }
+  ],
+  "top_terms": {
+    "RoutineUsage": [
+      {
+        "term": "layer",
+        "n": 11668,
+        "lift": 7.103
+      },
+      {
+        "term": "care routine",
+        "n": 7632,
+        "lift": 7.103
+      },
+      {
+        "term": "morning after",
+        "n": 3744,
+        "lift": 7.103
+      },
+      {
+        "term": "daily routine",
+        "n": 2992,
+        "lift": 7.103
+      },
+      {
+        "term": "layering",
+        "n": 1469,
+        "lift": 7.103
+      },
+      {
+        "term": "nightly routine",
+        "n": 1361,
+        "lift": 7.103
+      },
+      {
+        "term": "day morning",
+        "n": 969,
+        "lift": 7.103
+      },
+      {
+        "term": "soft morning",
+        "n": 781,
+        "lift": 7.103
+      },
+      {
+        "term": "layer skin",
+        "n": 596,
+        "lift": 7.103
+      },
+      {
+        "term": "morning lips",
+        "n": 558,
+        "lift": 7.103
+      },
+      {
+        "term": "don apply",
+        "n": 495,
+        "lift": 7.103
+      },
+      {
+        "term": "thing morning",
+        "n": 485,
+        "lift": 7.103
+      },
+      {
+        "term": "easier apply",
+        "n": 447,
+        "lift": 7.103
+      },
+      {
+        "term": "add routine",
+        "n": 447,
+        "lift": 7.103
+      },
+      {
+        "term": "would apply",
+        "n": 438,
+        "lift": 7.103
+      },
+      {
+        "term": "apply cream",
+        "n": 427,
+        "lift": 7.103
+      },
+      {
+        "term": "how apply",
+        "n": 411,
+        "lift": 7.103
+      },
+      {
+        "term": "cleanser morning",
+        "n": 411,
+        "lift": 7.103
+      },
+      {
+        "term": "apply more",
+        "n": 410,
+        "lift": 7.103
+      },
+      {
+        "term": "serum morning",
+        "n": 400,
+        "lift": 7.103
+      },
+      {
+        "term": "layer under",
+        "n": 375,
+        "lift": 7.103
+      },
+      {
+        "term": "hard apply",
+        "n": 358,
+        "lift": 7.103
+      },
+      {
+        "term": "difference morning",
+        "n": 321,
+        "lift": 7.103
+      },
+      {
+        "term": "morning still",
+        "n": 250,
+        "lift": 7.103
+      },
+      {
+        "term": "morning every",
+        "n": 250,
+        "lift": 7.103
+      },
+      {
+        "term": "next step",
+        "n": 250,
+        "lift": 7.103
+      },
+      {
+        "term": "glowing morning",
+        "n": 247,
+        "lift": 7.103
+      },
+      {
+        "term": "changed routine",
+        "n": 237,
+        "lift": 7.103
+      },
+      {
+        "term": "moisturizer apply",
+        "n": 237,
+        "lift": 7.103
+      },
+      {
+        "term": "time morning",
+        "n": 233,
+        "lift": 7.103
+      },
+      {
+        "term": "applied morning",
+        "n": 228,
+        "lift": 7.103
+      },
+      {
+        "term": "plump morning",
+        "n": 223,
+        "lift": 7.103
+      },
+      {
+        "term": "another layer",
+        "n": 223,
+        "lift": 7.103
+      },
+      {
+        "term": "apply few",
+        "n": 205,
+        "lift": 7.103
+      },
+      {
+        "term": "always apply",
+        "n": 197,
+        "lift": 7.103
+      },
+      {
+        "term": "step your",
+        "n": 187,
+        "lift": 7.103
+      },
+      {
+        "term": "after_application skin",
+        "n": 187,
+        "lift": 7.103
+      },
+      {
+        "term": "out routine",
+        "n": 148,
+        "lift": 7.103
+      },
+      {
+        "term": "skincare step",
+        "n": 148,
+        "lift": 7.103
+      },
+      {
+        "term": "shower morning",
+        "n": 139,
+        "lift": 7.103
+      },
+      {
+        "term": "feel morning",
+        "n": 139,
+        "lift": 7.103
+      },
+      {
+        "term": "night last_step",
+        "n": 139,
+        "lift": 7.103
+      },
+      {
+        "term": "cream apply",
+        "n": 139,
+        "lift": 7.103
+      },
+      {
+        "term": "last_step skin",
+        "n": 132,
+        "lift": 7.103
+      },
+      {
+        "term": "routine even",
+        "n": 132,
+        "lift": 7.103
+      },
+      {
+        "term": "great layering",
+        "n": 132,
+        "lift": 7.103
+      },
+      {
+        "term": "wakes morning",
+        "n": 132,
+        "lift": 7.103
+      },
+      {
+        "term": "routine wake",
+        "n": 127,
+        "lift": 7.103
+      },
+      {
+        "term": "application noticed",
+        "n": 127,
+        "lift": 7.103
+      },
+      {
+        "term": "start morning",
+        "n": 127,
+        "lift": 7.103
+      }
+    ],
+    "Hydration": [
+      {
+        "term": "dry sensitive",
+        "n": 9208,
+        "lift": 2.631
+      },
+      {
+        "term": "helped dry",
+        "n": 793,
+        "lift": 2.631
+      },
+      {
+        "term": "little drying",
+        "n": 793,
+        "lift": 2.631
+      },
+      {
+        "term": "completely dry",
+        "n": 396,
+        "lift": 2.631
+      },
+      {
+        "term": "best hydrating",
+        "n": 396,
+        "lift": 2.631
+      },
+      {
+        "term": "moisturizer",
+        "n": 164203,
+        "lift": 2.631
+      },
+      {
+        "term": "hydrated",
+        "n": 66553,
+        "lift": 2.631
+      },
+      {
+        "term": "hydrating",
+        "n": 63853,
+        "lift": 2.631
+      },
+      {
+        "term": "hydration",
+        "n": 27271,
+        "lift": 2.631
+      },
+      {
+        "term": "drying",
+        "n": 25661,
+        "lift": 2.631
+      },
+      {
+        "term": "moisturizers",
+        "n": 17932,
+        "lift": 2.631
+      },
+      {
+        "term": "plump",
+        "n": 17542,
+        "lift": 2.631
+      },
+      {
+        "term": "hydrates",
+        "n": 10005,
+        "lift": 2.631
+      },
+      {
+        "term": "dry_patches",
+        "n": 9914,
+        "lift": 2.631
+      },
+      {
+        "term": "moisturize",
+        "n": 9745,
+        "lift": 2.631
+      },
+      {
+        "term": "hydrate",
+        "n": 7691,
+        "lift": 2.631
+      },
+      {
+        "term": "moisturizes",
+        "n": 7646,
+        "lift": 2.631
+      },
+      {
+        "term": "skin hydrated",
+        "n": 7181,
+        "lift": 2.631
+      },
+      {
+        "term": "super dry",
+        "n": 6605,
+        "lift": 2.631
+      },
+      {
+        "term": "super hydrating",
+        "n": 6008,
+        "lift": 2.631
+      },
+      {
+        "term": "soft hydrated",
+        "n": 5183,
+        "lift": 2.631
+      },
+      {
+        "term": "best moisturizer",
+        "n": 4814,
+        "lift": 2.631
+      },
+      {
+        "term": "dry winter",
+        "n": 4163,
+        "lift": 2.631
+      },
+      {
+        "term": "feeling hydrated",
+        "n": 4112,
+        "lift": 2.631
+      },
+      {
+        "term": "feel hydrated",
+        "n": 4028,
+        "lift": 2.631
+      },
+      {
+        "term": "great dry",
+        "n": 3966,
+        "lift": 2.631
+      },
+      {
+        "term": "normal dry",
+        "n": 3632,
+        "lift": 2.631
+      },
+      {
+        "term": "feels hydrated",
+        "n": 3624,
+        "lift": 2.631
+      },
+      {
+        "term": "moisturizer ever",
+        "n": 3428,
+        "lift": 2.631
+      },
+      {
+        "term": "smooth hydrated",
+        "n": 3059,
+        "lift": 2.631
+      },
+      {
+        "term": "super moisturizing",
+        "n": 3047,
+        "lift": 2.631
+      },
+      {
+        "term": "cracked",
+        "n": 2916,
+        "lift": 2.631
+      },
+      {
+        "term": "dry spots",
+        "n": 2889,
+        "lift": 2.631
+      },
+      {
+        "term": "skin moisturized",
+        "n": 2885,
+        "lift": 2.631
+      },
+      {
+        "term": "feel dry",
+        "n": 2819,
+        "lift": 2.631
+      },
+      {
+        "term": "favorite moisturizer",
+        "n": 2691,
+        "lift": 2.631
+      },
+      {
+        "term": "plumped",
+        "n": 2672,
+        "lift": 2.631
+      },
+      {
+        "term": "get dry",
+        "n": 2668,
+        "lift": 2.631
+      },
+      {
+        "term": "hydrates skin",
+        "n": 2659,
+        "lift": 2.631
+      },
+      {
+        "term": "plumper",
+        "n": 2430,
+        "lift": 2.631
+      },
+      {
+        "term": "dry after",
+        "n": 2412,
+        "lift": 2.631
+      },
+      {
+        "term": "other moisturizers",
+        "n": 2376,
+        "lift": 2.631
+      },
+      {
+        "term": "hydrating skin",
+        "n": 2288,
+        "lift": 2.631
+      },
+      {
+        "term": "not moisturizing",
+        "n": 2270,
+        "lift": 2.631
+      },
+      {
+        "term": "moisturizer after",
+        "n": 2207,
+        "lift": 2.631
+      },
+      {
+        "term": "plumps",
+        "n": 2205,
+        "lift": 2.631
+      },
+      {
+        "term": "gel moisturizer",
+        "n": 2163,
+        "lift": 2.631
+      },
+      {
+        "term": "hydrated after",
+        "n": 2137,
+        "lift": 2.631
+      },
+      {
+        "term": "skin moisturizer",
+        "n": 2104,
+        "lift": 2.631
+      },
+      {
+        "term": "hydrate skin",
+        "n": 1997,
+        "lift": 2.631
+      }
+    ],
+    "Feel": [
+      {
+        "term": "feel",
+        "n": 176572,
+        "lift": 2.404
+      },
+      {
+        "term": "texture",
+        "n": 86104,
+        "lift": 2.404
+      },
+      {
+        "term": "doesn feel",
+        "n": 11363,
+        "lift": 2.404
+      },
+      {
+        "term": "feels great",
+        "n": 9248,
+        "lift": 2.404
+      },
+      {
+        "term": "feels nice",
+        "n": 8327,
+        "lift": 2.404
+      },
+      {
+        "term": "not oily",
+        "n": 7310,
+        "lift": 2.404
+      },
+      {
+        "term": "feel soft",
+        "n": 7132,
+        "lift": 2.404
+      },
+      {
+        "term": "feels amazing",
+        "n": 6763,
+        "lift": 2.404
+      },
+      {
+        "term": "not heavy",
+        "n": 5825,
+        "lift": 2.404
+      },
+      {
+        "term": "can feel",
+        "n": 5581,
+        "lift": 2.404
+      },
+      {
+        "term": "don feel",
+        "n": 5341,
+        "lift": 2.404
+      },
+      {
+        "term": "texture skin",
+        "n": 5319,
+        "lift": 2.404
+      },
+      {
+        "term": "without feeling",
+        "n": 5298,
+        "lift": 2.404
+      },
+      {
+        "term": "didn feel",
+        "n": 5194,
+        "lift": 2.404
+      },
+      {
+        "term": "feel greasy",
+        "n": 4405,
+        "lift": 2.404
+      },
+      {
+        "term": "feel clean",
+        "n": 4257,
+        "lift": 2.404
+      },
+      {
+        "term": "feeling hydrated",
+        "n": 4112,
+        "lift": 2.404
+      },
+      {
+        "term": "silky smooth",
+        "n": 3833,
+        "lift": 2.404
+      },
+      {
+        "term": "feels hydrated",
+        "n": 3624,
+        "lift": 2.404
+      },
+      {
+        "term": "more oily",
+        "n": 3563,
+        "lift": 2.404
+      },
+      {
+        "term": "look feel",
+        "n": 3557,
+        "lift": 2.404
+      },
+      {
+        "term": "feel dry",
+        "n": 2819,
+        "lift": 2.404
+      },
+      {
+        "term": "oily combo",
+        "n": 2792,
+        "lift": 2.404
+      },
+      {
+        "term": "oily combination",
+        "n": 2728,
+        "lift": 2.404
+      },
+      {
+        "term": "feel super",
+        "n": 2724,
+        "lift": 2.404
+      },
+      {
+        "term": "feel good",
+        "n": 2716,
+        "lift": 2.404
+      },
+      {
+        "term": "smooth after",
+        "n": 2715,
+        "lift": 2.404
+      },
+      {
+        "term": "combo oily",
+        "n": 2695,
+        "lift": 2.404
+      },
+      {
+        "term": "feeling dry",
+        "n": 2680,
+        "lift": 2.404
+      },
+      {
+        "term": "feeling fresh",
+        "n": 2667,
+        "lift": 2.404
+      },
+      {
+        "term": "feel sticky",
+        "n": 2590,
+        "lift": 2.404
+      },
+      {
+        "term": "heavy skin",
+        "n": 2586,
+        "lift": 2.404
+      },
+      {
+        "term": "feeling oily",
+        "n": 2235,
+        "lift": 2.404
+      },
+      {
+        "term": "felt smooth",
+        "n": 2202,
+        "lift": 2.404
+      },
+      {
+        "term": "feels after",
+        "n": 2118,
+        "lift": 2.404
+      },
+      {
+        "term": "feeling skin",
+        "n": 2108,
+        "lift": 2.404
+      },
+      {
+        "term": "less oily",
+        "n": 2104,
+        "lift": 2.404
+      },
+      {
+        "term": "feel refreshed",
+        "n": 2087,
+        "lift": 2.404
+      },
+      {
+        "term": "way feels",
+        "n": 2083,
+        "lift": 2.404
+      },
+      {
+        "term": "super lightweight",
+        "n": 2071,
+        "lift": 2.404
+      },
+      {
+        "term": "feel difference",
+        "n": 2053,
+        "lift": 2.404
+      },
+      {
+        "term": "sticky feeling",
+        "n": 1950,
+        "lift": 2.404
+      },
+      {
+        "term": "feels smoother",
+        "n": 1812,
+        "lift": 2.404
+      },
+      {
+        "term": "oily dry",
+        "n": 1805,
+        "lift": 2.404
+      },
+      {
+        "term": "feel look",
+        "n": 1798,
+        "lift": 2.404
+      },
+      {
+        "term": "feel moisturized",
+        "n": 1798,
+        "lift": 2.404
+      },
+      {
+        "term": "creamy texture",
+        "n": 1785,
+        "lift": 2.404
+      },
+      {
+        "term": "get oily",
+        "n": 1768,
+        "lift": 2.404
+      },
+      {
+        "term": "feels softer",
+        "n": 1734,
+        "lift": 2.404
+      },
+      {
+        "term": "feels fresh",
+        "n": 1731,
+        "lift": 2.404
+      }
+    ],
+    "Scent": [
+      {
+        "term": "perfume",
+        "n": 3261,
+        "lift": 9.915
+      },
+      {
+        "term": "scent which",
+        "n": 3200,
+        "lift": 9.915
+      },
+      {
+        "term": "strong_scent",
+        "n": 2719,
+        "lift": 9.915
+      },
+      {
+        "term": "smell amazing",
+        "n": 2698,
+        "lift": 9.915
+      },
+      {
+        "term": "scent light",
+        "n": 1973,
+        "lift": 9.915
+      },
+      {
+        "term": "smell great",
+        "n": 1906,
+        "lift": 9.915
+      },
+      {
+        "term": "smell isn",
+        "n": 1747,
+        "lift": 9.915
+      },
+      {
+        "term": "nice smell",
+        "n": 1472,
+        "lift": 9.915
+      },
+      {
+        "term": "great smell",
+        "n": 1466,
+        "lift": 9.915
+      },
+      {
+        "term": "pleasant smell",
+        "n": 1451,
+        "lift": 9.915
+      },
+      {
+        "term": "scent isn",
+        "n": 1438,
+        "lift": 9.915
+      },
+      {
+        "term": "smell light",
+        "n": 1147,
+        "lift": 9.915
+      },
+      {
+        "term": "smell doesn",
+        "n": 1147,
+        "lift": 9.915
+      },
+      {
+        "term": "texture smell",
+        "n": 1066,
+        "lift": 9.915
+      },
+      {
+        "term": "great scent",
+        "n": 887,
+        "lift": 9.915
+      },
+      {
+        "term": "smell pleasant",
+        "n": 860,
+        "lift": 9.915
+      },
+      {
+        "term": "scent pleasant",
+        "n": 860,
+        "lift": 9.915
+      },
+      {
+        "term": "bad smell",
+        "n": 830,
+        "lift": 9.915
+      },
+      {
+        "term": "scent amazing",
+        "n": 728,
+        "lift": 9.915
+      },
+      {
+        "term": "not scent",
+        "n": 640,
+        "lift": 9.915
+      },
+      {
+        "term": "fan scent",
+        "n": 622,
+        "lift": 9.915
+      },
+      {
+        "term": "loved smell",
+        "n": 604,
+        "lift": 9.915
+      },
+      {
+        "term": "smell smells",
+        "n": 586,
+        "lift": 9.915
+      },
+      {
+        "term": "smell fresh",
+        "n": 580,
+        "lift": 9.915
+      },
+      {
+        "term": "smell can",
+        "n": 579,
+        "lift": 9.915
+      },
+      {
+        "term": "about scent",
+        "n": 546,
+        "lift": 9.915
+      },
+      {
+        "term": "scent well",
+        "n": 511,
+        "lift": 9.915
+      },
+      {
+        "term": "little scent",
+        "n": 505,
+        "lift": 9.915
+      },
+      {
+        "term": "scent refreshing",
+        "n": 438,
+        "lift": 9.915
+      },
+      {
+        "term": "stand smell",
+        "n": 437,
+        "lift": 9.915
+      },
+      {
+        "term": "smell didn",
+        "n": 436,
+        "lift": 9.915
+      },
+      {
+        "term": "smell when",
+        "n": 404,
+        "lift": 9.915
+      },
+      {
+        "term": "smell anything",
+        "n": 401,
+        "lift": 9.915
+      },
+      {
+        "term": "smell feels",
+        "n": 401,
+        "lift": 9.915
+      },
+      {
+        "term": "does scent",
+        "n": 396,
+        "lift": 9.915
+      },
+      {
+        "term": "fragrance light",
+        "n": 384,
+        "lift": 9.915
+      },
+      {
+        "term": "enjoy scent",
+        "n": 380,
+        "lift": 9.915
+      },
+      {
+        "term": "scent how",
+        "n": 377,
+        "lift": 9.915
+      },
+      {
+        "term": "subtle smell",
+        "n": 377,
+        "lift": 9.915
+      },
+      {
+        "term": "don scent",
+        "n": 375,
+        "lift": 9.915
+      },
+      {
+        "term": "refreshing smell",
+        "n": 330,
+        "lift": 9.915
+      },
+      {
+        "term": "light pleasant_scent",
+        "n": 321,
+        "lift": 9.915
+      },
+      {
+        "term": "fragrance skincare",
+        "n": 318,
+        "lift": 9.915
+      },
+      {
+        "term": "however smell",
+        "n": 313,
+        "lift": 9.915
+      },
+      {
+        "term": "absolutely smell",
+        "n": 310,
+        "lift": 9.915
+      },
+      {
+        "term": "because fragrance",
+        "n": 306,
+        "lift": 9.915
+      },
+      {
+        "term": "don fragrance",
+        "n": 292,
+        "lift": 9.915
+      },
+      {
+        "term": "faint scent",
+        "n": 292,
+        "lift": 9.915
+      },
+      {
+        "term": "odd smell",
+        "n": 291,
+        "lift": 9.915
+      },
+      {
+        "term": "natural smell",
+        "n": 291,
+        "lift": 9.915
+      }
+    ],
+    "ValuePrice": [
+      {
+        "term": "not worth",
+        "n": 10167,
+        "lift": 12.115
+      },
+      {
+        "term": "price tag",
+        "n": 5722,
+        "lift": 12.115
+      },
+      {
+        "term": "because price",
+        "n": 3040,
+        "lift": 12.115
+      },
+      {
+        "term": "bit pricey",
+        "n": 2255,
+        "lift": 12.115
+      },
+      {
+        "term": "great value",
+        "n": 1579,
+        "lift": 12.115
+      },
+      {
+        "term": "especially price",
+        "n": 1206,
+        "lift": 12.115
+      },
+      {
+        "term": "justify price",
+        "n": 880,
+        "lift": 12.115
+      },
+      {
+        "term": "beat price",
+        "n": 830,
+        "lift": 12.115
+      },
+      {
+        "term": "price would",
+        "n": 788,
+        "lift": 12.115
+      },
+      {
+        "term": "about price",
+        "n": 678,
+        "lift": 12.115
+      },
+      {
+        "term": "better price",
+        "n": 577,
+        "lift": 12.115
+      },
+      {
+        "term": "pricey side",
+        "n": 577,
+        "lift": 12.115
+      },
+      {
+        "term": "reasonably priced",
+        "n": 563,
+        "lift": 12.115
+      },
+      {
+        "term": "quite_expensive",
+        "n": 459,
+        "lift": 12.115
+      },
+      {
+        "term": "worth shot",
+        "n": 395,
+        "lift": 12.115
+      },
+      {
+        "term": "amount price",
+        "n": 390,
+        "lift": 12.115
+      },
+      {
+        "term": "not price",
+        "n": 375,
+        "lift": 12.115
+      },
+      {
+        "term": "completely worth",
+        "n": 375,
+        "lift": 12.115
+      },
+      {
+        "term": "worth high",
+        "n": 284,
+        "lift": 12.115
+      },
+      {
+        "term": "feel price",
+        "n": 279,
+        "lift": 12.115
+      },
+      {
+        "term": "because pricey",
+        "n": 278,
+        "lift": 12.115
+      },
+      {
+        "term": "cheaper price",
+        "n": 278,
+        "lift": 12.115
+      },
+      {
+        "term": "decent price",
+        "n": 250,
+        "lift": 12.115
+      },
+      {
+        "term": "expensive don",
+        "n": 229,
+        "lift": 12.115
+      },
+      {
+        "term": "despite price",
+        "n": 199,
+        "lift": 12.115
+      },
+      {
+        "term": "value money",
+        "n": 194,
+        "lift": 12.115
+      },
+      {
+        "term": "more worth",
+        "n": 194,
+        "lift": 12.115
+      },
+      {
+        "term": "price seems",
+        "n": 192,
+        "lift": 12.115
+      },
+      {
+        "term": "expensive would",
+        "n": 192,
+        "lift": 12.115
+      },
+      {
+        "term": "know worth",
+        "n": 189,
+        "lift": 12.115
+      },
+      {
+        "term": "expensive price",
+        "n": 189,
+        "lift": 12.115
+      },
+      {
+        "term": "know expensive",
+        "n": 189,
+        "lift": 12.115
+      },
+      {
+        "term": "price expected",
+        "n": 187,
+        "lift": 12.115
+      },
+      {
+        "term": "price should",
+        "n": 184,
+        "lift": 12.115
+      },
+      {
+        "term": "still worth",
+        "n": 184,
+        "lift": 12.115
+      },
+      {
+        "term": "such expensive",
+        "n": 184,
+        "lift": 12.115
+      },
+      {
+        "term": "price works",
+        "n": 184,
+        "lift": 12.115
+      },
+      {
+        "term": "expensive face",
+        "n": 141,
+        "lift": 12.115
+      },
+      {
+        "term": "expensive moisturizer",
+        "n": 141,
+        "lift": 12.115
+      },
+      {
+        "term": "purchase price",
+        "n": 140,
+        "lift": 12.115
+      },
+      {
+        "term": "price per",
+        "n": 140,
+        "lift": 12.115
+      },
+      {
+        "term": "pricey lasts",
+        "n": 139,
+        "lift": 12.115
+      },
+      {
+        "term": "other expensive",
+        "n": 139,
+        "lift": 12.115
+      },
+      {
+        "term": "bit overpriced",
+        "n": 135,
+        "lift": 12.115
+      },
+      {
+        "term": "worth noting",
+        "n": 135,
+        "lift": 12.115
+      },
+      {
+        "term": "kinda pricey",
+        "n": 135,
+        "lift": 12.115
+      },
+      {
+        "term": "hype price",
+        "n": 132,
+        "lift": 12.115
+      },
+      {
+        "term": "more pricey",
+        "n": 132,
+        "lift": 12.115
+      },
+      {
+        "term": "price way",
+        "n": 132,
+        "lift": 12.115
+      },
+      {
+        "term": "although price",
+        "n": 132,
+        "lift": 12.115
+      }
+    ],
+    "Packaging": [
+      {
+        "term": "pot",
+        "n": 1708,
+        "lift": 19.601
+      },
+      {
+        "term": "seal",
+        "n": 1386,
+        "lift": 19.601
+      },
+      {
+        "term": "second jar",
+        "n": 648,
+        "lift": 19.601
+      },
+      {
+        "term": "little jar",
+        "n": 368,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging makes",
+        "n": 339,
+        "lift": 19.601
+      },
+      {
+        "term": "pump dispenser",
+        "n": 308,
+        "lift": 19.601
+      },
+      {
+        "term": "fan packaging",
+        "n": 192,
+        "lift": 19.601
+      },
+      {
+        "term": "sized jar",
+        "n": 169,
+        "lift": 19.601
+      },
+      {
+        "term": "poor packaging",
+        "n": 169,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging color",
+        "n": 110,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging bit",
+        "n": 110,
+        "lift": 19.601
+      },
+      {
+        "term": "prefer pump",
+        "n": 110,
+        "lift": 19.601
+      },
+      {
+        "term": "little pump",
+        "n": 110,
+        "lift": 19.601
+      },
+      {
+        "term": "tube",
+        "n": 11839,
+        "lift": 19.601
+      },
+      {
+        "term": "applicator",
+        "n": 7484,
+        "lift": 19.601
+      },
+      {
+        "term": "package",
+        "n": 4017,
+        "lift": 19.601
+      },
+      {
+        "term": "squeeze",
+        "n": 2508,
+        "lift": 19.601
+      },
+      {
+        "term": "one pump",
+        "n": 2365,
+        "lift": 19.601
+      },
+      {
+        "term": "messy",
+        "n": 2308,
+        "lift": 19.601
+      },
+      {
+        "term": "spatula",
+        "n": 2017,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging beautiful",
+        "n": 1756,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging cute",
+        "n": 1553,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging nice",
+        "n": 1328,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging super",
+        "n": 945,
+        "lift": 19.601
+      },
+      {
+        "term": "cute packaging",
+        "n": 900,
+        "lift": 19.601
+      },
+      {
+        "term": "jar will",
+        "n": 883,
+        "lift": 19.601
+      },
+      {
+        "term": "out tube",
+        "n": 768,
+        "lift": 19.601
+      },
+      {
+        "term": "leaks",
+        "n": 716,
+        "lift": 19.601
+      },
+      {
+        "term": "little_spatula",
+        "n": 663,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging gorgeous",
+        "n": 628,
+        "lift": 19.601
+      },
+      {
+        "term": "great packaging",
+        "n": 619,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging pretty",
+        "n": 589,
+        "lift": 19.601
+      },
+      {
+        "term": "because packaging",
+        "n": 532,
+        "lift": 19.601
+      },
+      {
+        "term": "half pump",
+        "n": 524,
+        "lift": 19.601
+      },
+      {
+        "term": "squeeze_tube",
+        "n": 495,
+        "lift": 19.601
+      },
+      {
+        "term": "all packaging",
+        "n": 476,
+        "lift": 19.601
+      },
+      {
+        "term": "nice packaging",
+        "n": 473,
+        "lift": 19.601
+      },
+      {
+        "term": "off packaging",
+        "n": 459,
+        "lift": 19.601
+      },
+      {
+        "term": "size jar",
+        "n": 458,
+        "lift": 19.601
+      },
+      {
+        "term": "leak",
+        "n": 439,
+        "lift": 19.601
+      },
+      {
+        "term": "new packaging",
+        "n": 431,
+        "lift": 19.601
+      },
+      {
+        "term": "leaking",
+        "n": 431,
+        "lift": 19.601
+      },
+      {
+        "term": "small jar",
+        "n": 427,
+        "lift": 19.601
+      },
+      {
+        "term": "jar lasts",
+        "n": 419,
+        "lift": 19.601
+      },
+      {
+        "term": "about packaging",
+        "n": 411,
+        "lift": 19.601
+      },
+      {
+        "term": "glass packaging",
+        "n": 408,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging well",
+        "n": 398,
+        "lift": 19.601
+      },
+      {
+        "term": "packaging feels",
+        "n": 383,
+        "lift": 19.601
+      },
+      {
+        "term": "bottle pump",
+        "n": 381,
+        "lift": 19.601
+      },
+      {
+        "term": "second tube",
+        "n": 381,
+        "lift": 19.601
+      }
+    ],
+    "Longevity": [
+      {
+        "term": "overnight moisturizer",
+        "n": 268,
+        "lift": 21.754
+      },
+      {
+        "term": "after last",
+        "n": 221,
+        "lift": 21.754
+      },
+      {
+        "term": "moisture lasts",
+        "n": 208,
+        "lift": 21.754
+      },
+      {
+        "term": "acne last",
+        "n": 110,
+        "lift": 21.754
+      },
+      {
+        "term": "overnight",
+        "n": 16919,
+        "lift": 21.754
+      },
+      {
+        "term": "will last",
+        "n": 7086,
+        "lift": 21.754
+      },
+      {
+        "term": "lasting",
+        "n": 5289,
+        "lift": 21.754
+      },
+      {
+        "term": "long lasting",
+        "n": 2789,
+        "lift": 21.754
+      },
+      {
+        "term": "last while",
+        "n": 1859,
+        "lift": 21.754
+      },
+      {
+        "term": "last year",
+        "n": 1778,
+        "lift": 21.754
+      },
+      {
+        "term": "lasts forever",
+        "n": 1719,
+        "lift": 21.754
+      },
+      {
+        "term": "lasts all",
+        "n": 1407,
+        "lift": 21.754
+      },
+      {
+        "term": "last few",
+        "n": 1308,
+        "lift": 21.754
+      },
+      {
+        "term": "last forever",
+        "n": 1227,
+        "lift": 21.754
+      },
+      {
+        "term": "bottle lasts",
+        "n": 1178,
+        "lift": 21.754
+      },
+      {
+        "term": "last week",
+        "n": 1172,
+        "lift": 21.754
+      },
+      {
+        "term": "should last",
+        "n": 1035,
+        "lift": 21.754
+      },
+      {
+        "term": "last quite",
+        "n": 830,
+        "lift": 21.754
+      },
+      {
+        "term": "over last",
+        "n": 791,
+        "lift": 21.754
+      },
+      {
+        "term": "lasts while",
+        "n": 661,
+        "lift": 21.754
+      },
+      {
+        "term": "not last",
+        "n": 617,
+        "lift": 21.754
+      },
+      {
+        "term": "last couple",
+        "n": 605,
+        "lift": 21.754
+      },
+      {
+        "term": "last awhile",
+        "n": 588,
+        "lift": 21.754
+      },
+      {
+        "term": "going last",
+        "n": 580,
+        "lift": 21.754
+      },
+      {
+        "term": "last time",
+        "n": 575,
+        "lift": 21.754
+      },
+      {
+        "term": "leave overnight",
+        "n": 535,
+        "lift": 21.754
+      },
+      {
+        "term": "every last",
+        "n": 535,
+        "lift": 21.754
+      },
+      {
+        "term": "lasts months",
+        "n": 520,
+        "lift": 21.754
+      },
+      {
+        "term": "been last",
+        "n": 517,
+        "lift": 21.754
+      },
+      {
+        "term": "does last",
+        "n": 484,
+        "lift": 21.754
+      },
+      {
+        "term": "sample last",
+        "n": 429,
+        "lift": 21.754
+      },
+      {
+        "term": "lasts_longer",
+        "n": 415,
+        "lift": 21.754
+      },
+      {
+        "term": "last about",
+        "n": 404,
+        "lift": 21.754
+      },
+      {
+        "term": "can last",
+        "n": 378,
+        "lift": 21.754
+      },
+      {
+        "term": "lasts quite",
+        "n": 357,
+        "lift": 21.754
+      },
+      {
+        "term": "only lasts",
+        "n": 345,
+        "lift": 21.754
+      },
+      {
+        "term": "last least",
+        "n": 331,
+        "lift": 21.754
+      },
+      {
+        "term": "lasting results",
+        "n": 310,
+        "lift": 21.754
+      },
+      {
+        "term": "see lasting",
+        "n": 304,
+        "lift": 21.754
+      },
+      {
+        "term": "lasting moisture",
+        "n": 289,
+        "lift": 21.754
+      },
+      {
+        "term": "overnight glow",
+        "n": 289,
+        "lift": 21.754
+      },
+      {
+        "term": "tube lasts",
+        "n": 281,
+        "lift": 21.754
+      },
+      {
+        "term": "bottle last",
+        "n": 281,
+        "lift": 21.754
+      },
+      {
+        "term": "probably last",
+        "n": 279,
+        "lift": 21.754
+      },
+      {
+        "term": "overnight masks",
+        "n": 276,
+        "lift": 21.754
+      },
+      {
+        "term": "lasting long",
+        "n": 260,
+        "lift": 21.754
+      },
+      {
+        "term": "lips overnight",
+        "n": 256,
+        "lift": 21.754
+      },
+      {
+        "term": "overnight skin",
+        "n": 253,
+        "lift": 21.754
+      },
+      {
+        "term": "hydration lasts",
+        "n": 244,
+        "lift": 21.754
+      },
+      {
+        "term": "last thing",
+        "n": 240,
+        "lift": 21.754
+      }
+    ],
+    "ResidueFinish": [
+      {
+        "term": "residue",
+        "n": 14019,
+        "lift": 41.329
+      },
+      {
+        "term": "leave residue",
+        "n": 1579,
+        "lift": 41.329
+      },
+      {
+        "term": "dewy finish",
+        "n": 1046,
+        "lift": 41.329
+      },
+      {
+        "term": "white_residue",
+        "n": 888,
+        "lift": 41.329
+      },
+      {
+        "term": "residue left",
+        "n": 789,
+        "lift": 41.329
+      },
+      {
+        "term": "white film",
+        "n": 394,
+        "lift": 41.329
+      },
+      {
+        "term": "residue your",
+        "n": 363,
+        "lift": 41.329
+      },
+      {
+        "term": "weird residue",
+        "n": 342,
+        "lift": 41.329
+      },
+      {
+        "term": "without residue",
+        "n": 342,
+        "lift": 41.329
+      },
+      {
+        "term": "residue feeling",
+        "n": 200,
+        "lift": 41.329
+      },
+      {
+        "term": "oily finish",
+        "n": 187,
+        "lift": 41.329
+      },
+      {
+        "term": "finish one",
+        "n": 186,
+        "lift": 41.329
+      },
+      {
+        "term": "film residue",
+        "n": 162,
+        "lift": 41.329
+      },
+      {
+        "term": "residue leaves",
+        "n": 157,
+        "lift": 41.329
+      },
+      {
+        "term": "behind residue",
+        "n": 156,
+        "lift": 41.329
+      },
+      {
+        "term": "residue off",
+        "n": 136,
+        "lift": 41.329
+      },
+      {
+        "term": "off residue",
+        "n": 127,
+        "lift": 41.329
+      },
+      {
+        "term": "all residue",
+        "n": 123,
+        "lift": 41.329
+      },
+      {
+        "term": "going finish",
+        "n": 123,
+        "lift": 41.329
+      },
+      {
+        "term": "skin finish",
+        "n": 123,
+        "lift": 41.329
+      },
+      {
+        "term": "soft finish",
+        "n": 120,
+        "lift": 41.329
+      },
+      {
+        "term": "some residue",
+        "n": 111,
+        "lift": 41.329
+      },
+      {
+        "term": "leaves white_residue",
+        "n": 102,
+        "lift": 41.329
+      },
+      {
+        "term": "finish primer",
+        "n": 102,
+        "lift": 41.329
+      },
+      {
+        "term": "finish",
+        "n": 11671,
+        "lift": 41.329
+      },
+      {
+        "term": "film",
+        "n": 5775,
+        "lift": 41.329
+      },
+      {
+        "term": "oily residue",
+        "n": 1736,
+        "lift": 41.329
+      },
+      {
+        "term": "sticky residue",
+        "n": 1583,
+        "lift": 41.329
+      },
+      {
+        "term": "matte_finish",
+        "n": 1363,
+        "lift": 41.329
+      },
+      {
+        "term": "greasy_residue",
+        "n": 1311,
+        "lift": 41.329
+      },
+      {
+        "term": "finish bottle",
+        "n": 800,
+        "lift": 41.329
+      },
+      {
+        "term": "leave film",
+        "n": 748,
+        "lift": 41.329
+      },
+      {
+        "term": "film skin",
+        "n": 709,
+        "lift": 41.329
+      },
+      {
+        "term": "residue skin",
+        "n": 708,
+        "lift": 41.329
+      },
+      {
+        "term": "film face",
+        "n": 670,
+        "lift": 41.329
+      },
+      {
+        "term": "leaving residue",
+        "n": 608,
+        "lift": 41.329
+      },
+      {
+        "term": "greasy_film",
+        "n": 567,
+        "lift": 41.329
+      },
+      {
+        "term": "residue face",
+        "n": 530,
+        "lift": 41.329
+      },
+      {
+        "term": "residue behind",
+        "n": 491,
+        "lift": 41.329
+      },
+      {
+        "term": "leaves film",
+        "n": 489,
+        "lift": 41.329
+      },
+      {
+        "term": "after finish",
+        "n": 476,
+        "lift": 41.329
+      },
+      {
+        "term": "when finish",
+        "n": 439,
+        "lift": 41.329
+      },
+      {
+        "term": "will finish",
+        "n": 439,
+        "lift": 41.329
+      },
+      {
+        "term": "smooth_finish",
+        "n": 436,
+        "lift": 41.329
+      },
+      {
+        "term": "film your",
+        "n": 390,
+        "lift": 41.329
+      },
+      {
+        "term": "leave greasy_residue",
+        "n": 370,
+        "lift": 41.329
+      },
+      {
+        "term": "residue after",
+        "n": 350,
+        "lift": 41.329
+      },
+      {
+        "term": "glowy finish",
+        "n": 345,
+        "lift": 41.329
+      },
+      {
+        "term": "natural finish",
+        "n": 309,
+        "lift": 41.329
+      },
+      {
+        "term": "finish skin",
+        "n": 305,
+        "lift": 41.329
+      }
+    ],
+    "Irritation": [
+      {
+        "term": "breakout",
+        "n": 15167,
+        "lift": 6.68
+      },
+      {
+        "term": "irritated",
+        "n": 12288,
+        "lift": 6.68
+      },
+      {
+        "term": "dry sensitive",
+        "n": 9208,
+        "lift": 6.68
+      },
+      {
+        "term": "irritate skin",
+        "n": 8099,
+        "lift": 6.68
+      },
+      {
+        "term": "super sensitive",
+        "n": 4452,
+        "lift": 6.68
+      },
+      {
+        "term": "not sensitive",
+        "n": 3342,
+        "lift": 6.68
+      },
+      {
+        "term": "sensitive combination",
+        "n": 1999,
+        "lift": 6.68
+      },
+      {
+        "term": "irritating skin",
+        "n": 1324,
+        "lift": 6.68
+      },
+      {
+        "term": "burning sensation",
+        "n": 1314,
+        "lift": 6.68
+      },
+      {
+        "term": "redness face",
+        "n": 1270,
+        "lift": 6.68
+      },
+      {
+        "term": "sensitive oily",
+        "n": 1112,
+        "lift": 6.68
+      },
+      {
+        "term": "without irritation",
+        "n": 1076,
+        "lift": 6.68
+      },
+      {
+        "term": "redness irritation",
+        "n": 1068,
+        "lift": 6.68
+      },
+      {
+        "term": "irritate all",
+        "n": 1006,
+        "lift": 6.68
+      },
+      {
+        "term": "combination sensitive",
+        "n": 966,
+        "lift": 6.68
+      },
+      {
+        "term": "itching",
+        "n": 877,
+        "lift": 6.68
+      },
+      {
+        "term": "well sensitive",
+        "n": 793,
+        "lift": 6.68
+      },
+      {
+        "term": "even sensitive",
+        "n": 786,
+        "lift": 6.68
+      },
+      {
+        "term": "skin irritated",
+        "n": 715,
+        "lift": 6.68
+      },
+      {
+        "term": "redness from",
+        "n": 711,
+        "lift": 6.68
+      },
+      {
+        "term": "not irritated",
+        "n": 695,
+        "lift": 6.68
+      },
+      {
+        "term": "bright red",
+        "n": 680,
+        "lift": 6.68
+      },
+      {
+        "term": "out sensitive",
+        "n": 643,
+        "lift": 6.68
+      },
+      {
+        "term": "all redness",
+        "n": 596,
+        "lift": 6.68
+      },
+      {
+        "term": "helped redness",
+        "n": 579,
+        "lift": 6.68
+      },
+      {
+        "term": "can sensitive",
+        "n": 522,
+        "lift": 6.68
+      },
+      {
+        "term": "red patches",
+        "n": 495,
+        "lift": 6.68
+      },
+      {
+        "term": "cleanser sensitive",
+        "n": 475,
+        "lift": 6.68
+      },
+      {
+        "term": "since sensitive",
+        "n": 475,
+        "lift": 6.68
+      },
+      {
+        "term": "hasn irritated",
+        "n": 469,
+        "lift": 6.68
+      },
+      {
+        "term": "red itchy",
+        "n": 421,
+        "lift": 6.68
+      },
+      {
+        "term": "covers redness",
+        "n": 406,
+        "lift": 6.68
+      },
+      {
+        "term": "out irritate",
+        "n": 385,
+        "lift": 6.68
+      },
+      {
+        "term": "redness dryness",
+        "n": 357,
+        "lift": 6.68
+      },
+      {
+        "term": "breakout since",
+        "n": 357,
+        "lift": 6.68
+      },
+      {
+        "term": "easily irritated",
+        "n": 355,
+        "lift": 6.68
+      },
+      {
+        "term": "safe sensitive",
+        "n": 336,
+        "lift": 6.68
+      },
+      {
+        "term": "super red",
+        "n": 334,
+        "lift": 6.68
+      },
+      {
+        "term": "zero irritation",
+        "n": 334,
+        "lift": 6.68
+      },
+      {
+        "term": "red sensitive",
+        "n": 323,
+        "lift": 6.68
+      },
+      {
+        "term": "sensitive rosacea",
+        "n": 321,
+        "lift": 6.68
+      },
+      {
+        "term": "red cheeks",
+        "n": 313,
+        "lift": 6.68
+      },
+      {
+        "term": "bother sensitive",
+        "n": 304,
+        "lift": 6.68
+      },
+      {
+        "term": "irritating eyes",
+        "n": 304,
+        "lift": 6.68
+      },
+      {
+        "term": "red acne",
+        "n": 304,
+        "lift": 6.68
+      },
+      {
+        "term": "burns eyes",
+        "n": 300,
+        "lift": 6.68
+      },
+      {
+        "term": "would irritate",
+        "n": 281,
+        "lift": 6.68
+      },
+      {
+        "term": "sensitive side",
+        "n": 279,
+        "lift": 6.68
+      },
+      {
+        "term": "breakouts redness",
+        "n": 270,
+        "lift": 6.68
+      },
+      {
+        "term": "red face",
+        "n": 270,
+        "lift": 6.68
+      }
+    ]
+  },
+  "manifest": {
+    "last_updated": 1760527898,
+    "rows_seen": 925117,
+    "docs_with_aspect": 800683,
+    "min_term_freq": 100,
+    "bigrams": true,
+    "vader": true,
+    "phrase_map": "normalize",
+    "aspects": [
+      "Scent",
+      "Feel",
+      "Hydration",
+      "Irritation",
+      "ResidueFinish",
+      "Longevity",
+      "ValuePrice",
+      "Packaging",
+      "RoutineUsage"
+    ],
+    "diagnostics": {
+      "rows_seen": 925117,
+      "docs_with_aspect": 800683,
+      "docs_with_aspect_share": 0.865494,
+      "total_sentences": 4349927,
+      "matched_sentences": 1854965,
+      "sentence_hit_rate": 0.426436,
+      "avg_aspects_per_doc": 2.215,
+      "multi_aspect_sentence_rate": 0.241989
+    }
+  },
+  "lexicon": {
+    "auto_patterns": {
+      "RoutineUsage": [
+        "\\blayer\\b",
+        "\\bcare\\s+routine\\b",
+        "\\bmorning\\s+after\\b",
+        "\\bdaily\\s+routine\\b",
+        "\\blayering\\b",
+        "\\bnightly\\s+routine\\b",
+        "\\bday\\s+morning\\b",
+        "\\bsoft\\s+morning\\b",
+        "\\blayer\\s+skin\\b",
+        "\\bmorning\\s+lips\\b",
+        "\\bdon\\s+apply\\b",
+        "\\bthing\\s+morning\\b",
+        "\\beasier\\s+apply\\b",
+        "\\badd\\s+routine\\b",
+        "\\bwould\\s+apply\\b",
+        "\\bapply\\s+cream\\b",
+        "\\bhow\\s+apply\\b",
+        "\\bcleanser\\s+morning\\b",
+        "\\bapply\\s+more\\b",
+        "\\bserum\\s+morning\\b",
+        "\\blayer\\s+under\\b",
+        "\\bhard\\s+apply\\b",
+        "\\bdifference\\s+morning\\b",
+        "\\bmorning\\s+still\\b",
+        "\\bmorning\\s+every\\b",
+        "\\bnext\\s+step\\b",
+        "\\bglowing\\s+morning\\b",
+        "\\bchanged\\s+routine\\b",
+        "\\bmoisturizer\\s+apply\\b",
+        "\\btime\\s+morning\\b",
+        "\\bapplied\\s+morning\\b",
+        "\\bplump\\s+morning\\b",
+        "\\banother\\s+layer\\b",
+        "\\bapply\\s+few\\b",
+        "\\balways\\s+apply\\b",
+        "\\bstep\\s+your\\b",
+        "\\bafter_application\\s+skin\\b",
+        "\\bout\\s+routine\\b",
+        "\\bskincare\\s+step\\b",
+        "\\bshower\\s+morning\\b",
+        "\\bfeel\\s+morning\\b",
+        "\\bnight\\s+last_step\\b",
+        "\\bcream\\s+apply\\b",
+        "\\blast_step\\s+skin\\b",
+        "\\broutine\\s+even\\b",
+        "\\bgreat\\s+layering\\b",
+        "\\bwakes\\s+morning\\b",
+        "\\broutine\\s+wake\\b",
+        "\\bapplication\\s+noticed\\b",
+        "\\bstart\\s+morning\\b"
+      ],
+      "Hydration": [
+        "\\bdry\\s+sensitive\\b",
+        "\\bhelped\\s+dry\\b",
+        "\\blittle\\s+drying\\b",
+        "\\bcompletely\\s+dry\\b",
+        "\\bbest\\s+hydrating\\b",
+        "\\bmoisturizer\\b",
+        "\\bhydrated\\b",
+        "\\bhydrating\\b",
+        "\\bhydration\\b",
+        "\\bdrying\\b",
+        "\\bmoisturizers\\b",
+        "\\bplump\\b",
+        "\\bhydrates\\b",
+        "\\bdry_patches\\b",
+        "\\bmoisturize\\b",
+        "\\bhydrate\\b",
+        "\\bmoisturizes\\b",
+        "\\bskin\\s+hydrated\\b",
+        "\\bsuper\\s+dry\\b",
+        "\\bsuper\\s+hydrating\\b",
+        "\\bsoft\\s+hydrated\\b",
+        "\\bbest\\s+moisturizer\\b",
+        "\\bdry\\s+winter\\b",
+        "\\bfeeling\\s+hydrated\\b",
+        "\\bfeel\\s+hydrated\\b",
+        "\\bgreat\\s+dry\\b",
+        "\\bnormal\\s+dry\\b",
+        "\\bfeels\\s+hydrated\\b",
+        "\\bmoisturizer\\s+ever\\b",
+        "\\bsmooth\\s+hydrated\\b",
+        "\\bsuper\\s+moisturizing\\b",
+        "\\bcracked\\b",
+        "\\bdry\\s+spots\\b",
+        "\\bskin\\s+moisturized\\b",
+        "\\bfeel\\s+dry\\b",
+        "\\bfavorite\\s+moisturizer\\b",
+        "\\bplumped\\b",
+        "\\bget\\s+dry\\b",
+        "\\bhydrates\\s+skin\\b",
+        "\\bplumper\\b",
+        "\\bdry\\s+after\\b",
+        "\\bother\\s+moisturizers\\b",
+        "\\bhydrating\\s+skin\\b",
+        "\\bnot\\s+moisturizing\\b",
+        "\\bmoisturizer\\s+after\\b",
+        "\\bplumps\\b",
+        "\\bgel\\s+moisturizer\\b",
+        "\\bhydrated\\s+after\\b",
+        "\\bskin\\s+moisturizer\\b",
+        "\\bhydrate\\s+skin\\b"
+      ],
+      "Feel": [
+        "\\bfeel\\b",
+        "\\btexture\\b",
+        "\\bdoesn\\s+feel\\b",
+        "\\bfeels\\s+great\\b",
+        "\\bfeels\\s+nice\\b",
+        "\\bnot\\s+oily\\b",
+        "\\bfeel\\s+soft\\b",
+        "\\bfeels\\s+amazing\\b",
+        "\\bnot\\s+heavy\\b",
+        "\\bcan\\s+feel\\b",
+        "\\bdon\\s+feel\\b",
+        "\\btexture\\s+skin\\b",
+        "\\bwithout\\s+feeling\\b",
+        "\\bdidn\\s+feel\\b",
+        "\\bfeel\\s+greasy\\b",
+        "\\bfeel\\s+clean\\b",
+        "\\bfeeling\\s+hydrated\\b",
+        "\\bsilky\\s+smooth\\b",
+        "\\bfeels\\s+hydrated\\b",
+        "\\bmore\\s+oily\\b",
+        "\\blook\\s+feel\\b",
+        "\\bfeel\\s+dry\\b",
+        "\\boily\\s+combo\\b",
+        "\\boily\\s+combination\\b",
+        "\\bfeel\\s+super\\b",
+        "\\bfeel\\s+good\\b",
+        "\\bsmooth\\s+after\\b",
+        "\\bcombo\\s+oily\\b",
+        "\\bfeeling\\s+dry\\b",
+        "\\bfeeling\\s+fresh\\b",
+        "\\bfeel\\s+sticky\\b",
+        "\\bheavy\\s+skin\\b",
+        "\\bfeeling\\s+oily\\b",
+        "\\bfelt\\s+smooth\\b",
+        "\\bfeels\\s+after\\b",
+        "\\bfeeling\\s+skin\\b",
+        "\\bless\\s+oily\\b",
+        "\\bfeel\\s+refreshed\\b",
+        "\\bway\\s+feels\\b",
+        "\\bsuper\\s+lightweight\\b",
+        "\\bfeel\\s+difference\\b",
+        "\\bsticky\\s+feeling\\b",
+        "\\bfeels\\s+smoother\\b",
+        "\\boily\\s+dry\\b",
+        "\\bfeel\\s+look\\b",
+        "\\bfeel\\s+moisturized\\b",
+        "\\bcreamy\\s+texture\\b",
+        "\\bget\\s+oily\\b",
+        "\\bfeels\\s+softer\\b",
+        "\\bfeels\\s+fresh\\b"
+      ],
+      "Scent": [
+        "\\bperfume\\b",
+        "\\bscent\\s+which\\b",
+        "\\bstrong_scent\\b",
+        "\\bsmell\\s+amazing\\b",
+        "\\bscent\\s+light\\b",
+        "\\bsmell\\s+great\\b",
+        "\\bsmell\\s+isn\\b",
+        "\\bnice\\s+smell\\b",
+        "\\bgreat\\s+smell\\b",
+        "\\bpleasant\\s+smell\\b",
+        "\\bscent\\s+isn\\b",
+        "\\bsmell\\s+light\\b",
+        "\\bsmell\\s+doesn\\b",
+        "\\btexture\\s+smell\\b",
+        "\\bgreat\\s+scent\\b",
+        "\\bsmell\\s+pleasant\\b",
+        "\\bscent\\s+pleasant\\b",
+        "\\bbad\\s+smell\\b",
+        "\\bscent\\s+amazing\\b",
+        "\\bnot\\s+scent\\b",
+        "\\bfan\\s+scent\\b",
+        "\\bloved\\s+smell\\b",
+        "\\bsmell\\s+smells\\b",
+        "\\bsmell\\s+fresh\\b",
+        "\\bsmell\\s+can\\b",
+        "\\babout\\s+scent\\b",
+        "\\bscent\\s+well\\b",
+        "\\blittle\\s+scent\\b",
+        "\\bscent\\s+refreshing\\b",
+        "\\bstand\\s+smell\\b",
+        "\\bsmell\\s+didn\\b",
+        "\\bsmell\\s+when\\b",
+        "\\bsmell\\s+anything\\b",
+        "\\bsmell\\s+feels\\b",
+        "\\bdoes\\s+scent\\b",
+        "\\bfragrance\\s+light\\b",
+        "\\benjoy\\s+scent\\b",
+        "\\bscent\\s+how\\b",
+        "\\bsubtle\\s+smell\\b",
+        "\\bdon\\s+scent\\b",
+        "\\brefreshing\\s+smell\\b",
+        "\\blight\\s+pleasant_scent\\b",
+        "\\bfragrance\\s+skincare\\b",
+        "\\bhowever\\s+smell\\b",
+        "\\babsolutely\\s+smell\\b",
+        "\\bbecause\\s+fragrance\\b",
+        "\\bdon\\s+fragrance\\b",
+        "\\bfaint\\s+scent\\b",
+        "\\bodd\\s+smell\\b",
+        "\\bnatural\\s+smell\\b"
+      ],
+      "ValuePrice": [
+        "\\bnot\\s+worth\\b",
+        "\\bprice\\s+tag\\b",
+        "\\bbecause\\s+price\\b",
+        "\\bbit\\s+pricey\\b",
+        "\\bgreat\\s+value\\b",
+        "\\bespecially\\s+price\\b",
+        "\\bjustify\\s+price\\b",
+        "\\bbeat\\s+price\\b",
+        "\\bprice\\s+would\\b",
+        "\\babout\\s+price\\b",
+        "\\bbetter\\s+price\\b",
+        "\\bpricey\\s+side\\b",
+        "\\breasonably\\s+priced\\b",
+        "\\bquite_expensive\\b",
+        "\\bworth\\s+shot\\b",
+        "\\bamount\\s+price\\b",
+        "\\bnot\\s+price\\b",
+        "\\bcompletely\\s+worth\\b",
+        "\\bworth\\s+high\\b",
+        "\\bfeel\\s+price\\b",
+        "\\bbecause\\s+pricey\\b",
+        "\\bcheaper\\s+price\\b",
+        "\\bdecent\\s+price\\b",
+        "\\bexpensive\\s+don\\b",
+        "\\bdespite\\s+price\\b",
+        "\\bvalue\\s+money\\b",
+        "\\bmore\\s+worth\\b",
+        "\\bprice\\s+seems\\b",
+        "\\bexpensive\\s+would\\b",
+        "\\bknow\\s+worth\\b",
+        "\\bexpensive\\s+price\\b",
+        "\\bknow\\s+expensive\\b",
+        "\\bprice\\s+expected\\b",
+        "\\bprice\\s+should\\b",
+        "\\bstill\\s+worth\\b",
+        "\\bsuch\\s+expensive\\b",
+        "\\bprice\\s+works\\b",
+        "\\bexpensive\\s+face\\b",
+        "\\bexpensive\\s+moisturizer\\b",
+        "\\bpurchase\\s+price\\b",
+        "\\bprice\\s+per\\b",
+        "\\bpricey\\s+lasts\\b",
+        "\\bother\\s+expensive\\b",
+        "\\bbit\\s+overpriced\\b",
+        "\\bworth\\s+noting\\b",
+        "\\bkinda\\s+pricey\\b",
+        "\\bhype\\s+price\\b",
+        "\\bmore\\s+pricey\\b",
+        "\\bprice\\s+way\\b",
+        "\\balthough\\s+price\\b"
+      ],
+      "Packaging": [
+        "\\bpot\\b",
+        "\\bseal\\b",
+        "\\bsecond\\s+jar\\b",
+        "\\blittle\\s+jar\\b",
+        "\\bpackaging\\s+makes\\b",
+        "\\bpump\\s+dispenser\\b",
+        "\\bfan\\s+packaging\\b",
+        "\\bsized\\s+jar\\b",
+        "\\bpoor\\s+packaging\\b",
+        "\\bpackaging\\s+color\\b",
+        "\\bpackaging\\s+bit\\b",
+        "\\bprefer\\s+pump\\b",
+        "\\blittle\\s+pump\\b",
+        "\\btube\\b",
+        "\\bapplicator\\b",
+        "\\bpackage\\b",
+        "\\bsqueeze\\b",
+        "\\bone\\s+pump\\b",
+        "\\bmessy\\b",
+        "\\bspatula\\b",
+        "\\bpackaging\\s+beautiful\\b",
+        "\\bpackaging\\s+cute\\b",
+        "\\bpackaging\\s+nice\\b",
+        "\\bpackaging\\s+super\\b",
+        "\\bcute\\s+packaging\\b",
+        "\\bjar\\s+will\\b",
+        "\\bout\\s+tube\\b",
+        "\\bleaks\\b",
+        "\\blittle_spatula\\b",
+        "\\bpackaging\\s+gorgeous\\b",
+        "\\bgreat\\s+packaging\\b",
+        "\\bpackaging\\s+pretty\\b",
+        "\\bbecause\\s+packaging\\b",
+        "\\bhalf\\s+pump\\b",
+        "\\bsqueeze_tube\\b",
+        "\\ball\\s+packaging\\b",
+        "\\bnice\\s+packaging\\b",
+        "\\boff\\s+packaging\\b",
+        "\\bsize\\s+jar\\b",
+        "\\bleak\\b",
+        "\\bnew\\s+packaging\\b",
+        "\\bleaking\\b",
+        "\\bsmall\\s+jar\\b",
+        "\\bjar\\s+lasts\\b",
+        "\\babout\\s+packaging\\b",
+        "\\bglass\\s+packaging\\b",
+        "\\bpackaging\\s+well\\b",
+        "\\bpackaging\\s+feels\\b",
+        "\\bbottle\\s+pump\\b",
+        "\\bsecond\\s+tube\\b"
+      ],
+      "Longevity": [
+        "\\bovernight\\s+moisturizer\\b",
+        "\\bafter\\s+last\\b",
+        "\\bmoisture\\s+lasts\\b",
+        "\\bacne\\s+last\\b",
+        "\\bovernight\\b",
+        "\\bwill\\s+last\\b",
+        "\\blasting\\b",
+        "\\blong\\s+lasting\\b",
+        "\\blast\\s+while\\b",
+        "\\blast\\s+year\\b",
+        "\\blasts\\s+forever\\b",
+        "\\blasts\\s+all\\b",
+        "\\blast\\s+few\\b",
+        "\\blast\\s+forever\\b",
+        "\\bbottle\\s+lasts\\b",
+        "\\blast\\s+week\\b",
+        "\\bshould\\s+last\\b",
+        "\\blast\\s+quite\\b",
+        "\\bover\\s+last\\b",
+        "\\blasts\\s+while\\b",
+        "\\bnot\\s+last\\b",
+        "\\blast\\s+couple\\b",
+        "\\blast\\s+awhile\\b",
+        "\\bgoing\\s+last\\b",
+        "\\blast\\s+time\\b",
+        "\\bleave\\s+overnight\\b",
+        "\\bevery\\s+last\\b",
+        "\\blasts\\s+months\\b",
+        "\\bbeen\\s+last\\b",
+        "\\bdoes\\s+last\\b",
+        "\\bsample\\s+last\\b",
+        "\\blasts_longer\\b",
+        "\\blast\\s+about\\b",
+        "\\bcan\\s+last\\b",
+        "\\blasts\\s+quite\\b",
+        "\\bonly\\s+lasts\\b",
+        "\\blast\\s+least\\b",
+        "\\blasting\\s+results\\b",
+        "\\bsee\\s+lasting\\b",
+        "\\blasting\\s+moisture\\b",
+        "\\bovernight\\s+glow\\b",
+        "\\btube\\s+lasts\\b",
+        "\\bbottle\\s+last\\b",
+        "\\bprobably\\s+last\\b",
+        "\\bovernight\\s+masks\\b",
+        "\\blasting\\s+long\\b",
+        "\\blips\\s+overnight\\b",
+        "\\bovernight\\s+skin\\b",
+        "\\bhydration\\s+lasts\\b",
+        "\\blast\\s+thing\\b"
+      ],
+      "ResidueFinish": [
+        "\\bresidue\\b",
+        "\\bleave\\s+residue\\b",
+        "\\bdewy\\s+finish\\b",
+        "\\bwhite_residue\\b",
+        "\\bresidue\\s+left\\b",
+        "\\bwhite\\s+film\\b",
+        "\\bresidue\\s+your\\b",
+        "\\bweird\\s+residue\\b",
+        "\\bwithout\\s+residue\\b",
+        "\\bresidue\\s+feeling\\b",
+        "\\boily\\s+finish\\b",
+        "\\bfinish\\s+one\\b",
+        "\\bfilm\\s+residue\\b",
+        "\\bresidue\\s+leaves\\b",
+        "\\bbehind\\s+residue\\b",
+        "\\bresidue\\s+off\\b",
+        "\\boff\\s+residue\\b",
+        "\\ball\\s+residue\\b",
+        "\\bgoing\\s+finish\\b",
+        "\\bskin\\s+finish\\b",
+        "\\bsoft\\s+finish\\b",
+        "\\bsome\\s+residue\\b",
+        "\\bleaves\\s+white_residue\\b",
+        "\\bfinish\\s+primer\\b",
+        "\\bfinish\\b",
+        "\\bfilm\\b",
+        "\\boily\\s+residue\\b",
+        "\\bsticky\\s+residue\\b",
+        "\\bmatte_finish\\b",
+        "\\bgreasy_residue\\b",
+        "\\bfinish\\s+bottle\\b",
+        "\\bleave\\s+film\\b",
+        "\\bfilm\\s+skin\\b",
+        "\\bresidue\\s+skin\\b",
+        "\\bfilm\\s+face\\b",
+        "\\bleaving\\s+residue\\b",
+        "\\bgreasy_film\\b",
+        "\\bresidue\\s+face\\b",
+        "\\bresidue\\s+behind\\b",
+        "\\bleaves\\s+film\\b",
+        "\\bafter\\s+finish\\b",
+        "\\bwhen\\s+finish\\b",
+        "\\bwill\\s+finish\\b",
+        "\\bsmooth_finish\\b",
+        "\\bfilm\\s+your\\b",
+        "\\bleave\\s+greasy_residue\\b",
+        "\\bresidue\\s+after\\b",
+        "\\bglowy\\s+finish\\b",
+        "\\bnatural\\s+finish\\b",
+        "\\bfinish\\s+skin\\b"
+      ],
+      "Irritation": [
+        "\\bbreakout\\b",
+        "\\birritated\\b",
+        "\\bdry\\s+sensitive\\b",
+        "\\birritate\\s+skin\\b",
+        "\\bsuper\\s+sensitive\\b",
+        "\\bnot\\s+sensitive\\b",
+        "\\bsensitive\\s+combination\\b",
+        "\\birritating\\s+skin\\b",
+        "\\bburning\\s+sensation\\b",
+        "\\bredness\\s+face\\b",
+        "\\bsensitive\\s+oily\\b",
+        "\\bwithout\\s+irritation\\b",
+        "\\bredness\\s+irritation\\b",
+        "\\birritate\\s+all\\b",
+        "\\bcombination\\s+sensitive\\b",
+        "\\bitching\\b",
+        "\\bwell\\s+sensitive\\b",
+        "\\beven\\s+sensitive\\b",
+        "\\bskin\\s+irritated\\b",
+        "\\bredness\\s+from\\b",
+        "\\bnot\\s+irritated\\b",
+        "\\bbright\\s+red\\b",
+        "\\bout\\s+sensitive\\b",
+        "\\ball\\s+redness\\b",
+        "\\bhelped\\s+redness\\b",
+        "\\bcan\\s+sensitive\\b",
+        "\\bred\\s+patches\\b",
+        "\\bcleanser\\s+sensitive\\b",
+        "\\bsince\\s+sensitive\\b",
+        "\\bhasn\\s+irritated\\b",
+        "\\bred\\s+itchy\\b",
+        "\\bcovers\\s+redness\\b",
+        "\\bout\\s+irritate\\b",
+        "\\bredness\\s+dryness\\b",
+        "\\bbreakout\\s+since\\b",
+        "\\beasily\\s+irritated\\b",
+        "\\bsafe\\s+sensitive\\b",
+        "\\bsuper\\s+red\\b",
+        "\\bzero\\s+irritation\\b",
+        "\\bred\\s+sensitive\\b",
+        "\\bsensitive\\s+rosacea\\b",
+        "\\bred\\s+cheeks\\b",
+        "\\bbother\\s+sensitive\\b",
+        "\\birritating\\s+eyes\\b",
+        "\\bred\\s+acne\\b",
+        "\\bburns\\s+eyes\\b",
+        "\\bwould\\s+irritate\\b",
+        "\\bsensitive\\s+side\\b",
+        "\\bbreakouts\\s+redness\\b",
+        "\\bred\\s+face\\b"
+      ]
+    },
+    "phrase_candidates": [
+      {
+        "from": "about packaging",
+        "to": "about_packaging"
+      },
+      {
+        "from": "about price",
+        "to": "about_price"
+      },
+      {
+        "from": "about scent",
+        "to": "about_scent"
+      },
+      {
+        "from": "absolutely smell",
+        "to": "absolutely_smell"
+      },
+      {
+        "from": "acne last",
+        "to": "acne_last"
+      },
+      {
+        "from": "add routine",
+        "to": "add_routine"
+      },
+      {
+        "from": "after finish",
+        "to": "after_finish"
+      },
+      {
+        "from": "after last",
+        "to": "after_last"
+      },
+      {
+        "from": "after_application skin",
+        "to": "after_application_skin"
+      },
+      {
+        "from": "all packaging",
+        "to": "all_packaging"
+      },
+      {
+        "from": "all redness",
+        "to": "all_redness"
+      },
+      {
+        "from": "all residue",
+        "to": "all_residue"
+      },
+      {
+        "from": "although price",
+        "to": "although_price"
+      },
+      {
+        "from": "always apply",
+        "to": "always_apply"
+      },
+      {
+        "from": "amount price",
+        "to": "amount_price"
+      },
+      {
+        "from": "another layer",
+        "to": "another_layer"
+      },
+      {
+        "from": "application noticed",
+        "to": "application_noticed"
+      },
+      {
+        "from": "applied morning",
+        "to": "applied_morning"
+      },
+      {
+        "from": "apply cream",
+        "to": "apply_cream"
+      },
+      {
+        "from": "apply few",
+        "to": "apply_few"
+      },
+      {
+        "from": "apply more",
+        "to": "apply_more"
+      },
+      {
+        "from": "bad smell",
+        "to": "bad_smell"
+      },
+      {
+        "from": "beat price",
+        "to": "beat_price"
+      },
+      {
+        "from": "because fragrance",
+        "to": "because_fragrance"
+      },
+      {
+        "from": "because packaging",
+        "to": "because_packaging"
+      },
+      {
+        "from": "because price",
+        "to": "because_price"
+      },
+      {
+        "from": "because pricey",
+        "to": "because_pricey"
+      },
+      {
+        "from": "been last",
+        "to": "been_last"
+      },
+      {
+        "from": "behind residue",
+        "to": "behind_residue"
+      },
+      {
+        "from": "best hydrating",
+        "to": "best_hydrating"
+      },
+      {
+        "from": "best moisturizer",
+        "to": "best_moisturizer"
+      },
+      {
+        "from": "better price",
+        "to": "better_price"
+      },
+      {
+        "from": "bit overpriced",
+        "to": "bit_overpriced"
+      },
+      {
+        "from": "bit pricey",
+        "to": "bit_pricey"
+      },
+      {
+        "from": "bother sensitive",
+        "to": "bother_sensitive"
+      },
+      {
+        "from": "bottle last",
+        "to": "bottle_last"
+      },
+      {
+        "from": "bottle lasts",
+        "to": "bottle_lasts"
+      },
+      {
+        "from": "bottle pump",
+        "to": "bottle_pump"
+      },
+      {
+        "from": "breakout since",
+        "to": "breakout_since"
+      },
+      {
+        "from": "breakouts redness",
+        "to": "breakouts_redness"
+      },
+      {
+        "from": "bright red",
+        "to": "bright_red"
+      },
+      {
+        "from": "burning sensation",
+        "to": "burning_sensation"
+      },
+      {
+        "from": "burns eyes",
+        "to": "burns_eyes"
+      },
+      {
+        "from": "can feel",
+        "to": "can_feel"
+      },
+      {
+        "from": "can last",
+        "to": "can_last"
+      },
+      {
+        "from": "can sensitive",
+        "to": "can_sensitive"
+      },
+      {
+        "from": "care routine",
+        "to": "care_routine"
+      },
+      {
+        "from": "changed routine",
+        "to": "changed_routine"
+      },
+      {
+        "from": "cheaper price",
+        "to": "cheaper_price"
+      },
+      {
+        "from": "cleanser morning",
+        "to": "cleanser_morning"
+      },
+      {
+        "from": "cleanser sensitive",
+        "to": "cleanser_sensitive"
+      },
+      {
+        "from": "combination sensitive",
+        "to": "combination_sensitive"
+      },
+      {
+        "from": "combo oily",
+        "to": "combo_oily"
+      },
+      {
+        "from": "completely dry",
+        "to": "completely_dry"
+      },
+      {
+        "from": "completely worth",
+        "to": "completely_worth"
+      },
+      {
+        "from": "covers redness",
+        "to": "covers_redness"
+      },
+      {
+        "from": "cream apply",
+        "to": "cream_apply"
+      },
+      {
+        "from": "creamy texture",
+        "to": "creamy_texture"
+      },
+      {
+        "from": "cute packaging",
+        "to": "cute_packaging"
+      },
+      {
+        "from": "daily routine",
+        "to": "daily_routine"
+      },
+      {
+        "from": "day morning",
+        "to": "day_morning"
+      },
+      {
+        "from": "decent price",
+        "to": "decent_price"
+      },
+      {
+        "from": "despite price",
+        "to": "despite_price"
+      },
+      {
+        "from": "dewy finish",
+        "to": "dewy_finish"
+      },
+      {
+        "from": "didn feel",
+        "to": "didn_feel"
+      },
+      {
+        "from": "difference morning",
+        "to": "difference_morning"
+      },
+      {
+        "from": "does last",
+        "to": "does_last"
+      },
+      {
+        "from": "does scent",
+        "to": "does_scent"
+      },
+      {
+        "from": "doesn feel",
+        "to": "doesn_feel"
+      },
+      {
+        "from": "don apply",
+        "to": "don_apply"
+      },
+      {
+        "from": "don feel",
+        "to": "don_feel"
+      },
+      {
+        "from": "don fragrance",
+        "to": "don_fragrance"
+      },
+      {
+        "from": "don scent",
+        "to": "don_scent"
+      },
+      {
+        "from": "dry after",
+        "to": "dry_after"
+      },
+      {
+        "from": "dry patches",
+        "to": "dry_patches"
+      },
+      {
+        "from": "dry sensitive",
+        "to": "dry_sensitive"
+      },
+      {
+        "from": "dry spots",
+        "to": "dry_spots"
+      },
+      {
+        "from": "dry winter",
+        "to": "dry_winter"
+      },
+      {
+        "from": "easier apply",
+        "to": "easier_apply"
+      },
+      {
+        "from": "easily irritated",
+        "to": "easily_irritated"
+      },
+      {
+        "from": "enjoy scent",
+        "to": "enjoy_scent"
+      },
+      {
+        "from": "especially price",
+        "to": "especially_price"
+      },
+      {
+        "from": "even sensitive",
+        "to": "even_sensitive"
+      },
+      {
+        "from": "every last",
+        "to": "every_last"
+      },
+      {
+        "from": "expensive don",
+        "to": "expensive_don"
+      },
+      {
+        "from": "expensive face",
+        "to": "expensive_face"
+      },
+      {
+        "from": "expensive moisturizer",
+        "to": "expensive_moisturizer"
+      },
+      {
+        "from": "expensive price",
+        "to": "expensive_price"
+      },
+      {
+        "from": "expensive would",
+        "to": "expensive_would"
+      },
+      {
+        "from": "faint scent",
+        "to": "faint_scent"
+      },
+      {
+        "from": "fan packaging",
+        "to": "fan_packaging"
+      },
+      {
+        "from": "fan scent",
+        "to": "fan_scent"
+      },
+      {
+        "from": "favorite moisturizer",
+        "to": "favorite_moisturizer"
+      },
+      {
+        "from": "feel clean",
+        "to": "feel_clean"
+      },
+      {
+        "from": "feel difference",
+        "to": "feel_difference"
+      },
+      {
+        "from": "feel dry",
+        "to": "feel_dry"
+      },
+      {
+        "from": "feel good",
+        "to": "feel_good"
+      },
+      {
+        "from": "feel greasy",
+        "to": "feel_greasy"
+      },
+      {
+        "from": "feel hydrated",
+        "to": "feel_hydrated"
+      },
+      {
+        "from": "feel look",
+        "to": "feel_look"
+      },
+      {
+        "from": "feel moisturized",
+        "to": "feel_moisturized"
+      },
+      {
+        "from": "feel morning",
+        "to": "feel_morning"
+      },
+      {
+        "from": "feel price",
+        "to": "feel_price"
+      },
+      {
+        "from": "feel refreshed",
+        "to": "feel_refreshed"
+      },
+      {
+        "from": "feel soft",
+        "to": "feel_soft"
+      },
+      {
+        "from": "feel sticky",
+        "to": "feel_sticky"
+      },
+      {
+        "from": "feel super",
+        "to": "feel_super"
+      },
+      {
+        "from": "feeling dry",
+        "to": "feeling_dry"
+      },
+      {
+        "from": "feeling fresh",
+        "to": "feeling_fresh"
+      },
+      {
+        "from": "feeling hydrated",
+        "to": "feeling_hydrated"
+      },
+      {
+        "from": "feeling oily",
+        "to": "feeling_oily"
+      },
+      {
+        "from": "feeling skin",
+        "to": "feeling_skin"
+      },
+      {
+        "from": "feels after",
+        "to": "feels_after"
+      },
+      {
+        "from": "feels amazing",
+        "to": "feels_amazing"
+      },
+      {
+        "from": "feels fresh",
+        "to": "feels_fresh"
+      },
+      {
+        "from": "feels great",
+        "to": "feels_great"
+      },
+      {
+        "from": "feels hydrated",
+        "to": "feels_hydrated"
+      },
+      {
+        "from": "feels nice",
+        "to": "feels_nice"
+      },
+      {
+        "from": "feels smoother",
+        "to": "feels_smoother"
+      },
+      {
+        "from": "feels softer",
+        "to": "feels_softer"
+      },
+      {
+        "from": "felt smooth",
+        "to": "felt_smooth"
+      },
+      {
+        "from": "film face",
+        "to": "film_face"
+      },
+      {
+        "from": "film residue",
+        "to": "film_residue"
+      },
+      {
+        "from": "film skin",
+        "to": "film_skin"
+      },
+      {
+        "from": "film your",
+        "to": "film_your"
+      },
+      {
+        "from": "finish bottle",
+        "to": "finish_bottle"
+      },
+      {
+        "from": "finish one",
+        "to": "finish_one"
+      },
+      {
+        "from": "finish primer",
+        "to": "finish_primer"
+      },
+      {
+        "from": "finish skin",
+        "to": "finish_skin"
+      },
+      {
+        "from": "fragrance light",
+        "to": "fragrance_light"
+      },
+      {
+        "from": "fragrance skincare",
+        "to": "fragrance_skincare"
+      },
+      {
+        "from": "gel moisturizer",
+        "to": "gel_moisturizer"
+      },
+      {
+        "from": "get dry",
+        "to": "get_dry"
+      },
+      {
+        "from": "get oily",
+        "to": "get_oily"
+      },
+      {
+        "from": "glass packaging",
+        "to": "glass_packaging"
+      },
+      {
+        "from": "glowing morning",
+        "to": "glowing_morning"
+      },
+      {
+        "from": "glowy finish",
+        "to": "glowy_finish"
+      },
+      {
+        "from": "going finish",
+        "to": "going_finish"
+      },
+      {
+        "from": "going last",
+        "to": "going_last"
+      },
+      {
+        "from": "greasy film",
+        "to": "greasy_film"
+      },
+      {
+        "from": "greasy residue",
+        "to": "greasy_residue"
+      },
+      {
+        "from": "great dry",
+        "to": "great_dry"
+      },
+      {
+        "from": "great layering",
+        "to": "great_layering"
+      },
+      {
+        "from": "great packaging",
+        "to": "great_packaging"
+      },
+      {
+        "from": "great scent",
+        "to": "great_scent"
+      },
+      {
+        "from": "great smell",
+        "to": "great_smell"
+      },
+      {
+        "from": "great value",
+        "to": "great_value"
+      },
+      {
+        "from": "half pump",
+        "to": "half_pump"
+      },
+      {
+        "from": "hard apply",
+        "to": "hard_apply"
+      },
+      {
+        "from": "hasn irritated",
+        "to": "hasn_irritated"
+      },
+      {
+        "from": "heavy skin",
+        "to": "heavy_skin"
+      },
+      {
+        "from": "helped dry",
+        "to": "helped_dry"
+      },
+      {
+        "from": "helped redness",
+        "to": "helped_redness"
+      },
+      {
+        "from": "how apply",
+        "to": "how_apply"
+      },
+      {
+        "from": "however smell",
+        "to": "however_smell"
+      },
+      {
+        "from": "hydrate skin",
+        "to": "hydrate_skin"
+      },
+      {
+        "from": "hydrated after",
+        "to": "hydrated_after"
+      },
+      {
+        "from": "hydrates skin",
+        "to": "hydrates_skin"
+      },
+      {
+        "from": "hydrating skin",
+        "to": "hydrating_skin"
+      },
+      {
+        "from": "hydration lasts",
+        "to": "hydration_lasts"
+      },
+      {
+        "from": "hype price",
+        "to": "hype_price"
+      },
+      {
+        "from": "irritate all",
+        "to": "irritate_all"
+      },
+      {
+        "from": "irritate skin",
+        "to": "irritate_skin"
+      },
+      {
+        "from": "irritating eyes",
+        "to": "irritating_eyes"
+      },
+      {
+        "from": "irritating skin",
+        "to": "irritating_skin"
+      },
+      {
+        "from": "jar lasts",
+        "to": "jar_lasts"
+      },
+      {
+        "from": "jar will",
+        "to": "jar_will"
+      },
+      {
+        "from": "justify price",
+        "to": "justify_price"
+      },
+      {
+        "from": "kinda pricey",
+        "to": "kinda_pricey"
+      },
+      {
+        "from": "know expensive",
+        "to": "know_expensive"
+      },
+      {
+        "from": "know worth",
+        "to": "know_worth"
+      },
+      {
+        "from": "last about",
+        "to": "last_about"
+      },
+      {
+        "from": "last awhile",
+        "to": "last_awhile"
+      },
+      {
+        "from": "last couple",
+        "to": "last_couple"
+      },
+      {
+        "from": "last few",
+        "to": "last_few"
+      },
+      {
+        "from": "last forever",
+        "to": "last_forever"
+      },
+      {
+        "from": "last least",
+        "to": "last_least"
+      },
+      {
+        "from": "last quite",
+        "to": "last_quite"
+      },
+      {
+        "from": "last thing",
+        "to": "last_thing"
+      },
+      {
+        "from": "last time",
+        "to": "last_time"
+      },
+      {
+        "from": "last week",
+        "to": "last_week"
+      },
+      {
+        "from": "last while",
+        "to": "last_while"
+      },
+      {
+        "from": "last year",
+        "to": "last_year"
+      },
+      {
+        "from": "last_step skin",
+        "to": "last_step_skin"
+      },
+      {
+        "from": "lasting long",
+        "to": "lasting_long"
+      },
+      {
+        "from": "lasting moisture",
+        "to": "lasting_moisture"
+      },
+      {
+        "from": "lasting results",
+        "to": "lasting_results"
+      },
+      {
+        "from": "lasts all",
+        "to": "lasts_all"
+      },
+      {
+        "from": "lasts forever",
+        "to": "lasts_forever"
+      },
+      {
+        "from": "lasts longer",
+        "to": "lasts_longer"
+      },
+      {
+        "from": "lasts months",
+        "to": "lasts_months"
+      },
+      {
+        "from": "lasts quite",
+        "to": "lasts_quite"
+      },
+      {
+        "from": "lasts while",
+        "to": "lasts_while"
+      },
+      {
+        "from": "layer skin",
+        "to": "layer_skin"
+      },
+      {
+        "from": "layer under",
+        "to": "layer_under"
+      },
+      {
+        "from": "leave film",
+        "to": "leave_film"
+      },
+      {
+        "from": "leave greasy_residue",
+        "to": "leave_greasy_residue"
+      },
+      {
+        "from": "leave overnight",
+        "to": "leave_overnight"
+      },
+      {
+        "from": "leave residue",
+        "to": "leave_residue"
+      },
+      {
+        "from": "leaves film",
+        "to": "leaves_film"
+      },
+      {
+        "from": "leaves white_residue",
+        "to": "leaves_white_residue"
+      },
+      {
+        "from": "leaving residue",
+        "to": "leaving_residue"
+      },
+      {
+        "from": "less oily",
+        "to": "less_oily"
+      },
+      {
+        "from": "light pleasant_scent",
+        "to": "light_pleasant_scent"
+      },
+      {
+        "from": "lips overnight",
+        "to": "lips_overnight"
+      },
+      {
+        "from": "little drying",
+        "to": "little_drying"
+      },
+      {
+        "from": "little jar",
+        "to": "little_jar"
+      },
+      {
+        "from": "little pump",
+        "to": "little_pump"
+      },
+      {
+        "from": "little scent",
+        "to": "little_scent"
+      },
+      {
+        "from": "little spatula",
+        "to": "little_spatula"
+      },
+      {
+        "from": "long lasting",
+        "to": "long_lasting"
+      },
+      {
+        "from": "look feel",
+        "to": "look_feel"
+      },
+      {
+        "from": "loved smell",
+        "to": "loved_smell"
+      },
+      {
+        "from": "matte finish",
+        "to": "matte_finish"
+      },
+      {
+        "from": "moisture lasts",
+        "to": "moisture_lasts"
+      },
+      {
+        "from": "moisturizer after",
+        "to": "moisturizer_after"
+      },
+      {
+        "from": "moisturizer apply",
+        "to": "moisturizer_apply"
+      },
+      {
+        "from": "moisturizer ever",
+        "to": "moisturizer_ever"
+      },
+      {
+        "from": "more oily",
+        "to": "more_oily"
+      },
+      {
+        "from": "more pricey",
+        "to": "more_pricey"
+      },
+      {
+        "from": "more worth",
+        "to": "more_worth"
+      },
+      {
+        "from": "morning after",
+        "to": "morning_after"
+      },
+      {
+        "from": "morning every",
+        "to": "morning_every"
+      },
+      {
+        "from": "morning lips",
+        "to": "morning_lips"
+      },
+      {
+        "from": "morning still",
+        "to": "morning_still"
+      },
+      {
+        "from": "natural finish",
+        "to": "natural_finish"
+      },
+      {
+        "from": "natural smell",
+        "to": "natural_smell"
+      },
+      {
+        "from": "new packaging",
+        "to": "new_packaging"
+      },
+      {
+        "from": "next step",
+        "to": "next_step"
+      },
+      {
+        "from": "nice packaging",
+        "to": "nice_packaging"
+      },
+      {
+        "from": "nice smell",
+        "to": "nice_smell"
+      },
+      {
+        "from": "night last_step",
+        "to": "night_last_step"
+      },
+      {
+        "from": "nightly routine",
+        "to": "nightly_routine"
+      },
+      {
+        "from": "normal dry",
+        "to": "normal_dry"
+      },
+      {
+        "from": "not heavy",
+        "to": "not_heavy"
+      },
+      {
+        "from": "not irritated",
+        "to": "not_irritated"
+      },
+      {
+        "from": "not last",
+        "to": "not_last"
+      },
+      {
+        "from": "not moisturizing",
+        "to": "not_moisturizing"
+      },
+      {
+        "from": "not oily",
+        "to": "not_oily"
+      },
+      {
+        "from": "not price",
+        "to": "not_price"
+      },
+      {
+        "from": "not scent",
+        "to": "not_scent"
+      },
+      {
+        "from": "not sensitive",
+        "to": "not_sensitive"
+      },
+      {
+        "from": "not worth",
+        "to": "not_worth"
+      },
+      {
+        "from": "odd smell",
+        "to": "odd_smell"
+      },
+      {
+        "from": "off packaging",
+        "to": "off_packaging"
+      },
+      {
+        "from": "off residue",
+        "to": "off_residue"
+      },
+      {
+        "from": "oily combination",
+        "to": "oily_combination"
+      },
+      {
+        "from": "oily combo",
+        "to": "oily_combo"
+      },
+      {
+        "from": "oily dry",
+        "to": "oily_dry"
+      },
+      {
+        "from": "oily finish",
+        "to": "oily_finish"
+      },
+      {
+        "from": "oily residue",
+        "to": "oily_residue"
+      },
+      {
+        "from": "one pump",
+        "to": "one_pump"
+      },
+      {
+        "from": "only lasts",
+        "to": "only_lasts"
+      },
+      {
+        "from": "other expensive",
+        "to": "other_expensive"
+      },
+      {
+        "from": "other moisturizers",
+        "to": "other_moisturizers"
+      },
+      {
+        "from": "out irritate",
+        "to": "out_irritate"
+      },
+      {
+        "from": "out routine",
+        "to": "out_routine"
+      },
+      {
+        "from": "out sensitive",
+        "to": "out_sensitive"
+      },
+      {
+        "from": "out tube",
+        "to": "out_tube"
+      },
+      {
+        "from": "over last",
+        "to": "over_last"
+      },
+      {
+        "from": "overnight glow",
+        "to": "overnight_glow"
+      },
+      {
+        "from": "overnight masks",
+        "to": "overnight_masks"
+      },
+      {
+        "from": "overnight moisturizer",
+        "to": "overnight_moisturizer"
+      },
+      {
+        "from": "overnight skin",
+        "to": "overnight_skin"
+      },
+      {
+        "from": "packaging beautiful",
+        "to": "packaging_beautiful"
+      },
+      {
+        "from": "packaging bit",
+        "to": "packaging_bit"
+      },
+      {
+        "from": "packaging color",
+        "to": "packaging_color"
+      },
+      {
+        "from": "packaging cute",
+        "to": "packaging_cute"
+      },
+      {
+        "from": "packaging feels",
+        "to": "packaging_feels"
+      },
+      {
+        "from": "packaging gorgeous",
+        "to": "packaging_gorgeous"
+      },
+      {
+        "from": "packaging makes",
+        "to": "packaging_makes"
+      },
+      {
+        "from": "packaging nice",
+        "to": "packaging_nice"
+      },
+      {
+        "from": "packaging pretty",
+        "to": "packaging_pretty"
+      },
+      {
+        "from": "packaging super",
+        "to": "packaging_super"
+      },
+      {
+        "from": "packaging well",
+        "to": "packaging_well"
+      },
+      {
+        "from": "pleasant smell",
+        "to": "pleasant_smell"
+      },
+      {
+        "from": "plump morning",
+        "to": "plump_morning"
+      },
+      {
+        "from": "poor packaging",
+        "to": "poor_packaging"
+      },
+      {
+        "from": "prefer pump",
+        "to": "prefer_pump"
+      },
+      {
+        "from": "price expected",
+        "to": "price_expected"
+      },
+      {
+        "from": "price per",
+        "to": "price_per"
+      },
+      {
+        "from": "price seems",
+        "to": "price_seems"
+      },
+      {
+        "from": "price should",
+        "to": "price_should"
+      },
+      {
+        "from": "price tag",
+        "to": "price_tag"
+      },
+      {
+        "from": "price way",
+        "to": "price_way"
+      },
+      {
+        "from": "price works",
+        "to": "price_works"
+      },
+      {
+        "from": "price would",
+        "to": "price_would"
+      },
+      {
+        "from": "pricey lasts",
+        "to": "pricey_lasts"
+      },
+      {
+        "from": "pricey side",
+        "to": "pricey_side"
+      },
+      {
+        "from": "probably last",
+        "to": "probably_last"
+      },
+      {
+        "from": "pump dispenser",
+        "to": "pump_dispenser"
+      },
+      {
+        "from": "purchase price",
+        "to": "purchase_price"
+      },
+      {
+        "from": "quite expensive",
+        "to": "quite_expensive"
+      },
+      {
+        "from": "reasonably priced",
+        "to": "reasonably_priced"
+      },
+      {
+        "from": "red acne",
+        "to": "red_acne"
+      },
+      {
+        "from": "red cheeks",
+        "to": "red_cheeks"
+      },
+      {
+        "from": "red face",
+        "to": "red_face"
+      },
+      {
+        "from": "red itchy",
+        "to": "red_itchy"
+      },
+      {
+        "from": "red patches",
+        "to": "red_patches"
+      },
+      {
+        "from": "red sensitive",
+        "to": "red_sensitive"
+      },
+      {
+        "from": "redness dryness",
+        "to": "redness_dryness"
+      },
+      {
+        "from": "redness face",
+        "to": "redness_face"
+      },
+      {
+        "from": "redness from",
+        "to": "redness_from"
+      },
+      {
+        "from": "redness irritation",
+        "to": "redness_irritation"
+      },
+      {
+        "from": "refreshing smell",
+        "to": "refreshing_smell"
+      },
+      {
+        "from": "residue after",
+        "to": "residue_after"
+      },
+      {
+        "from": "residue behind",
+        "to": "residue_behind"
+      },
+      {
+        "from": "residue face",
+        "to": "residue_face"
+      },
+      {
+        "from": "residue feeling",
+        "to": "residue_feeling"
+      },
+      {
+        "from": "residue leaves",
+        "to": "residue_leaves"
+      },
+      {
+        "from": "residue left",
+        "to": "residue_left"
+      },
+      {
+        "from": "residue off",
+        "to": "residue_off"
+      },
+      {
+        "from": "residue skin",
+        "to": "residue_skin"
+      },
+      {
+        "from": "residue your",
+        "to": "residue_your"
+      },
+      {
+        "from": "routine even",
+        "to": "routine_even"
+      },
+      {
+        "from": "routine wake",
+        "to": "routine_wake"
+      },
+      {
+        "from": "safe sensitive",
+        "to": "safe_sensitive"
+      },
+      {
+        "from": "sample last",
+        "to": "sample_last"
+      },
+      {
+        "from": "scent amazing",
+        "to": "scent_amazing"
+      },
+      {
+        "from": "scent how",
+        "to": "scent_how"
+      },
+      {
+        "from": "scent isn",
+        "to": "scent_isn"
+      },
+      {
+        "from": "scent light",
+        "to": "scent_light"
+      },
+      {
+        "from": "scent pleasant",
+        "to": "scent_pleasant"
+      },
+      {
+        "from": "scent refreshing",
+        "to": "scent_refreshing"
+      },
+      {
+        "from": "scent well",
+        "to": "scent_well"
+      },
+      {
+        "from": "scent which",
+        "to": "scent_which"
+      },
+      {
+        "from": "second jar",
+        "to": "second_jar"
+      },
+      {
+        "from": "second tube",
+        "to": "second_tube"
+      },
+      {
+        "from": "see lasting",
+        "to": "see_lasting"
+      },
+      {
+        "from": "sensitive combination",
+        "to": "sensitive_combination"
+      },
+      {
+        "from": "sensitive oily",
+        "to": "sensitive_oily"
+      },
+      {
+        "from": "sensitive rosacea",
+        "to": "sensitive_rosacea"
+      },
+      {
+        "from": "sensitive side",
+        "to": "sensitive_side"
+      },
+      {
+        "from": "serum morning",
+        "to": "serum_morning"
+      },
+      {
+        "from": "should last",
+        "to": "should_last"
+      },
+      {
+        "from": "shower morning",
+        "to": "shower_morning"
+      },
+      {
+        "from": "silky smooth",
+        "to": "silky_smooth"
+      },
+      {
+        "from": "since sensitive",
+        "to": "since_sensitive"
+      },
+      {
+        "from": "size jar",
+        "to": "size_jar"
+      },
+      {
+        "from": "sized jar",
+        "to": "sized_jar"
+      },
+      {
+        "from": "skin finish",
+        "to": "skin_finish"
+      },
+      {
+        "from": "skin hydrated",
+        "to": "skin_hydrated"
+      },
+      {
+        "from": "skin irritated",
+        "to": "skin_irritated"
+      },
+      {
+        "from": "skin moisturized",
+        "to": "skin_moisturized"
+      },
+      {
+        "from": "skin moisturizer",
+        "to": "skin_moisturizer"
+      },
+      {
+        "from": "skincare step",
+        "to": "skincare_step"
+      },
+      {
+        "from": "small jar",
+        "to": "small_jar"
+      },
+      {
+        "from": "smell amazing",
+        "to": "smell_amazing"
+      },
+      {
+        "from": "smell anything",
+        "to": "smell_anything"
+      },
+      {
+        "from": "smell can",
+        "to": "smell_can"
+      },
+      {
+        "from": "smell didn",
+        "to": "smell_didn"
+      },
+      {
+        "from": "smell doesn",
+        "to": "smell_doesn"
+      },
+      {
+        "from": "smell feels",
+        "to": "smell_feels"
+      },
+      {
+        "from": "smell fresh",
+        "to": "smell_fresh"
+      },
+      {
+        "from": "smell great",
+        "to": "smell_great"
+      },
+      {
+        "from": "smell isn",
+        "to": "smell_isn"
+      },
+      {
+        "from": "smell light",
+        "to": "smell_light"
+      },
+      {
+        "from": "smell pleasant",
+        "to": "smell_pleasant"
+      },
+      {
+        "from": "smell smells",
+        "to": "smell_smells"
+      },
+      {
+        "from": "smell when",
+        "to": "smell_when"
+      },
+      {
+        "from": "smooth after",
+        "to": "smooth_after"
+      },
+      {
+        "from": "smooth finish",
+        "to": "smooth_finish"
+      },
+      {
+        "from": "smooth hydrated",
+        "to": "smooth_hydrated"
+      },
+      {
+        "from": "soft finish",
+        "to": "soft_finish"
+      },
+      {
+        "from": "soft hydrated",
+        "to": "soft_hydrated"
+      },
+      {
+        "from": "soft morning",
+        "to": "soft_morning"
+      },
+      {
+        "from": "some residue",
+        "to": "some_residue"
+      },
+      {
+        "from": "squeeze tube",
+        "to": "squeeze_tube"
+      },
+      {
+        "from": "stand smell",
+        "to": "stand_smell"
+      },
+      {
+        "from": "start morning",
+        "to": "start_morning"
+      },
+      {
+        "from": "step your",
+        "to": "step_your"
+      },
+      {
+        "from": "sticky feeling",
+        "to": "sticky_feeling"
+      },
+      {
+        "from": "sticky residue",
+        "to": "sticky_residue"
+      },
+      {
+        "from": "still worth",
+        "to": "still_worth"
+      },
+      {
+        "from": "strong scent",
+        "to": "strong_scent"
+      },
+      {
+        "from": "subtle smell",
+        "to": "subtle_smell"
+      },
+      {
+        "from": "such expensive",
+        "to": "such_expensive"
+      },
+      {
+        "from": "super dry",
+        "to": "super_dry"
+      },
+      {
+        "from": "super hydrating",
+        "to": "super_hydrating"
+      },
+      {
+        "from": "super lightweight",
+        "to": "super_lightweight"
+      },
+      {
+        "from": "super moisturizing",
+        "to": "super_moisturizing"
+      },
+      {
+        "from": "super red",
+        "to": "super_red"
+      },
+      {
+        "from": "super sensitive",
+        "to": "super_sensitive"
+      },
+      {
+        "from": "texture skin",
+        "to": "texture_skin"
+      },
+      {
+        "from": "texture smell",
+        "to": "texture_smell"
+      },
+      {
+        "from": "thing morning",
+        "to": "thing_morning"
+      },
+      {
+        "from": "time morning",
+        "to": "time_morning"
+      },
+      {
+        "from": "tube lasts",
+        "to": "tube_lasts"
+      },
+      {
+        "from": "value money",
+        "to": "value_money"
+      },
+      {
+        "from": "wakes morning",
+        "to": "wakes_morning"
+      },
+      {
+        "from": "way feels",
+        "to": "way_feels"
+      },
+      {
+        "from": "weird residue",
+        "to": "weird_residue"
+      },
+      {
+        "from": "well sensitive",
+        "to": "well_sensitive"
+      },
+      {
+        "from": "when finish",
+        "to": "when_finish"
+      },
+      {
+        "from": "white film",
+        "to": "white_film"
+      },
+      {
+        "from": "white residue",
+        "to": "white_residue"
+      },
+      {
+        "from": "will finish",
+        "to": "will_finish"
+      },
+      {
+        "from": "will last",
+        "to": "will_last"
+      },
+      {
+        "from": "without feeling",
+        "to": "without_feeling"
+      },
+      {
+        "from": "without irritation",
+        "to": "without_irritation"
+      },
+      {
+        "from": "without residue",
+        "to": "without_residue"
+      },
+      {
+        "from": "worth high",
+        "to": "worth_high"
+      },
+      {
+        "from": "worth noting",
+        "to": "worth_noting"
+      },
+      {
+        "from": "worth shot",
+        "to": "worth_shot"
+      },
+      {
+        "from": "would apply",
+        "to": "would_apply"
+      },
+      {
+        "from": "would irritate",
+        "to": "would_irritate"
+      },
+      {
+        "from": "zero irritation",
+        "to": "zero_irritation"
+      }
+    ],
+    "stop_suggestions": [
+      "skin",
+      "not",
+      "dry",
+      "face",
+      "feels",
+      "after",
+      "oily",
+      "great",
+      "sensitive",
+      "out",
+      "all",
+      "smell",
+      "your",
+      "smooth",
+      "feeling",
+      "doesn",
+      "good",
+      "when",
+      "more",
+      "can",
+      "cream",
+      "sensitive skin",
+      "soft",
+      "because",
+      "does",
+      "scent",
+      "dry skin",
+      "price",
+      "morning",
+      "nice",
+      "little",
+      "well",
+      "would",
+      "worth",
+      "don",
+      "one",
+      "only",
+      "night",
+      "day",
+      "been",
+      "super",
+      "routine",
+      "from",
+      "makes",
+      "which",
+      "will",
+      "amazing",
+      "leaves",
+      "how",
+      "acne",
+      "even",
+      "get",
+      "light",
+      "time",
+      "didn",
+      "apply",
+      "definitely",
+      "lips",
+      "greasy",
+      "moisturizing",
+      "first",
+      "make",
+      "serum",
+      "did",
+      "other",
+      "without",
+      "long",
+      "about",
+      "clean",
+      "smells",
+      "before",
+      "oily skin",
+      "way",
+      "off",
+      "packaging",
+      "oil",
+      "bit",
+      "your skin",
+      "cleanser",
+      "made",
+      "into",
+      "every",
+      "eye",
+      "felt",
+      "redness",
+      "look",
+      "over",
+      "some",
+      "heavy",
+      "eyes",
+      "works",
+      "under",
+      "leave",
+      "last",
+      "goes",
+      "skin feels",
+      "think",
+      "skin feeling",
+      "recommend",
+      "skin feel",
+      "tried",
+      "now",
+      "lightweight",
+      "perfect",
+      "put",
+      "better",
+      "best",
+      "sticky",
+      "still",
+      "try",
+      "moisturized",
+      "left",
+      "skincare",
+      "since",
+      "looking",
+      "while",
+      "need",
+      "see",
+      "looks",
+      "few",
+      "fresh",
+      "difference",
+      "combination",
+      "pores",
+      "winter",
+      "thick",
+      "glow",
+      "noticed",
+      "leaves skin",
+      "prone",
+      "makes skin",
+      "never",
+      "week",
+      "what",
+      "enough",
+      "fragrance",
+      "gentle",
+      "red",
+      "always",
+      "however",
+      "quickly",
+      "days",
+      "got",
+      "does not",
+      "pretty",
+      "expensive",
+      "find",
+      "absorbs",
+      "say",
+      "less",
+      "helps",
+      "bottle",
+      "easy",
+      "results",
+      "sunscreen",
+      "work",
+      "lip",
+      "break",
+      "most",
+      "though",
+      "isn",
+      "new",
+      "received",
+      "actually",
+      "once",
+      "helped",
+      "sure",
+      "into skin",
+      "acne prone",
+      "your face",
+      "application",
+      "around",
+      "weeks",
+      "strong",
+      "size",
+      "right",
+      "did not",
+      "sample",
+      "being",
+      "away",
+      "amount",
+      "something",
+      "gel",
+      "irritate",
+      "balm",
+      "especially",
+      "months",
+      "daily",
+      "extremely",
+      "breakouts",
+      "wash",
+      "could",
+      "moisture",
+      "ever",
+      "applying",
+      "toner",
+      "combination skin",
+      "combo",
+      "jar",
+      "almost"
+    ]
+  }
+}
