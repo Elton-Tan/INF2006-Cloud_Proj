@@ -15,3 +15,44 @@ export const COGNITO = {
   scopes: ["openid", "email"],
   useIdToken: true,
 };
+
+
+export type SocialBrand = {
+  brand: string;
+  mention_count: number;
+  total_engagement: number;
+  sentiment: {
+    positive: number;
+    negative: number;
+    neutral: number;
+  };
+  platforms: Record<string, number>;
+};
+
+export type SocialInfluencer = {
+  handle: string;
+  posts: number;
+  avg_engagement: number;
+  influence_score: number;
+  products_mentioned: string[];
+  brands_mentioned: string[];
+  top_hashtags: string[];
+  platforms: string[];
+};
+
+export type SocialHashtag = {
+  hashtag: string;
+  post_count: number;
+  total_engagement: number;
+  avg_engagement: number;
+};
+
+export type PlatformSentiment = {
+  positive: number;
+  negative: number;
+  neutral: number;
+  total: number;
+  positive_pct: number;
+  negative_pct: number;
+  neutral_pct: number;
+};
