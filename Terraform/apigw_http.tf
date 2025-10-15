@@ -118,6 +118,10 @@ locals {
     "GET /trends/daily"     = aws_apigatewayv2_integration.trends_daily.id
     "GET /trends/keywords"  = aws_apigatewayv2_integration.trends_keywords_read.id
     "POST /trends/keywords" = aws_apigatewayv2_integration.trends_keywords_write.id
+    "GET /social/brands"      = aws_apigatewayv2_integration.social_brands.id
+    "GET /social/influencers" = aws_apigatewayv2_integration.social_influencers.id
+    "GET /social/hashtags"    = aws_apigatewayv2_integration.social_hashtags.id
+    "GET /social/sentiment"   = aws_apigatewayv2_integration.social_sentiment.id
   }
 
   # Add public routes if any (empty by default)
@@ -158,6 +162,11 @@ locals {
     trends_read           = aws_lambda_function.trends_read.function_name
     trends_keywords_read  = aws_lambda_function.trends_keywords_read.function_name
     trends_keywords_write = aws_lambda_function.trends_keywords_write.function_name
+
+    social_brands      = aws_lambda_function.social_brands.function_name
+    social_influencers = aws_lambda_function.social_influencers.function_name
+    social_hashtags    = aws_lambda_function.social_hashtags.function_name
+    social_sentiment   = aws_lambda_function.social_sentiment.function_name
   }
 }
 
@@ -168,4 +177,38 @@ resource "aws_lambda_permission" "api_invoke" {
   function_name = each.value
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+# ========== SOCIAL LISTENING INTEGRATIONS ==========
+
+resource "aws_apigatewayv2_integration" "social_brands" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.social_brands.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
+resource "aws_apigatewayv2_integration" "social_influencers" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.social_influencers.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
+resource "aws_apigatewayv2_integration" "social_hashtags" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.social_hashtags.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
+resource "aws_apigatewayv2_integration" "social_sentiment" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.social_sentiment.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
 }
