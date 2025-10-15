@@ -15,7 +15,7 @@ import { useJson } from "../hooks";
 import { AspectSummaryRow, AspectTopTerms, TopTerm } from "../types";
 import ConsumerPreferencesRadar from "../components/ConsumerPreferencesRadar";
 
-/** Shape of the single-file bundle produced by keywordanalysis.py */
+/** Bundle shape produced by keywordanalysis.py */
 type AspectsBundle = {
   summary: AspectSummaryRow[];
   top_terms: AspectTopTerms;
@@ -35,22 +35,58 @@ type AspectsBundle = {
   };
 };
 
+/* =============================== */
+/* Utility + naming                */
+/* =============================== */
+const pctNum = (x: number) => Math.round(x * 100);
+const humanCamel = (s: string) => s.replace(/([a-z])([A-Z])/g, "$1 $2");
+const canon = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, "");
+
+// Hide these aspects globally
+const HIDE_CANON = new Set<string>(["longevity", "residuefinish"]);
+
+// Problem-type (absence is good) → flip polarity for display
+const NEG_ORIENTED = new Set<string>([]);
+
+// Friendly display names
+const DISPLAY_NAME: Record<string, string> = {
+  routineusage: "Routine Fit",
+  valueprice: "Value for Money",
+};
+const labelFor = (k: string) => DISPLAY_NAME[canon(k)] ?? humanCamel(k);
+
+/* =================================================================== */
+/* Keywords “flip poster” + summary                                    */
+/* =================================================================== */
 function AspectFlipPosterFromBundle(props: { bundleUrl: string }) {
   const {
     data: bundle,
     loading,
     error,
   } = useJson<AspectsBundle>(props.bundleUrl);
-
   const summary = bundle?.summary;
   const topTerms = bundle?.top_terms;
 
   const [mode, setMode] = React.useState<"strips" | "words">("strips");
 
-  const visible = React.useMemo(() => {
+  const filtered = React.useMemo(() => {
     if (!summary) return [];
-    return [...summary].sort((a, b) => b.share - a.share).slice(0, 7);
+    return summary.filter((r) => !HIDE_CANON.has(canon(r.aspect)));
   }, [summary]);
+
+  const visible = React.useMemo(() => {
+    return [...filtered].sort((a, b) => b.share - a.share).slice(0, 7);
+  }, [filtered]);
+
+  // short “What this shows” text — top 3 aspects by share (after filtering)
+  const kwordsSummary = React.useMemo(() => {
+    if (!filtered.length) return "";
+    const top3 = [...filtered].sort((a, b) => b.share - a.share).slice(0, 3);
+    const parts = top3.map(
+      (r) => `${labelFor(r.aspect)} (${pctNum(r.share)}%)`
+    );
+    return `Customers most often talk about ${parts.join(", ")}.`;
+  }, [filtered]);
 
   const colors = [
     "bg-emerald-50 border-emerald-200",
@@ -62,24 +98,20 @@ function AspectFlipPosterFromBundle(props: { bundleUrl: string }) {
     "bg-cyan-50 border-cyan-200",
   ];
 
-  function topNWords(aspect: string, k = 10): TopTerm[] {
+  function topNWords(aspect: string, k = 12): TopTerm[] {
     const arr = (topTerms && (topTerms as any)[aspect]) || [];
     return [...arr]
       .sort((a, b) => (b.lift !== a.lift ? b.lift - a.lift : b.n - a.n))
       .slice(0, k);
   }
 
-  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  const pct = (x: number) => `${pctNum(x)}%`;
 
   return (
     <section className="relative rounded-2xl border bg-white p-4 shadow-sm">
-      <div className="mb-1 flex items-start justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Keywords Analytics</h2>
-          <p className="text-sm text-gray-500">
-            Which aspects do customers focus on?
-          </p>
-        </div>
+      {/* Header row with wrap; description spans full width */}
+      <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
+        <h2 className="text-lg font-semibold">Keywords Analytics</h2>
         <button
           onClick={() => setMode((m) => (m === "words" ? "strips" : "words"))}
           className="inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-sm hover:bg-gray-50"
@@ -97,6 +129,11 @@ function AspectFlipPosterFromBundle(props: { bundleUrl: string }) {
             </>
           )}
         </button>
+
+        {/* Full-width explanatory copy */}
+        <p className="w-full text-sm text-gray-500">
+          Which aspects do customers focus on?
+        </p>
       </div>
 
       <div className="min-h-[240px]">
@@ -125,7 +162,7 @@ function AspectFlipPosterFromBundle(props: { bundleUrl: string }) {
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <div className="text-sm font-semibold">
-                      {row.aspect.replace(/([a-z])([A-Z])/g, "$1 $2")}
+                      {labelFor(row.aspect)}
                     </div>
                     <div className="text-xs text-gray-600">
                       {pct(row.share)} of reviews
@@ -166,7 +203,7 @@ function AspectFlipPosterFromBundle(props: { bundleUrl: string }) {
               return (
                 <div key={row.aspect} className="flex items-center gap-3">
                   <div className="w-28 shrink-0 text-right text-xs text-gray-600">
-                    {row.aspect.replace(/([a-z])([A-Z])/g, "$1 $2")}
+                    {labelFor(row.aspect)}
                   </div>
                   <div
                     className={`h-10 rounded-xl border px-3 py-2 text-sm leading-none ${
@@ -188,14 +225,25 @@ function AspectFlipPosterFromBundle(props: { bundleUrl: string }) {
         )}
       </div>
 
+      {/* Footnote + brief summary */}
       <div className="mt-3 text-xs text-gray-500">
         Note: Sum may not add to 100% because words of multiple aspects can
-        appear in the same review. Using 800,683 reviews which contained aspects
-        out of all 925,117
+        appear in the same review. Using{" "}
+        {bundle?.manifest?.docs_with_aspect?.toLocaleString() ?? "—"} reviews
+        which contained aspects.
       </div>
+      {kwordsSummary && (
+        <div className="mt-1 text-xs text-gray-600">
+          <strong>What this shows:</strong> {kwordsSummary}
+        </div>
+      )}
     </section>
   );
 }
+
+/* =================================================================== */
+/* Sentiment (with polarity fixes + filtering) + summary                */
+/* =================================================================== */
 
 export default function BatchAnalytics() {
   const {
@@ -205,52 +253,88 @@ export default function BatchAnalytics() {
   } = useJson<AspectsBundle>(ASPECT_CONFIG.BUNDLE_URL);
   const summary = bundle?.summary;
 
-  // Sentiment controls
+  // Keep only aspects that exist in Keywords Analytics (and not hidden)
+  const aspectWhitelist = React.useMemo(() => {
+    const a = new Set<string>(bundle?.manifest?.aspects ?? []);
+    Object.keys(bundle?.top_terms ?? {}).forEach((k) => a.add(k));
+    return a;
+  }, [bundle]);
+
+  const isNegOriented = React.useCallback(
+    (k: string) => NEG_ORIENTED.has(canon(k)),
+    []
+  );
+
+  // Controls
   const [sentSort, setSentSort] = React.useState<"neg" | "pos" | "share">(
     "neg"
   );
-  const [sentTopN, setSentTopN] = React.useState<number>(10); // 0 = all
+  const [sentTopN, setSentTopN] = React.useState<number>(0); // All
 
-  // Build sentiment rows from sent_bins (with counts)
+  // Build rows
   const sentimentRows = React.useMemo(() => {
     if (!summary) return [];
     const rows = summary
+      .filter((s: any) => aspectWhitelist.has(s.aspect))
+      .filter((s: any) => !HIDE_CANON.has(canon(s.aspect)))
       .filter((s: any) => (s as any).sent_bins && s.docs > 0)
       .map((s: any) => {
         const b = s.sent_bins as { pos: number; neu: number; neg: number };
         const total = (b?.pos || 0) + (b?.neu || 0) + (b?.neg || 0) || 1;
-        const posP = (b.pos || 0) / total;
-        const neuP = (b.neu || 0) / total;
-        const negP = (b.neg || 0) / total;
-        // inside sentimentRows map(...)
+
+        const flipped = isNegOriented(s.aspect);
+        const positive = (b.pos || 0) / total;
+        const neutral = (b.neu || 0) / total;
+        const negative = (b.neg || 0) / total;
+
+        const positiveCount = b.pos || 0;
+        const neutralCount = b.neu || 0;
+        const negativeCount = b.neg || 0;
+
+        const base = labelFor(s.aspect);
+        const label = flipped ? `${base} (problem-type)` : base;
+
         return {
           aspectKey: s.aspect,
-          aspect: s.aspect.replace(/([a-z])([A-Z])/g, "$1 $2"),
+          aspect: label, // Y-axis label
           docs: s.docs,
           share: s.share,
-          // rename to match legend names
-          positiveCount: b.pos || 0,
-          neutralCount: b.neu || 0,
-          negativeCount: b.neg || 0,
-          positive: (b.pos || 0) / total,
-          neutral: (b.neu || 0) / total,
-          negative: (b.neg || 0) / total,
+          positive,
+          neutral,
+          negative,
+          positiveCount,
+          neutralCount,
+          negativeCount,
         };
       });
 
-    // Sort strategy
     rows.sort((a, b) => {
       if (sentSort === "pos")
         return b.positive - a.positive || b.share - a.share;
       if (sentSort === "share")
         return b.share - a.share || b.negative - a.negative;
-      return b.negative - a.negative || b.share - a.share; // default "neg"
+      return b.negative - a.negative || b.share - a.share; // default “neg”
     });
 
     return sentTopN > 0 ? rows.slice(0, sentTopN) : rows;
-  }, [summary, sentSort, sentTopN]);
+  }, [summary, aspectWhitelist, sentSort, sentTopN]);
 
-  // Chart height scales with rows
+  // “What this shows” for sentiment
+  const sentimentSummary = React.useMemo(() => {
+    if (!sentimentRows.length) return "";
+    const mostUnfavorable = [...sentimentRows]
+      .sort((a, b) => b.negative - a.negative)
+      .slice(0, 3)
+      .map((r) => `${r.aspect} (${pctNum(r.negative)}%)`);
+    const mostFavorable = [...sentimentRows]
+      .sort((a, b) => b.positive - a.positive)
+      .slice(0, 2)
+      .map((r) => `${r.aspect} (${pctNum(r.positive)}%)`);
+    return `Most unfavorable sentiment appears in ${mostUnfavorable.join(
+      ", "
+    )}. Most favorable in ${mostFavorable.join(", ")}.`;
+  }, [sentimentRows]);
+
   const chartHeight = Math.max(320, 32 * sentimentRows.length + 96);
 
   return (
@@ -265,13 +349,9 @@ export default function BatchAnalytics() {
 
       {/* Sentiment */}
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
-        <div className="mb-1 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Aspect Sentiment</h2>
-            <p className="text-sm text-gray-500">
-              Based on keywords identified in Keywords Analytics
-            </p>
-          </div>
+        {/* Header with full-width description */}
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Aspect Sentiment</h2>
           <div className="flex items-center gap-2">
             <label className="text-xs text-gray-600">Sort</label>
             <select
@@ -280,8 +360,8 @@ export default function BatchAnalytics() {
               className="rounded-md border px-2 py-1 text-xs"
               title="Sort order"
             >
-              <option value="neg">Most negative</option>
-              <option value="pos">Most positive</option>
+              <option value="neg">Most unfavorable</option>
+              <option value="pos">Most favorable</option>
               <option value="share">Most mentioned</option>
             </select>
 
@@ -298,6 +378,13 @@ export default function BatchAnalytics() {
               <option value={0}>All</option>
             </select>
           </div>
+
+          {/* Full-width explanatory copy */}
+          <p className="w-full text-sm text-gray-500">
+            Favorable / Neutral / Unfavorable share per aspect (derived from
+            Keywords Analytics; for problem-type aspects like “Irritation”,{" "}
+            <em>favorable</em> means fewer complaints).
+          </p>
         </div>
 
         <div style={{ height: chartHeight }}>
@@ -316,7 +403,6 @@ export default function BatchAnalytics() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              {/* Vertical stacked bars so all labels fit */}
               <BarChart
                 layout="vertical"
                 data={sentimentRows as any}
@@ -328,31 +414,29 @@ export default function BatchAnalytics() {
                   domain={[0, 1]}
                   tickFormatter={(v) => `${Math.round((v as number) * 100)}%`}
                 />
-                <YAxis type="category" dataKey="aspect" width={160} />
+                <YAxis type="category" dataKey="aspect" width={220} />
                 <Tooltip
                   formatter={(v: number, name, ctx) => {
                     const row: any = (ctx && (ctx.payload as any)) || {};
                     const map: Record<string, string> = {
-                      Positive: "positiveCount",
+                      Favorable: "positiveCount",
                       Neutral: "neutralCount",
-                      Negative: "negativeCount",
+                      Unfavorable: "negativeCount",
                     };
                     const count = row[map[String(name)]] ?? 0;
-                    const pct = Math.round((v as number) * 100);
+                    const p = Math.round((v as number) * 100);
                     return [
-                      `${pct}% (${count.toLocaleString()} aspect-matched sentences)`,
+                      `${p}% (${count.toLocaleString()} aspect-matched sentences)`,
                       name,
                     ];
                   }}
                   labelFormatter={(label) => String(label)}
                 />
-
                 <Legend />
-                {/* Distinct fills for clarity */}
                 <Bar
                   dataKey="positive"
                   stackId="a"
-                  name="Positive"
+                  name="Favorable"
                   fill="#16a34a"
                 />
                 <Bar
@@ -364,7 +448,7 @@ export default function BatchAnalytics() {
                 <Bar
                   dataKey="negative"
                   stackId="a"
-                  name="Negative"
+                  name="Unfavorable"
                   fill="#dc2626"
                 />
               </BarChart>
@@ -372,17 +456,25 @@ export default function BatchAnalytics() {
           )}
         </div>
 
+        {/* Footnote + brief summary */}
         <div className="mt-2 text-xs text-gray-500">
-          Analysed based on Keywords Analysis and Vader Sentiment Analysis
+          Analysed using Keywords Analytics + VADER. For problem-type aspects
+          (marked “(problem-type)”), a higher <strong>Favorable</strong> bar
+          indicates fewer complaints found in reviews.
         </div>
+        {sentimentSummary && (
+          <div className="mt-1 text-xs text-gray-600">
+            <strong>What this shows:</strong> {sentimentSummary}
+          </div>
+        )}
       </section>
 
-      {/* Keep your other sections (e.g., Promo Impact)… */}
+      {/* (Placeholder) Promo Impact */}
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-lg font-semibold">
           Promo Impact (Placeholder)
         </h2>
-        <p className="mb-3 text-sm text-gray-500">
+        <p className="text-sm text-gray-500">
           Baseline vs Promo lift (placeholder)
         </p>
         <div className="h-72">
@@ -406,6 +498,13 @@ export default function BatchAnalytics() {
               <Bar dataKey="promo" name="Promo" />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+        <div className="mt-2 text-xs text-gray-500">
+          Illustrative example only.
+        </div>
+        <div className="mt-1 text-xs text-gray-600">
+          <strong>What this shows:</strong> Weeks with promotions (green) lift
+          volumes above baseline; quantify lift by comparing the two bars.
         </div>
       </section>
     </div>
