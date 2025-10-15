@@ -13,6 +13,7 @@ import {
 import { ASPECT_CONFIG } from "../config";
 import { useJson } from "../hooks";
 import { AspectSummaryRow, AspectTopTerms, TopTerm } from "../types";
+import ConsumerPreferencesRadar from "../components/ConsumerPreferencesRadar";
 
 /** Shape of the single-file bundle produced by keywordanalysis.py */
 type AspectsBundle = {
@@ -254,6 +255,9 @@ export default function BatchAnalytics() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
+      {/* Consumer Preferences Radar Chart - Full Width */}
+      <ConsumerPreferencesRadar />
+
       {/* Keywords */}
       <section className="rounded-2xl border bg-white p-4 shadow-sm md:col-span-2">
         <AspectFlipPosterFromBundle bundleUrl={ASPECT_CONFIG.BUNDLE_URL} />
