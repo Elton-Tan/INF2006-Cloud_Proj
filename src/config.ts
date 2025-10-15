@@ -11,7 +11,7 @@ export const CONFIG = {
 export const COGNITO = {
   domain: "spirulina.auth.us-east-1.amazoncognito.com",
   clientId: "oh2vf9imle1l56nkk6fmkte0i",
-  redirectUri: "https://d29cblcrtk6lh8.cloudfront.net/",
+  redirectUri: "http://localhost:3001/",
   scopes: ["openid", "email"],
   useIdToken: true,
 };
