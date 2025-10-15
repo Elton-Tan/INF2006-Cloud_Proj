@@ -14,7 +14,7 @@ To kick off front-end testing with Tim (industry partner). Gather feedback and t
 CloudFront OK, Cognito Hook up OK, all looking good to begin front end testing with TIM ----> to confirm via meeting (Reminder for myself: Please remember to recheck this. Get at least 1 user testing phase before the submission to align expectations!!! IMPORTANT)
 
 
-Dont authorise API first. Test on POSTMAN. Only authorise when OK to make it less troublesom
+Dont authorise API first. Test on POSTMAN. Only authorise when OK to make it less troublesome
 
 
 
@@ -23,3 +23,5 @@ then npm start
 npm start build, then host on S3. ONLY ACCEPT STATIC FILES because we are using S3! 
 
 
+KEYWORD ANALYTICS
+rows=925,117 docs_with_aspect=800,683 | elapsed=1,185.3s
