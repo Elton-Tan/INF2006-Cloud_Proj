@@ -1,6 +1,7 @@
 export const ASPECT_CONFIG = {
   SUMMARY_URL: "https://d2g31fqhakzf6l.cloudfront.net/aspects_summary.json",
   TOP_TERMS_URL: "https://d2g31fqhakzf6l.cloudfront.net/aspect_top_terms.json",
+  BUNDLE_URL: "https://d2g31fqhakzf6l.cloudfront.net/aspects_bundle.json",
 };
 
 export const CONFIG = {
