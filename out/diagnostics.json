@@ -1,0 +1,77 @@
+{
+  "global": {
+    "rows_seen": 925117,
+    "docs_with_aspect": 800683,
+    "docs_with_aspect_share": 0.865494,
+    "total_sentences": 4349927,
+    "matched_sentences": 1854965,
+    "sentence_hit_rate": 0.426436,
+    "avg_aspects_per_doc": 2.215,
+    "multi_aspect_sentence_rate": 0.241989
+  },
+  "per_aspect": [
+    {
+      "aspect": "Scent",
+      "docs": 179112,
+      "share": 0.19361,
+      "avg_top_lift": 9.9153
+    },
+    {
+      "aspect": "Feel",
+      "docs": 485086,
+      "share": 0.524351,
+      "avg_top_lift": 2.4039
+    },
+    {
+      "aspect": "Hydration",
+      "docs": 418832,
+      "share": 0.452734,
+      "avg_top_lift": 2.6311
+    },
+    {
+      "aspect": "Irritation",
+      "docs": 185147,
+      "share": 0.200134,
+      "avg_top_lift": 6.6797
+    },
+    {
+      "aspect": "ResidueFinish",
+      "docs": 33515,
+      "share": 0.036228,
+      "avg_top_lift": 41.329
+    },
+    {
+      "aspect": "Longevity",
+      "docs": 65634,
+      "share": 0.070947,
+      "avg_top_lift": 21.7539
+    },
+    {
+      "aspect": "ValuePrice",
+      "docs": 139930,
+      "share": 0.151257,
+      "avg_top_lift": 12.1149
+    },
+    {
+      "aspect": "Packaging",
+      "docs": 82968,
+      "share": 0.089684,
+      "avg_top_lift": 19.6005
+    },
+    {
+      "aspect": "RoutineUsage",
+      "docs": 183259,
+      "share": 0.198093,
+      "avg_top_lift": 7.1033
+    }
+  ],
+  "thresholds": {
+    "docs_with_aspect_hi": 0.95,
+    "sentence_hit_rate_hi": 0.75,
+    "avg_aspects_per_doc_hi": 2.5,
+    "multi_aspect_sentence_rate_hi": 0.35,
+    "avg_top_lift_lo": 1.1,
+    "min_docs_abs": 100
+  },
+  "warnings": []
+}
