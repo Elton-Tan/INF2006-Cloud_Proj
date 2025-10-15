@@ -525,3 +525,159 @@ resource "aws_lambda_function" "trends_keywords_write" {
   }
 }
 
+#social_hashtags 
+resource "aws_lambda_function" "social_hashtags" {
+  function_name = "${var.project}-${var.env}-social-hashtags"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"  
+  filename      = "${path.module}/dist/social_hashtags.zip"
+  source_code_hash = filebase64sha256("${path.module}/dist/social_hashtags.zip")
+
+  timeout       = 30
+  memory_size   = 512
+  
+  
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn
+  ]
+
+  vpc_config {
+        subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+        security_group_ids = [aws_security_group.lambda.id]
+      }
+  
+  environment {
+    variables = {
+      REGION = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+    }
+  }
+ 
+}
+# social_brand
+resource "aws_lambda_function" "social_brands" {
+  function_name = "${var.project}-${var.env}-social-brands"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"
+  filename      = "${path.module}/dist/social_brands.zip"
+  source_code_hash = filebase64sha256("${path.module}/dist/social_brands.zip")
+
+  timeout     = 30
+  memory_size = 512
+
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn  # ✅ ADDED
+  ]
+
+  vpc_config {  # ✅ ADDED
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+  
+
+
+  environment {
+    variables = {
+      REGION = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN 
+    }
+  }
+}
+
+#social_influencers
+resource "aws_lambda_function" "social_influencers" {
+  function_name = "${var.project}-${var.env}-social-influencers"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"
+  filename      = "${path.module}/dist/social_influencers.zip"
+  source_code_hash = filebase64sha256("${path.module}/dist/social_influencers.zip")
+
+  timeout     = 30
+  memory_size = 512
+
+
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn
+  ]
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+  environment {
+    variables = {
+      REGION = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+    }
+  }
+}
+
+#social_sentiment
+
+resource "aws_lambda_function" "social_sentiment" {
+  function_name = "${var.project}-${var.env}-social-sentiment"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"
+  filename      = "${path.module}/dist/social_sentiment.zip"
+  source_code_hash = filebase64sha256("${path.module}/dist/social_sentiment.zip")
+
+  timeout     = 45
+  memory_size = 768
+  architectures = ["x86_64"]
+
+  layers = [
+     aws_lambda_layer_version.mysql_layer.arn
+  ]
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+  environment {
+    variables = {
+      REGION = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+    }
+  }
+}
+#social_scrape
+resource "aws_lambda_function" "social_scrape" {
+  function_name = "${var.project}-${var.env}-social-scrape"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"  # Confirm this matches the actual entrypoint!
+  filename      = "${path.module}/dist/social_scrape.zip"
+  source_code_hash = filebase64sha256("${path.module}/dist/social_scrape.zip")
+
+  timeout       = 300 #come back you cannot afford to scrape every 300
+  memory_size   = 2048
+  
+
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn,
+    aws_lambda_layer_version.requests_layer.arn,
+    aws_lambda_layer_version.sklearn_layer.arn,  # ✅ ADDED
+    aws_lambda_layer_version.textblob_layer.arn,  # ✅ ADDED
+    aws_lambda_layer_version.spacy_layer.arn  # ✅ ADDED
+  ]
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = {
+      REGION = var.region
+      DB_SECRET_ARN      = local.lambda_env.DB_SECRET_ARN
+      SCRAPER_SECRET_ARN = local.lambda_env.SCRAPER_SECRET_ARN 
+    }
+  }
+}
+
+ 
+
