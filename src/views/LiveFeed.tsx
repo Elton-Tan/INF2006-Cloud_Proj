@@ -1,4 +1,4 @@
-import React, { type ReactElement } from "react";
+import React from "react";
 import {
   ResponsiveContainer,
   CartesianGrid,
@@ -19,7 +19,6 @@ const NAVY = {}; // noop – keeps file lean
 /* -------------------------- Shared helpers -------------------------- */
 
 function buildWsUrl(base: string, jwt: string): string {
-  // Accepts https:// or wss:// — converts http(s) → ws(s)
   const url = base.replace(/^http/i, "ws");
   const u = new URL(url);
   u.searchParams.set("auth", jwt);
@@ -37,7 +36,6 @@ function LiveBadge() {
       if (t) window.clearTimeout(t);
       t = window.setTimeout(() => setOn(false), 1200);
     };
-    // Reuse the same glow for any realtime update we dispatch
     const events = [
       "watchlist:changed",
       "trends:updated",
@@ -56,6 +54,42 @@ function LiveBadge() {
       live
     </span>
   );
+}
+
+/* -------------------------- Time helpers (SGT) -------------------------- */
+const SGT_TZ = "Asia/Singapore";
+const GRACE_HOUR_SGT = 9;
+
+function ymdInTz(d: Date, tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+function hourInTz(d: Date, tz: string): number {
+  return Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: tz,
+      hour: "2-digit",
+      hour12: false,
+    }).format(d)
+  );
+}
+function makeFreshDailySgtPredicate(graceHour = GRACE_HOUR_SGT) {
+  const now = new Date();
+  const todaySgt = ymdInTz(now, SGT_TZ);
+  const hourSgt = hourInTz(now, SGT_TZ);
+
+  const y = new Date(now);
+  y.setUTCDate(y.getUTCDate() - 1);
+  const yesterdaySgt = ymdInTz(y, SGT_TZ);
+
+  const acceptable = new Set<string>(
+    hourSgt < graceHour ? [yesterdaySgt] : [todaySgt, yesterdaySgt]
+  );
+  return (d?: string | null) => !!d && acceptable.has(d);
 }
 
 /* ------------------------------ Prices ------------------------------ */
@@ -99,12 +133,22 @@ export function PriceSeries() {
     }
   }, [apiBase, range, headers]);
 
+  // Pick distinct HSL colors for the current set of products
+  const colorMap = React.useMemo<Record<string, string>>(() => {
+    const n = Math.max(1, products.length);
+    const map: Record<string, string> = {};
+    products.forEach((p, i) => {
+      const hue = Math.round((360 * i) / n); // spread around the wheel
+      map[p] = `hsl(${hue} 70% 45%)`; // good contrast
+    });
+    return map;
+  }, [products]);
+
   React.useEffect(() => {
-    if (!token) return; // wait for token
+    if (!token) return;
     void load();
   }, [token, load]);
 
-  // 🔔 PubSub: refresh when backend broadcasts price updates
   React.useEffect(() => {
     if (!bus) return;
     const onPricesUpdated = () => void load();
@@ -177,6 +221,7 @@ export function PriceSeries() {
                   type="monotone"
                   dataKey={p}
                   name={p}
+                  stroke={colorMap[p]}
                   strokeWidth={2}
                   dot={{ r: 3 }}
                   activeDot={{ r: 5 }}
@@ -192,60 +237,46 @@ export function PriceSeries() {
 }
 
 /* ------------------------------ Trends ------------------------------ */
-/** Live Google Trends chart — last 7 days (SGT) + next 7 days forecast with keyword (slug) dropdown */
 function TrendsTrends() {
   const { apiBase, token } = useAuth();
   const bus = useBus();
 
+  // ---------- Types ----------
   type CatalogItem = {
     slug: string;
     total_rows: number;
-    first_day: string; // "YYYY-MM-DD"
-    last_day: string; // "YYYY-MM-DD"
+    first_day: string;
+    last_day: string;
   };
-  type SeriesRow = { period: string; [slug: string]: number | string | null };
+  type SeriesRowLong = {
+    period: string;
+    slug: string;
+    interest: number | null;
+  };
+  type SeriesRowWide = {
+    period: string;
+    [slug: string]: number | string | null;
+  };
   type SeriesResp = {
     geo: string;
     granularity: "day";
-    start: string; // e.g., 2025-10-05
-    end: string; // e.g., 2025-10-12 (last historical day)
+    start: string; // YYYY-MM-DD
+    end: string; // last historical YYYY-MM-DD
     slugs: string[];
-    rows: SeriesRow[];
+    rows: SeriesRowLong[];
     forecast?: { included: boolean; days: number };
   };
 
-  // --- Replace todaySGT + isUpToDate with this ---
-  const todayUTC = React.useMemo(() => {
-    return new Date().toISOString().slice(0, 10); // YYYY-MM-DD in UTC
+  // ---------- SGT helpers ----------
+  const todaySgt = React.useMemo(() => ymdInTz(new Date(), SGT_TZ), []);
+  const yesterdaySgt = React.useMemo(() => {
+    const y = new Date();
+    y.setUTCDate(y.getUTCDate() - 1);
+    return ymdInTz(y, SGT_TZ);
   }, []);
+  const isFreshDailySGT = React.useMemo(() => makeFreshDailySgtPredicate(), []);
 
-  const yesterdayUTC = React.useMemo(() => {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() - 1);
-    return d.toISOString().slice(0, 10);
-  }, []);
-
-  const isRecentUTC = React.useCallback(
-    (d?: string | null) => !!d && (d === todayUTC || d === yesterdayUTC),
-    [todayUTC, yesterdayUTC]
-  );
-
-  // --- SGT helpers (UTC+8, no DST) -----------------------------------------
-  const todaySGT = React.useMemo(() => {
-    // en-CA gives YYYY-MM-DD
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Singapore",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date()); // e.g., 2025-10-13
-  }, []);
-
-  const isUpToDate = React.useCallback(
-    (d: string | undefined | null) => !!d && d === todaySGT,
-    [todaySGT]
-  );
-
+  // ---------- State ----------
   const [catalog, setCatalog] = React.useState<CatalogItem[]>([]);
   const [selected, setSelected] = React.useState<string[]>([]);
   const [openDD, setOpenDD] = React.useState(false);
@@ -259,7 +290,7 @@ function TrendsTrends() {
     return h;
   }, [token]);
 
-  // ---- Dynamic color palette (stable across renders) ----
+  // ---------- Colors ----------
   const colorMap = React.useMemo<Record<string, string>>(() => {
     const slugs = catalog.map((c) => c.slug);
     const n = Math.max(1, slugs.length);
@@ -271,7 +302,30 @@ function TrendsTrends() {
     return map;
   }, [catalog]);
 
-  // Load catalog (filter to "up-to-date in SGT" only)
+  // ---------- Normalize API end for SGT ----------
+  const normalizeEndForSGT = React.useCallback(
+    (endISO?: string | null) => {
+      if (!endISO) return undefined as string | undefined;
+      const hour = hourInTz(new Date(), SGT_TZ);
+      if (endISO === todaySgt && hour < GRACE_HOUR_SGT) return yesterdaySgt;
+      if (endISO > todaySgt) return yesterdaySgt;
+      return endISO;
+    },
+    [todaySgt, yesterdaySgt]
+  );
+
+  // ---------- Latest day label ----------
+  const latestDay = React.useMemo(() => {
+    const nowHour = hourInTz(new Date(), SGT_TZ);
+    const meta = catalog.filter((c) => selected.includes(c.slug));
+    if (meta.length === 0) return "—";
+    let maxDay = meta.map((c) => c.last_day).reduce((a, b) => (a > b ? a : b));
+    if (nowHour < GRACE_HOUR_SGT && maxDay === todaySgt) maxDay = yesterdaySgt;
+    if (maxDay > todaySgt) maxDay = todaySgt;
+    return maxDay;
+  }, [catalog, selected, todaySgt, yesterdaySgt]);
+
+  // ---------- Load catalog (fresh only) ----------
   React.useEffect(() => {
     if (!token) return;
     let abort = false;
@@ -284,17 +338,13 @@ function TrendsTrends() {
         const j = await res.json();
         if (abort) return;
         const all: CatalogItem[] = (j.slugs || []) as CatalogItem[];
-
-        // show ONLY slugs whose last_day == today (SGT)
-        const ready = all.filter((c) => isRecentUTC(c.last_day));
+        const ready = all.filter((c) => isFreshDailySGT(c.last_day));
         setCatalog(ready);
-
-        // seed defaults from ready-only set
         setSelected((prev) => {
           const prevReady = prev.filter((s) => ready.some((c) => c.slug === s));
-          if (prevReady.length) return prevReady;
-          const defaults = ready.slice(0, 3).map((s) => s.slug);
-          return defaults;
+          return prevReady.length
+            ? prevReady
+            : ready.slice(0, 3).map((s) => s.slug);
         });
       } catch (e) {
         console.error(e);
@@ -304,8 +354,9 @@ function TrendsTrends() {
     return () => {
       abort = true;
     };
-  }, [apiBase, headers, token, isUpToDate]);
+  }, [apiBase, headers, token, isFreshDailySGT]);
 
+  // ---------- Fetch series ----------
   const fetchSeries = React.useCallback(async () => {
     if (!token || selected.length === 0) return;
     setLoading(true);
@@ -314,21 +365,39 @@ function TrendsTrends() {
       const url = new URL(`${apiBase}/trends/daily`);
       url.searchParams.set("mode", "series");
       url.searchParams.set("slugs", selected.join(","));
-      url.searchParams.set("g", "day"); // daily points
-      url.searchParams.set("window", "week"); // last 7 days (SGT)
-      url.searchParams.set("include_forecast", "true"); // ask for next 7 days
+      url.searchParams.set("g", "day");
+      url.searchParams.set("window", "week");
+      url.searchParams.set("include_forecast", "true");
       url.searchParams.set("forecast_days", "7");
+
       const res = await fetch(url.toString(), { headers: headers() });
       if (!res.ok) throw new Error(`series HTTP ${res.status}`);
       const j = (await res.json()) as SeriesResp;
 
-      // Guard: only accept series whose end == today (SGT)
-      if (!isRecentUTC(j.end)) {
+      const endAligned = normalizeEndForSGT(j.end);
+      if (!endAligned) {
         setData(null);
-        setError("Selected keywords are not up-to-date yet.");
-      } else {
-        setData(j);
+        setError("Series missing end date.");
+        return;
       }
+      j.end = endAligned;
+
+      // Pivot long -> wide
+      const byDay = new Map<string, SeriesRowWide>();
+      for (const r of j.rows || []) {
+        const p = String(r.period);
+        const s = String((r as any).slug);
+        const v =
+          typeof (r as any).interest === "number" ? (r as any).interest : null;
+        const row = byDay.get(p) ?? { period: p };
+        (row as any)[s] = v;
+        byDay.set(p, row);
+      }
+      (j as any).rows = Array.from(byDay.values()).sort((a, b) =>
+        String(a.period) < String(b.period) ? -1 : 1
+      );
+
+      setData(j);
     } catch (e) {
       console.error(e);
       setError("Failed to load trend series");
@@ -336,15 +405,14 @@ function TrendsTrends() {
     } finally {
       setLoading(false);
     }
-  }, [apiBase, headers, selected, token, isUpToDate]);
+  }, [apiBase, headers, selected, token, normalizeEndForSGT]);
 
-  // initial + when selection changes
   React.useEffect(() => {
     if (!token || selected.length === 0) return;
     void fetchSeries();
   }, [token, selected, fetchSeries]);
 
-  // 🔔 PubSub: refresh when backend broadcasts trend updates
+  // pubsub refresh
   React.useEffect(() => {
     if (!bus) return;
     const onTrendsUpdated = () => void fetchSeries();
@@ -357,29 +425,32 @@ function TrendsTrends() {
       prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
     );
 
-  // The dropdown should only list the ready catalog
   const allChecked = selected.length === catalog.length && catalog.length > 0;
   const someChecked = selected.length > 0 && selected.length < catalog.length;
 
-  // --- Helpers to style forecast zone ---
-  const endHist = data?.end ?? ""; // YYYY-MM-DD
-  const rows = data?.rows ?? [];
-  const lastPeriod = rows.length ? rows[rows.length - 1].period : "";
+  // ---------- Chart prep (categorical axis) ----------
+  const rowsWide: SeriesRowWide[] = React.useMemo(
+    () => (data?.rows as unknown as SeriesRowWide[]) ?? [],
+    [data?.rows]
+  );
+  const slugs: string[] = React.useMemo(() => data?.slugs ?? [], [data?.slugs]); // <-- removes TS warning
+  const endHist = data?.end ?? ""; // "YYYY-MM-DD"
+  const lastPeriod = rowsWide.at(-1)?.period ?? "";
   const futureStart = endHist
     ? new Date(new Date(endHist + "T00:00:00Z").getTime() + 86400000)
         .toISOString()
         .slice(0, 10)
     : "";
 
+  // Only draw a dot on future points (string compare is fine w/ ISO dates)
   type DotRenderer = (props: any) => React.ReactElement<SVGElement>;
   const ForecastDot =
     (endISO: string): DotRenderer =>
     (props: any) => {
-      const { cx, cy, payload, stroke } = props;
+      const { cx, cy, payload, value, stroke } = props;
       const isFuture =
         typeof payload?.period === "string" && payload.period > endISO;
-      if (!isFuture)
-        return (<g />) as unknown as React.ReactElement<SVGElement>;
+      if (!isFuture || value == null) return (<g />) as any;
       return (
         <circle
           cx={cx}
@@ -389,18 +460,22 @@ function TrendsTrends() {
           stroke={stroke}
           strokeWidth={2}
         />
-      ) as unknown as React.ReactElement<SVGElement>;
+      ) as any;
     };
 
+  const awaitingToday = React.useMemo(
+    () => latestDay !== "—" && latestDay < todaySgt,
+    [latestDay, todaySgt]
+  );
+
+  // ---------- Render ----------
   return (
     <section className="rounded-2xl border bg-white p-4 shadow-sm">
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          Interest in Words for Past 7-Days
-          <LiveBadge />
+          Interest in Words for Past 7-Days <LiveBadge />
         </h2>
 
-        {/* Keyword dropdown with color chips + checkboxes */}
         <div className="relative">
           <button
             className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
@@ -424,7 +499,7 @@ function TrendsTrends() {
                       else setSelected(catalog.map((c) => c.slug));
                     }}
                   />
-                  <span>Select all (up-to-date)</span>
+                  <span>Select all (fresh)</span>
                 </label>
                 <button
                   className="text-xs text-gray-500 hover:text-gray-700"
@@ -460,7 +535,7 @@ function TrendsTrends() {
                 ))}
                 {catalog.length === 0 && (
                   <div className="px-2 py-1.5 text-xs text-gray-500">
-                    No keywords are up-to-date yet (SGT).
+                    No keywords are fresh enough yet (SGT grace window).
                   </div>
                 )}
               </div>
@@ -469,17 +544,21 @@ function TrendsTrends() {
         </div>
       </div>
 
-      <p className="mb-3 text-sm text-gray-500">
-        Data gathered from Google Trends (latest day:{" "}
-        <b>{data?.end ?? todayUTC}</b>).
+      <p className="mb-1 text-sm text-gray-500">
+        Data gathered from Google Trends (latest day: <b>{latestDay}</b>).
       </p>
 
-      {data?.forecast?.included && (
-        <div className="mb-2 flex items-center gap-2 text-xs text-gray-600">
-          <span className="inline-block h-3 w-6 rounded bg-black/5 ring-1 ring-black/10" />
-          <span>Next 7-Days Forecast</span>
+      {awaitingToday && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Today’s SGT data isn’t available yet. Showing the most recent complete
+          day.
         </div>
       )}
+
+      <div className="mb-2 flex items-center gap-2 text-xs text-gray-600">
+        <span className="inline-block h-3 w-6 rounded bg-black/5 ring-1 ring-black/10" />
+        <span>Forecast window</span>
+      </div>
 
       <div className="h-72">
         {loading ? (
@@ -490,19 +569,20 @@ function TrendsTrends() {
           <div className="flex h-full items-center justify-center text-sm text-rose-600">
             {error}
           </div>
-        ) : !data || rows.length === 0 ? (
+        ) : rowsWide.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-500">
             No data.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={rows}
+              data={rowsWide}
               margin={{ top: 10, right: 20, bottom: 10, left: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" tick={{ fontSize: 12 }} />
               <YAxis domain={[0, 100]} />
+
               <Tooltip
                 formatter={(value: any, name: string, ctx: any) => {
                   const isFuture = ctx?.payload?.period > endHist;
@@ -520,8 +600,8 @@ function TrendsTrends() {
                 )}
               />
 
-              {/* Shade forecast area if present */}
-              {data?.forecast?.included &&
+              {/* Shade tomorrow..last point if forecast included */}
+              {Boolean(data?.forecast?.included) &&
                 futureStart &&
                 lastPeriod &&
                 futureStart <= lastPeriod && (
@@ -533,17 +613,19 @@ function TrendsTrends() {
                   />
                 )}
 
-              {/* Lines: no dots for history; hollow dots for forecast points only */}
-              {data.slugs.map((s) => (
+              {/* One line per slug; dot only shows for future buckets */}
+              {slugs.map((s) => (
                 <Line
                   key={s}
                   type="monotone"
                   dataKey={s}
-                  dot={ForecastDot(endHist)} // only renders on future points
-                  activeDot={{ r: 5 }}
+                  name={s}
+                  stroke={colorMap[s]}
                   strokeWidth={2}
                   isAnimationActive={false}
-                  stroke={colorMap[s] ?? undefined}
+                  dot={ForecastDot(endHist)}
+                  activeDot={{ r: 5 }}
+                  connectNulls
                 />
               ))}
             </LineChart>
@@ -557,13 +639,12 @@ function TrendsTrends() {
 /* ---------------------------- Page wrapper --------------------------- */
 
 export default function LiveFeed() {
-  const { apiBase, token, wsBase } = useAuth(); // wsBase needed for WS
+  const { apiBase, token, wsBase } = useAuth();
   const bus = useBus();
 
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const [wsOpen, setWsOpen] = React.useState<boolean>(false);
 
-  // 🔌 Single WebSocket for the whole page → dispatch onto `bus`
   React.useEffect(() => {
     if (!token || !wsBase) return;
 
@@ -580,7 +661,6 @@ export default function LiveFeed() {
 
         ws.onopen = () => {
           setWsOpen(true);
-          // heartbeat
           heartbeat = window.setInterval(() => {
             try {
               ws?.readyState === WebSocket.OPEN && ws.send('{"type":"ping"}');
@@ -597,7 +677,6 @@ export default function LiveFeed() {
           }
           if (!msg || typeof msg !== "object") return;
 
-          // Fan-out to bus with small namespaced events
           if (msg.type === "trends.updated") {
             bus?.dispatchEvent(
               new CustomEvent("trends:updated", { detail: msg })
@@ -630,7 +709,6 @@ export default function LiveFeed() {
               );
             }
           } else if (msg.type === "watchlist.row_upserted") {
-            // If you also want price refreshes tied to this
             bus?.dispatchEvent(new Event("prices:updated"));
           }
         };
@@ -668,28 +746,6 @@ export default function LiveFeed() {
       } catch {}
     };
   }, [wsBase, token, bus]);
-
-  // (Optional) Dev mock to preview alerts without backend push:
-  // React.useEffect(() => {
-  //   const t = setInterval(() => {
-  //     const now = new Date();
-  //     const demo: Alert = {
-  //       id: `al-${now.getTime()}`,
-  //       ts: now.toISOString(),
-  //       title: Math.random() > 0.5 ? "Competitor X: posted an ad" : "Competitor Z: stock out",
-  //       description:
-  //         Math.random() > 0.5
-  //           ? "Ad is about BUY 1 GET 1"
-  //           : "SKU ‘Heel Balm 50g’ unavailable on Shopee",
-  //       severity: Math.random() > 0.75 ? "high" : Math.random() > 0.4 ? "medium" : "low",
-  //       market: Math.random() > 0.5 ? "SG" : "MY",
-  //       channel: Math.random() > 0.5 ? "Lazada" : "Shopee",
-  //     };
-  //     setAlerts((prev) => [demo, ...prev].slice(0, 50));
-  //     bus?.dispatchEvent(new CustomEvent("alerts:created", { detail: demo }));
-  //   }, 7000);
-  //   return () => clearInterval(t);
-  // }, [bus]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2">

@@ -2,7 +2,6 @@ import React from "react";
 import { useAuth, useBus } from "../contexts";
 import { useToast } from "../hooks";
 import { Availability, ApiWatchRow, SnapshotRow } from "../types";
-import { CONFIG } from "../config";
 import { buildWsUrl, fmtSgt } from "../utils";
 
 // Keep this view self-contained but lean.
@@ -52,6 +51,12 @@ export default function Snapshotter() {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmUrl, setConfirmUrl] = React.useState<string | null>(null);
   const [confirmBusy, setConfirmBusy] = React.useState(false);
+
+  type WatchlistCursor = { after_ts: string; after_id: number } | null;
+  type WatchlistResponse = {
+    items: ApiWatchRow[];
+    next_cursor: WatchlistCursor;
+  };
 
   type PendingEntry = { url: string; ts: number };
   const [pending, setPending] = React.useState<Record<string, PendingEntry>>(
@@ -166,6 +171,24 @@ export default function Snapshotter() {
     return Array.from(byUrl.values());
   };
 
+  const fetchWatchlistPage = async (
+    cursor?: WatchlistCursor,
+    limit = 200
+  ): Promise<WatchlistResponse> => {
+    const qs = new URLSearchParams();
+    qs.set("limit", String(limit));
+    if (cursor?.after_ts && cursor?.after_id != null) {
+      qs.set("after_ts", cursor.after_ts);
+      qs.set("after_id", String(cursor.after_id));
+    }
+    const res = await fetch(`${API_BASE}/watchlist?` + qs.toString(), {
+      headers: headers(),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = (await res.json()) as WatchlistResponse;
+    return body;
+  };
+
   const load = async () => {
     if (!AUTH_TOKEN) {
       setError("Your session has expired. Please sign in again.");
@@ -175,18 +198,27 @@ export default function Snapshotter() {
     try {
       setError(null);
       setLoading(true);
-      const res = await fetch(`${API_BASE}/watchlist`, { headers: headers() });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ApiWatchRow[];
-      let next: SnapshotRow[] = [];
-      for (const r of dedupeByUrl(data))
-        next = upsertByUrl(next, mapApiToUi(r));
 
+      // pull a few pages max, or until no cursor
+      let cursor: WatchlistCursor = null;
+      let all: ApiWatchRow[] = [];
+      for (let i = 0; i < 5; i++) {
+        const page: WatchlistResponse = await fetchWatchlistPage(cursor, 200);
+        all = all.concat(page.items || []);
+        if (!page.next_cursor) break;
+        cursor = page.next_cursor;
+      }
+
+      let next: SnapshotRow[] = [];
+      for (const r of dedupeByUrl(all)) next = upsertByUrl(next, mapApiToUi(r));
+
+      // reconcile pending temp rows
       const now = Date.now();
       Object.entries(pending).forEach(([tid, ent]) => {
         const key = canonicalUrl(ent.url);
         const resolved = next.some((x) => canonicalUrl(x.url) === key);
         const expired = now - ent.ts > PENDING_TTL_MS;
+
         if (!resolved && !expired) {
           next = upsertByUrl(next, {
             url: ent.url,
@@ -215,8 +247,10 @@ export default function Snapshotter() {
       setLoading(false);
     }
   };
+
   React.useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const deleteByUrl = async (targetUrl: string) => {
@@ -404,6 +438,7 @@ export default function Snapshotter() {
       } catch {}
     };
   }, [WS_BASE, AUTH_TOKEN, bus]);
+
   const addUrl = async () => {
     if (!AUTH_TOKEN) {
       setError("Your session has expired. Please sign in again.");
@@ -431,10 +466,12 @@ export default function Snapshotter() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/watchlist`, { headers: headers() });
+      const res = await fetch(`${API_BASE}/watchlist?limit=200`, {
+        headers: headers(),
+      });
       if (res.ok) {
-        const data = (await res.json()) as ApiWatchRow[];
-        const found = dedupeByUrl(data).some(
+        const body = (await res.json()) as WatchlistResponse;
+        const found = dedupeByUrl(body.items || []).some(
           (r) => canonicalUrl(r.url) === key
         );
         if (found) {
