@@ -39,7 +39,7 @@ export default function ConsumerPreferencesRadar() {
     loading,
     error,
   } = useJson<ConsumerPreferencesResponse>(
-    "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev/spirulina-dev-consumer-preferences"
+    "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev/spirulina-dev-consumer-preference"
   );
 
   const data = response?.data;
