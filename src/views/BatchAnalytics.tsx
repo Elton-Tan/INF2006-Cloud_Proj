@@ -260,7 +260,10 @@ function AspectFlipPosterFromBundle(props: { bundleUrl: string }) {
             appear in the same review. Using{" "}
             {bundle?.manifest?.docs_with_aspect?.toLocaleString() ?? "—"}{" "}
             reviews that contained aspects, out of 900000+ gathered from
-            skincare products
+            skincare products <br />
+            <br />
+            Data Source:
+            https://www.kaggle.com/datasets/nadyinky/sephora-products-and-skincare-reviews
           </div>
         </div>
 
@@ -365,7 +368,8 @@ export default function BatchAnalytics() {
       `Most unfavorable: ${topNeg.join(", ")}.`,
       `Strongest positives: ${topPos.join(", ")}.`,
       `Average favorable share across shown aspects: ${avgFav}%.`,
-      "“Routine Fit” favorable = reviewers saying it layers well or fits AM/PM steps; unfavorable = friction with routines",
+      `Irritation favorable shares means that the product reviewers explicitly say the product does not cause irritation such as non-irritating for sensitive skin`,
+      "“Routine Fit” being favorable means that reviewers saying it layers well or fits AM/PM steps , with unfavorable hinting frictions with routines",
     ];
   }, [sentimentRows]);
 
@@ -415,9 +419,8 @@ export default function BatchAnalytics() {
               </div>
 
               <p className="w-full text-sm text-gray-500 md:max-w-[60ch]">
-                Favorable / Neutral / Unfavorable share per aspect (derived from
-                Keywords Analytics + VADER). For “Routine Fit”, favorable means
-                reviewers say it layers well or fits AM/PM steps.
+                Favorable / Neutral / Unfavorable share per aspect derived from
+                Keywords Analytics and their sentiment analysis
               </p>
             </div>
 
@@ -494,6 +497,10 @@ export default function BatchAnalytics() {
 
             <div className="mt-2 text-xs text-gray-500">
               Analysed based on Keywords Analytics + VADER.
+              <br />
+              <br />
+              Data Source:
+              https://www.kaggle.com/datasets/nadyinky/sephora-products-and-skincare-reviews
             </div>
           </div>
 
