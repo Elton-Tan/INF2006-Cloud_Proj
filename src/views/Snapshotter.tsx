@@ -530,13 +530,6 @@ export default function Snapshotter() {
         Lazada Products URL
       </p>
 
-      <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-800 text-sm leading-tight">
-        Please exercise restrain in adding new urls when testing. The project is
-        currently built with
-        <b className="font-semibold"> Free Credits.</b> Unnecessary addition
-        will incur more costs.{" "}
-      </div>
-
       <div className="mb-3">
         {/* Red alert shown when user typed something and it's NOT a Lazada PDP */}
         {inputUrl.trim() && !isValidPdp && (

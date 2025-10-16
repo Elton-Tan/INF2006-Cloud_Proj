@@ -30,7 +30,7 @@ const NAV: readonly NavItem[] = [
 
   { type: "link", key: "batch", label: "Keywords Analysis" },
   { type: "link", key: "social", label: "Social Media Analysis" },
-  { type: "link", key: "topProducts", label: "Top Products Dashboard" }, // Add this line
+  { type: "link", key: "topProducts", label: "Top Products Dashboard" },
 ] as const;
 
 type NavKey = Extract<NavItem, { type: "link" }>["key"];
@@ -145,11 +145,7 @@ function DashboardShell() {
           {nav === "words" && <WordsOfInterest />}
 
           {/* Social Media Analysis section */}
-          {nav === "social" && (
-            <div className="grid gap-4">
-              <SocialMediaRecommendation />
-            </div>
-          )}
+          {nav === "social" && <SocialMediaRecommendation />}
 
           {/* Top Products Dashboard - Add this section */}
           {nav === "topProducts" && <TopProductsDashboard />}

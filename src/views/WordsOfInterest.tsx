@@ -340,13 +340,6 @@ export default function WordsOfInterest() {
         track in your Live-Feed page.
       </p>
 
-      <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-800 text-sm leading-tight">
-        Please exercise restrain in adding new terms when testing. The project
-        is currently built with
-        <b className="font-semibold"> Free Credits.</b> Unnecessary addition
-        will incur more costs.{" "}
-      </div>
-
       {/* Add form */}
       <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-12">
         <input
