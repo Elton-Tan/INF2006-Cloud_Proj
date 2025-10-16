@@ -1,8 +1,30 @@
 {
-  "last_updated": 1759759465,
+  "last_updated": 1760527898,
   "rows_seen": 925117,
   "docs_with_aspect": 800683,
   "min_term_freq": 100,
   "bigrams": true,
-  "vader": false
+  "vader": true,
+  "phrase_map": "normalize",
+  "aspects": [
+    "Scent",
+    "Feel",
+    "Hydration",
+    "Irritation",
+    "ResidueFinish",
+    "Longevity",
+    "ValuePrice",
+    "Packaging",
+    "RoutineUsage"
+  ],
+  "diagnostics": {
+    "rows_seen": 925117,
+    "docs_with_aspect": 800683,
+    "docs_with_aspect_share": 0.865494,
+    "total_sentences": 4349927,
+    "matched_sentences": 1854965,
+    "sentence_hit_rate": 0.426436,
+    "avg_aspects_per_doc": 2.215,
+    "multi_aspect_sentence_rate": 0.241989
+  }
 }

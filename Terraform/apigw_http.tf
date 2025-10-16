@@ -103,6 +103,14 @@ resource "aws_apigatewayv2_integration" "trends_keywords_write" {
   timeout_milliseconds   = 29000
 }
 
+resource "aws_apigatewayv2_integration" "trends_keywords_delete" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.trends_keywords_delete.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
 
 # =========================
 # Routes (protected + public)
@@ -111,17 +119,20 @@ resource "aws_apigatewayv2_integration" "trends_keywords_write" {
 locals {
   # All JWT-protected routes
   protected_routes = {
-    "POST /enqueue"         = aws_apigatewayv2_integration.enqueue.id
-    "GET /watchlist"        = aws_apigatewayv2_integration.watchlist.id
-    "DELETE /watchlist"     = aws_apigatewayv2_integration.delete_watchlist.id
-    "GET /watchlist/series" = aws_apigatewayv2_integration.watchlist_series.id
-    "GET /trends/daily"     = aws_apigatewayv2_integration.trends_daily.id
-    "GET /trends/keywords"  = aws_apigatewayv2_integration.trends_keywords_read.id
-    "POST /trends/keywords" = aws_apigatewayv2_integration.trends_keywords_write.id
+
+    "POST /enqueue"           = aws_apigatewayv2_integration.enqueue.id
+    "GET /watchlist"          = aws_apigatewayv2_integration.watchlist.id
+    "DELETE /watchlist"       = aws_apigatewayv2_integration.delete_watchlist.id
+    "GET /watchlist/series"   = aws_apigatewayv2_integration.watchlist_series.id
+    "GET /trends/daily"       = aws_apigatewayv2_integration.trends_daily.id
+    "GET /trends/keywords"    = aws_apigatewayv2_integration.trends_keywords_read.id
+    "POST /trends/keywords"   = aws_apigatewayv2_integration.trends_keywords_write.id
+    "DELETE /trends/keywords" = aws_apigatewayv2_integration.trends_keywords_delete.id
     "GET /social/brands"      = aws_apigatewayv2_integration.social_brands.id
     "GET /social/influencers" = aws_apigatewayv2_integration.social_influencers.id
     "GET /social/hashtags"    = aws_apigatewayv2_integration.social_hashtags.id
     "GET /social/sentiment"   = aws_apigatewayv2_integration.social_sentiment.id
+    
   }
 
   # Add public routes if any (empty by default)
@@ -155,6 +166,7 @@ resource "aws_apigatewayv2_route" "public" {
 locals {
   # Function names for permissions
   lambda_permissions = {
+<<<<<<< HEAD
     enqueue               = aws_lambda_function.enqueue.function_name
     watchlist_read        = aws_lambda_function.watchlist_read.function_name
     delete_watchlist      = aws_lambda_function.delete_watchlist.function_name
@@ -167,6 +179,16 @@ locals {
     social_influencers = aws_lambda_function.social_influencers.function_name
     social_hashtags    = aws_lambda_function.social_hashtags.function_name
     social_sentiment   = aws_lambda_function.social_sentiment.function_name
+=======
+    enqueue                = aws_lambda_function.enqueue.function_name
+    watchlist_read         = aws_lambda_function.watchlist_read.function_name
+    delete_watchlist       = aws_lambda_function.delete_watchlist.function_name
+    watchlist_series       = aws_lambda_function.watchlist_series.function_name
+    trends_read            = aws_lambda_function.trends_read.function_name
+    trends_keywords_read   = aws_lambda_function.trends_keywords_read.function_name
+    trends_keywords_write  = aws_lambda_function.trends_keywords_write.function_name
+    trends_keywords_delete = aws_lambda_function.trends_keywords_delete.function_name
+>>>>>>> a799aa10668db323ac39bb08a3d4baa1a6af5380
   }
 }
 
@@ -179,6 +201,7 @@ resource "aws_lambda_permission" "api_invoke" {
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }
 
+<<<<<<< HEAD
 # ========== SOCIAL LISTENING INTEGRATIONS ==========
 
 resource "aws_apigatewayv2_integration" "social_brands" {
@@ -212,3 +235,5 @@ resource "aws_apigatewayv2_integration" "social_sentiment" {
   payload_format_version = "2.0"
   timeout_milliseconds   = 29000
 }
+=======
+>>>>>>> a799aa10668db323ac39bb08a3d4baa1a6af5380

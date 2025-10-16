@@ -1,0 +1,77 @@
+{
+  "data": [
+    {
+      "category": "Natural Ingredients",
+      "18-25": 64,
+      "26-35": 65,
+      "36-45": 62,
+      "46-55": 62,
+      "56+": 58
+    },
+    {
+      "category": "Clinical Efficacy",
+      "18-25": 70,
+      "26-35": 56,
+      "36-45": 58,
+      "46-55": 57,
+      "56+": 43
+    },
+    {
+      "category": "Price Sensitivity",
+      "18-25": 54,
+      "26-35": 45,
+      "36-45": 46,
+      "46-55": 48,
+      "56+": 49
+    },
+    {
+      "category": "Brand Loyalty",
+      "18-25": 60,
+      "26-35": 52,
+      "36-45": 53,
+      "46-55": 53,
+      "56+": 44
+    },
+    {
+      "category": "Online Shopping",
+      "18-25": 69,
+      "26-35": 71,
+      "36-45": 69,
+      "46-55": 63,
+      "56+": 61
+    }
+  ],
+  "keyFindings": [
+    "Natural ingredients preference highest in 26-35 age group (65%)",
+    "Brand loyalty increases with age, peaking at 60% for 18-25",
+    "Online shopping preference decreases with age",
+    "Clinical efficacy most valued by 18-25 age group"
+  ],
+  "metadata": {
+    "totalResponses": 1056,
+    "ageGroups": [
+      {
+        "ageGroup": "18-25",
+        "count": 677
+      },
+      {
+        "ageGroup": "26-35",
+        "count": 132
+      },
+      {
+        "ageGroup": "36-45",
+        "count": 146
+      },
+      {
+        "ageGroup": "46-55",
+        "count": 91
+      },
+      {
+        "ageGroup": "56+",
+        "count": 10
+      }
+    ],
+    "lastUpdated": "2024-10-15",
+    "source": "Shopping Preferences Survey"
+  }
+}

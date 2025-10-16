@@ -10,7 +10,7 @@ import Snapshotter from "./views/Snapshotter";
 import { doLogout } from "./utils";
 import WordsOfInterest from "./views/WordsOfInterest";
 import SocialListening from "./views/SocialListening";
-
+import SocialMediaRecommendation from "./views/SocialMediaRecommendation";
 
 const NAV = [
   { key: "live", label: "Live Feed" },
@@ -18,6 +18,7 @@ const NAV = [
   { key: "snapshot", label: "Product Watchlist" },
   { key: "words", label: "Words of Interest" },
   { key: "social", label: "Social Listening" },
+  { key: "social", label: "Social Media Strategy" },
 ] as const;
 type NavKey = (typeof NAV)[number]["key"];
 
@@ -120,6 +121,7 @@ function DashboardShell() {
           {nav === "snapshot" && <Snapshotter />}
           {nav === "words" && <WordsOfInterest />}
           {nav === "social" && <SocialListening />}
+          {nav === "social" && <SocialMediaRecommendation />}
         </main>
       </div>
     </div>
