@@ -12,7 +12,7 @@ export const CONFIG = {
 export const COGNITO = {
   domain: "spirulina.auth.us-east-1.amazoncognito.com",
   clientId: "oh2vf9imle1l56nkk6fmkte0i",
-  redirectUri: "http://localhost:3001/",
+  redirectUri: "http://localhost:3000/",
   scopes: ["openid", "email"],
   useIdToken: true,
 };
