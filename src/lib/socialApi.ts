@@ -9,7 +9,7 @@ import type {
 
 // ========== MOCK DATA FOR LOCAL TESTING ==========
 const USE_MOCK_DATA = false; // Set to false when backend is ready
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com";
 const MOCK_BRANDS: SocialBrand[] = [
   {
     brand: "CeraVe",
@@ -98,7 +98,7 @@ export async function fetchBrands(
   }
 
   const response = await fetch(
-    `${API_BASE}/api/social-listening/brand-mentions?limit=${limit}`,
+    `${API_BASE}/social/brands?limit=${limit}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -124,7 +124,7 @@ export async function fetchInfluencers(
   }
 
   const response = await fetch(
-    `${API_BASE}/api/social-listening/influencers?limit=${limit}`,
+    `${API_BASE}/social/influencers?limit=${limit}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -150,7 +150,7 @@ export async function fetchHashtags(
   }
 
   const response = await fetch(
-    `${API_BASE}/api/social-listening/hashtags?limit=${limit}`,
+    `${API_BASE}/social/hashtags?limit=${limit}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -175,7 +175,7 @@ export async function fetchSentimentByPlatform(
   }
 
   const response = await fetch(
-    `${API_BASE}/api/social-listening/sentiment-by-platform`,
+    `${API_BASE}/social/sentiment`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

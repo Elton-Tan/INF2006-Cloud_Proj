@@ -1,0 +1,637 @@
+{
+  "generated_at": "2025-10-16T17:21:25.271557",
+  "recommendations": {
+    "primary_platform": {
+      "name": "Instagram",
+      "total_engagement": 135268.0,
+      "avg_engagement": {
+        "likes": 2999.8333333333335,
+        "comments": 232.44444444444446,
+        "shares": 525.1666666666666
+      },
+      "justification": "Instagram has the highest total engagement with 135268 total interactions across 36 posts."
+    },
+    "platform_rankings": [
+      {
+        "rank": 1,
+        "platform": "Instagram",
+        "total_engagement": 135268.0,
+        "avg_likes": 2999.8333333333335,
+        "avg_comments": 232.44444444444446,
+        "avg_shares": 525.1666666666666
+      },
+      {
+        "rank": 2,
+        "platform": "Facebook",
+        "total_engagement": 109537.0,
+        "avg_likes": 2699.75,
+        "avg_comments": 248.90625,
+        "avg_shares": 474.375
+      },
+      {
+        "rank": 3,
+        "platform": "Twitter",
+        "total_engagement": 55207.0,
+        "avg_likes": 1368.59375,
+        "avg_comments": 122.90625,
+        "avg_shares": 233.71875
+      }
+    ],
+    "optimal_posting": {
+      "best_day": {
+        "day": "Sunday",
+        "avg_engagement_score": 5498.666666666667,
+        "avg_likes": 3221.3333333333335,
+        "avg_comments": 188.66666666666666,
+        "avg_shares": 633.3333333333334
+      },
+      "best_hours": [
+        {
+          "hour": 2,
+          "time_range": "2:00-3:00",
+          "avg_engagement_score": 7623.0,
+          "avg_likes": 4929.0,
+          "avg_comments": 252.0,
+          "avg_shares": 730.0
+        },
+        {
+          "hour": 1,
+          "time_range": "1:00-2:00",
+          "avg_engagement_score": 7492.0,
+          "avg_likes": 4297.0,
+          "avg_comments": 360.0,
+          "avg_shares": 825.0
+        },
+        {
+          "hour": 4,
+          "time_range": "4:00-5:00",
+          "avg_engagement_score": 6892.5,
+          "avg_likes": 4409.0,
+          "avg_comments": 200.75,
+          "avg_shares": 694.0
+        }
+      ],
+      "day_performance": {
+        "Friday": {
+          "avg_engagement_score": 5308.666666666667,
+          "avg_likes": 3104.5,
+          "avg_comments": 327.8333333333333,
+          "avg_shares": 516.1666666666666
+        },
+        "Monday": {
+          "avg_engagement_score": 5140.5,
+          "avg_likes": 3399.5,
+          "avg_comments": 225.5,
+          "avg_shares": 430.0
+        },
+        "Saturday": {
+          "avg_engagement_score": 5040.666666666667,
+          "avg_likes": 3412.0,
+          "avg_comments": 202.33333333333334,
+          "avg_shares": 408.0
+        },
+        "Sunday": {
+          "avg_engagement_score": 5498.666666666667,
+          "avg_likes": 3221.3333333333335,
+          "avg_comments": 188.66666666666666,
+          "avg_shares": 633.3333333333334
+        },
+        "Thursday": {
+          "avg_engagement_score": 4747.666666666667,
+          "avg_likes": 3122.8333333333335,
+          "avg_comments": 172.16666666666666,
+          "avg_shares": 426.8333333333333
+        },
+        "Tuesday": {
+          "avg_engagement_score": 4664.5,
+          "avg_likes": 2669.6666666666665,
+          "avg_comments": 256.6666666666667,
+          "avg_shares": 493.8333333333333
+        },
+        "Wednesday": {
+          "avg_engagement_score": 4961.142857142857,
+          "avg_likes": 2607.0,
+          "avg_comments": 234.0,
+          "avg_shares": 628.7142857142857
+        }
+      }
+    },
+    "content_recommendations": {
+      "best_post_types": {
+        "poll": {
+          "avg_likes": 3669.5,
+          "avg_comments": 196.83333333333334,
+          "avg_shares": 458.8333333333333,
+          "count": 6
+        },
+        "carousel": {
+          "avg_likes": 2324.1111111111113,
+          "avg_comments": 290.22222222222223,
+          "avg_shares": 702.4444444444445,
+          "count": 9
+        },
+        "image": {
+          "avg_likes": 3445.5714285714284,
+          "avg_comments": 236.28571428571428,
+          "avg_shares": 478.14285714285717,
+          "count": 7
+        },
+        "text": {
+          "avg_likes": 1952.0,
+          "avg_comments": 142.0,
+          "avg_shares": 236.0,
+          "count": 7
+        },
+        "video": {
+          "avg_likes": 3896.714285714286,
+          "avg_comments": 275.2857142857143,
+          "avg_shares": 690.2857142857143,
+          "count": 7
+        }
+      }
+    },
+    "influencer_strategy": {
+      "top_performer": {
+        "type": "Mega",
+        "avg_sales": 194.4879406739416,
+        "justification": "Mega influencers drive the highest average sales of $194.49"
+      },
+      "all_tiers": [
+        {
+          "rank": 1,
+          "type": "Mega",
+          "avg_sales": 194.4879406739416,
+          "avg_spend": 3.5969091789562047
+        },
+        {
+          "rank": 2,
+          "type": "Nano",
+          "avg_sales": 191.87443179210192,
+          "avg_spend": 3.4357218527197446
+        },
+        {
+          "rank": 3,
+          "type": "Micro",
+          "avg_sales": 188.32184563927154,
+          "avg_spend": 3.1393332702119205
+        },
+        {
+          "rank": 4,
+          "type": "Macro",
+          "avg_sales": 181.6700700719685,
+          "avg_spend": 3.155207369708661
+        }
+      ]
+    },
+    "budget_allocation": {
+      "social_media_roi": 14.355904242023092,
+      "influencer_marketing_roi": 15.097770344168186,
+      "recommendation": "Focus on Influencer Marketing"
+    }
+  },
+  "detailed_analysis": {
+    "advertising_effectiveness": {
+      "TV": {
+        "total_spend": 155229.3,
+        "avg_spend": 517.4309999999999,
+        "correlation_with_sales": 0.3742275871553892,
+        "roi": 13.58929660830784,
+        "total_sales_generated": 2109457.0
+      },
+      "Billboards": {
+        "total_spend": 150793.48,
+        "avg_spend": 502.64493333333337,
+        "correlation_with_sales": 0.4805929397048592,
+        "roi": 13.989046476014744,
+        "total_sales_generated": 2109457.0
+      },
+      "Google_Ads": {
+        "total_spend": 153733.24,
+        "avg_spend": 512.4441333333333,
+        "correlation_with_sales": 0.2036781042510968,
+        "roi": 13.721541288012926,
+        "total_sales_generated": 2109457.0
+      },
+      "Social_Media": {
+        "total_spend": 146940.02999999997,
+        "avg_spend": 489.8000999999999,
+        "correlation_with_sales": 0.4010879940351693,
+        "roi": 14.355904242023092,
+        "total_sales_generated": 2109457.0
+      },
+      "Influencer_Marketing": {
+        "total_spend": 139719.77000000002,
+        "avg_spend": 465.73256666666674,
+        "correlation_with_sales": 0.14084369958471665,
+        "roi": 15.097770344168186,
+        "total_sales_generated": 2109457.0
+      },
+      "Affiliate_Marketing": {
+        "total_spend": 145329.19,
+        "avg_spend": 484.43063333333333,
+        "correlation_with_sales": 0.6116025414965726,
+        "roi": 14.515026196733086,
+        "total_sales_generated": 2109457.0
+      }
+    },
+    "platform_performance": {
+      "Facebook": {
+        "total_engagement": 109537.0,
+        "avg_likes": 2699.75,
+        "avg_comments": 248.90625,
+        "avg_shares": 474.375,
+        "post_count": 32,
+        "sentiment_distribution": {
+          "positive": 12,
+          "negative": 11,
+          "neutral": 9
+        },
+        "post_type_performance": {
+          "image": {
+            "avg_likes": 1204.5,
+            "avg_comments": 230.0,
+            "avg_shares": 432.0,
+            "count": 4
+          },
+          "carousel": {
+            "avg_likes": 2379.7,
+            "avg_comments": 264.9,
+            "avg_shares": 513.4,
+            "count": 10
+          },
+          "video": {
+            "avg_likes": 3473.8888888888887,
+            "avg_comments": 259.44444444444446,
+            "avg_shares": 359.1111111111111,
+            "count": 9
+          },
+          "poll": {
+            "avg_likes": 3868.0,
+            "avg_comments": 331.0,
+            "avg_shares": 786.3333333333334,
+            "count": 3
+          },
+          "text": {
+            "avg_likes": 2484.6666666666665,
+            "avg_comments": 178.0,
+            "avg_shares": 454.5,
+            "count": 6
+          }
+        }
+      },
+      "Instagram": {
+        "total_engagement": 135268.0,
+        "avg_likes": 2999.8333333333335,
+        "avg_comments": 232.44444444444446,
+        "avg_shares": 525.1666666666666,
+        "post_count": 36,
+        "sentiment_distribution": {
+          "negative": 14,
+          "positive": 14,
+          "neutral": 8
+        },
+        "post_type_performance": {
+          "poll": {
+            "avg_likes": 3669.5,
+            "avg_comments": 196.83333333333334,
+            "avg_shares": 458.8333333333333,
+            "count": 6
+          },
+          "carousel": {
+            "avg_likes": 2324.1111111111113,
+            "avg_comments": 290.22222222222223,
+            "avg_shares": 702.4444444444445,
+            "count": 9
+          },
+          "image": {
+            "avg_likes": 3445.5714285714284,
+            "avg_comments": 236.28571428571428,
+            "avg_shares": 478.14285714285717,
+            "count": 7
+          },
+          "text": {
+            "avg_likes": 1952.0,
+            "avg_comments": 142.0,
+            "avg_shares": 236.0,
+            "count": 7
+          },
+          "video": {
+            "avg_likes": 3896.714285714286,
+            "avg_comments": 275.2857142857143,
+            "avg_shares": 690.2857142857143,
+            "count": 7
+          }
+        }
+      },
+      "Twitter": {
+        "total_engagement": 55207.0,
+        "avg_likes": 1368.59375,
+        "avg_comments": 122.90625,
+        "avg_shares": 233.71875,
+        "post_count": 32,
+        "sentiment_distribution": {
+          "positive": 20,
+          "neutral": 10,
+          "negative": 2
+        },
+        "post_type_performance": {
+          "image": {
+            "avg_likes": 936.6666666666666,
+            "avg_comments": 129.66666666666666,
+            "avg_shares": 206.83333333333334,
+            "count": 6
+          },
+          "video": {
+            "avg_likes": 1187.7142857142858,
+            "avg_comments": 117.28571428571429,
+            "avg_shares": 211.57142857142858,
+            "count": 7
+          },
+          "carousel": {
+            "avg_likes": 2019.857142857143,
+            "avg_comments": 125.0,
+            "avg_shares": 336.2857142857143,
+            "count": 7
+          },
+          "text": {
+            "avg_likes": 1193.625,
+            "avg_comments": 105.5,
+            "avg_shares": 174.375,
+            "count": 8
+          },
+          "poll": {
+            "avg_likes": 1543.25,
+            "avg_comments": 153.75,
+            "avg_shares": 252.0,
+            "count": 4
+          }
+        }
+      }
+    },
+    "optimal_posting_times": {
+      "Facebook": {
+        "best_day": {
+          "day": "Friday",
+          "avg_engagement_score": 6076.0,
+          "avg_likes": 3495.5,
+          "avg_comments": 275.5,
+          "avg_shares": 676.5
+        },
+        "best_hours": [
+          {
+            "hour": 13,
+            "time_range": "13:00-14:00",
+            "avg_engagement_score": 8627.0,
+            "avg_likes": 4795.0,
+            "avg_comments": 449.0,
+            "avg_shares": 978.0
+          },
+          {
+            "hour": 9,
+            "time_range": "9:00-10:00",
+            "avg_engagement_score": 6161.0,
+            "avg_likes": 3094.0,
+            "avg_comments": 86.0,
+            "avg_shares": 965.0
+          },
+          {
+            "hour": 0,
+            "time_range": "0:00-1:00",
+            "avg_engagement_score": 6151.75,
+            "avg_likes": 4113.75,
+            "avg_comments": 277.25,
+            "avg_shares": 494.5
+          }
+        ],
+        "day_performance": {
+          "Friday": {
+            "avg_engagement_score": 6076.0,
+            "avg_likes": 3495.5,
+            "avg_comments": 275.5,
+            "avg_shares": 676.5
+          },
+          "Monday": {
+            "avg_engagement_score": 3814.0,
+            "avg_likes": 1892.3333333333333,
+            "avg_comments": 202.33333333333334,
+            "avg_shares": 505.6666666666667
+          },
+          "Saturday": {
+            "avg_engagement_score": 3500.6666666666665,
+            "avg_likes": 1864.3333333333333,
+            "avg_comments": 243.66666666666666,
+            "avg_shares": 383.0
+          },
+          "Sunday": {
+            "avg_engagement_score": 5892.6,
+            "avg_likes": 3206.8,
+            "avg_comments": 404.2,
+            "avg_shares": 625.8
+          },
+          "Thursday": {
+            "avg_engagement_score": 3606.8333333333335,
+            "avg_likes": 2206.0,
+            "avg_comments": 212.16666666666666,
+            "avg_shares": 325.5
+          },
+          "Tuesday": {
+            "avg_engagement_score": 4175.8,
+            "avg_likes": 2307.4,
+            "avg_comments": 121.2,
+            "avg_shares": 542.0
+          },
+          "Wednesday": {
+            "avg_engagement_score": 4938.5,
+            "avg_likes": 3388.8333333333335,
+            "avg_comments": 270.8333333333333,
+            "avg_shares": 336.0
+          }
+        }
+      },
+      "Instagram": {
+        "best_day": {
+          "day": "Sunday",
+          "avg_engagement_score": 5498.666666666667,
+          "avg_likes": 3221.3333333333335,
+          "avg_comments": 188.66666666666666,
+          "avg_shares": 633.3333333333334
+        },
+        "best_hours": [
+          {
+            "hour": 2,
+            "time_range": "2:00-3:00",
+            "avg_engagement_score": 7623.0,
+            "avg_likes": 4929.0,
+            "avg_comments": 252.0,
+            "avg_shares": 730.0
+          },
+          {
+            "hour": 1,
+            "time_range": "1:00-2:00",
+            "avg_engagement_score": 7492.0,
+            "avg_likes": 4297.0,
+            "avg_comments": 360.0,
+            "avg_shares": 825.0
+          },
+          {
+            "hour": 4,
+            "time_range": "4:00-5:00",
+            "avg_engagement_score": 6892.5,
+            "avg_likes": 4409.0,
+            "avg_comments": 200.75,
+            "avg_shares": 694.0
+          }
+        ],
+        "day_performance": {
+          "Friday": {
+            "avg_engagement_score": 5308.666666666667,
+            "avg_likes": 3104.5,
+            "avg_comments": 327.8333333333333,
+            "avg_shares": 516.1666666666666
+          },
+          "Monday": {
+            "avg_engagement_score": 5140.5,
+            "avg_likes": 3399.5,
+            "avg_comments": 225.5,
+            "avg_shares": 430.0
+          },
+          "Saturday": {
+            "avg_engagement_score": 5040.666666666667,
+            "avg_likes": 3412.0,
+            "avg_comments": 202.33333333333334,
+            "avg_shares": 408.0
+          },
+          "Sunday": {
+            "avg_engagement_score": 5498.666666666667,
+            "avg_likes": 3221.3333333333335,
+            "avg_comments": 188.66666666666666,
+            "avg_shares": 633.3333333333334
+          },
+          "Thursday": {
+            "avg_engagement_score": 4747.666666666667,
+            "avg_likes": 3122.8333333333335,
+            "avg_comments": 172.16666666666666,
+            "avg_shares": 426.8333333333333
+          },
+          "Tuesday": {
+            "avg_engagement_score": 4664.5,
+            "avg_likes": 2669.6666666666665,
+            "avg_comments": 256.6666666666667,
+            "avg_shares": 493.8333333333333
+          },
+          "Wednesday": {
+            "avg_engagement_score": 4961.142857142857,
+            "avg_likes": 2607.0,
+            "avg_comments": 234.0,
+            "avg_shares": 628.7142857142857
+          }
+        }
+      },
+      "Twitter": {
+        "best_day": {
+          "day": "Tuesday",
+          "avg_engagement_score": 3046.5,
+          "avg_likes": 1947.25,
+          "avg_comments": 160.75,
+          "avg_shares": 259.25
+        },
+        "best_hours": [
+          {
+            "hour": 0,
+            "time_range": "0:00-1:00",
+            "avg_engagement_score": 3386.25,
+            "avg_likes": 2010.75,
+            "avg_comments": 163.5,
+            "avg_shares": 349.5
+          },
+          {
+            "hour": 13,
+            "time_range": "13:00-14:00",
+            "avg_engagement_score": 3038.0,
+            "avg_likes": 2154.5,
+            "avg_comments": 99.0,
+            "avg_shares": 228.5
+          },
+          {
+            "hour": 16,
+            "time_range": "16:00-17:00",
+            "avg_engagement_score": 3035.0,
+            "avg_likes": 2586.0,
+            "avg_comments": 97.0,
+            "avg_shares": 85.0
+          }
+        ],
+        "day_performance": {
+          "Friday": {
+            "avg_engagement_score": 2391.6666666666665,
+            "avg_likes": 1646.6666666666667,
+            "avg_comments": 108.0,
+            "avg_shares": 176.33333333333334
+          },
+          "Monday": {
+            "avg_engagement_score": 2134.1666666666665,
+            "avg_likes": 975.0,
+            "avg_comments": 106.83333333333333,
+            "avg_shares": 315.1666666666667
+          },
+          "Saturday": {
+            "avg_engagement_score": 1652.5,
+            "avg_likes": 1041.25,
+            "avg_comments": 115.5,
+            "avg_shares": 126.75
+          },
+          "Sunday": {
+            "avg_engagement_score": 1591.3333333333333,
+            "avg_likes": 784.6666666666666,
+            "avg_comments": 89.33333333333333,
+            "avg_shares": 209.33333333333334
+          },
+          "Thursday": {
+            "avg_engagement_score": 2220.5,
+            "avg_likes": 1404.5,
+            "avg_comments": 129.75,
+            "avg_shares": 185.5
+          },
+          "Tuesday": {
+            "avg_engagement_score": 3046.5,
+            "avg_likes": 1947.25,
+            "avg_comments": 160.75,
+            "avg_shares": 259.25
+          },
+          "Wednesday": {
+            "avg_engagement_score": 2898.2,
+            "avg_likes": 1627.8,
+            "avg_comments": 150.4,
+            "avg_shares": 323.2
+          }
+        }
+      }
+    },
+    "influencer_impact": {
+      "Micro": {
+        "avg_sales": 188.32184563927154,
+        "avg_social_media_spend": 3.1393332702119205,
+        "count": 151,
+        "total_sales": 28436.59869153
+      },
+      "Mega": {
+        "avg_sales": 194.4879406739416,
+        "avg_social_media_spend": 3.5969091789562047,
+        "count": 137,
+        "total_sales": 26644.84787233
+      },
+      "Nano": {
+        "avg_sales": 191.87443179210192,
+        "avg_social_media_spend": 3.4357218527197446,
+        "count": 157,
+        "total_sales": 30124.285791360002
+      },
+      "Macro": {
+        "avg_sales": 181.6700700719685,
+        "avg_social_media_spend": 3.155207369708661,
+        "count": 127,
+        "total_sales": 23072.098899139997
+      }
+    }
+  }
+}

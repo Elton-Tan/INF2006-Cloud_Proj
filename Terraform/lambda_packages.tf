@@ -320,6 +320,41 @@ resource "aws_lambda_function" "delete_watchlist" {
     aws_lambda_layer_version.requests_layer.arn
   ]
 }
+
+
+resource "aws_lambda_function" "trends_keywords_delete" {
+  function_name = "${var.project}-${var.env}-trends-keywords-delete"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"
+  filename      = data.archive_file.trends_keywords_delete_zip.output_path
+  timeout       = 10
+  memory_size   = 256
+  architectures = ["x86_64"]
+
+  # Auto-redeploy when zip changes
+  source_code_hash = filebase64sha256(data.archive_file.trends_keywords_delete_zip.output_path)
+
+  # Reuse your PyMySQL layer
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn
+  ]
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = {
+      REGION        = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+      DEFAULT_GEO   = "sg"    # keep consistent with your write function
+      SOFT_DELETE   = "false" # set to "true" if you prefer soft delete
+    }
+  }
+}
+
 # ========== ZIP the new scheduler lambda ==========
 data "archive_file" "schedule_enqueue_zip" {
   type        = "zip"
@@ -332,6 +367,14 @@ data "archive_file" "trends_read_zip" {
   source_dir  = "${path.module}/trends_read"
   output_path = "${path.module}/dist/trends_read.zip"
 }
+
+# --------- Zip: trends_keywords_delete (handler.py inside) ----------
+data "archive_file" "trends_keywords_delete_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/trends_keywords_delete" # folder with handler.py
+  output_path = "${path.module}/dist/trends_keywords_delete.zip"
+}
+
 
 # ========== Lambda function ==========
 resource "aws_lambda_function" "schedule_enqueue" {

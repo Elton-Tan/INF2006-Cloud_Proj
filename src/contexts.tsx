@@ -58,7 +58,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   // --- 1) Bootstrap auth exactly once (guard StrictMode double-effect) ---
   const ensureAuthed = React.useCallback(async () => {
       const isLocal = window.location.hostname === "localhost";
-      //ETHAN DELETE THIS 
+     /* //ETHAN DELETE THIS 
       if (isLocal) {
         // 👇 Inject a mock token for dev testing
         setAuth({
@@ -72,6 +72,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         console.log("⚠️ Running in mock auth mode (localhost).");
         return;
       }
+      */
 
 
 
@@ -85,7 +86,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       {
         persist: true,
         preferIdToken: false, // flip to true if your API expects id_token instead
-        autoLoginIfNoTokens: false,
+        autoLoginIfNoTokens: true,
       }
     );
 
