@@ -42,9 +42,6 @@ export default function ConsumerPreferencesRadar() {
     "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev/spirulina-dev-consumer-preference"
   );
 
-  const data = response?.data;
-  const keyFindings = response?.keyFindings.map((text) => ({ text })) || [];
-
   if (loading) {
     return (
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
@@ -66,6 +63,24 @@ export default function ConsumerPreferencesRadar() {
         </h2>
         <div className="flex h-96 items-center justify-center text-red-500">
           Error: {error}
+        </div>
+      </section>
+    );
+  }
+
+  // Only process data after loading/error checks
+  const data = response?.data;
+  const keyFindings = response?.keyFindings?.map((text) => ({ text })) || [];
+
+  // If we don't have valid response data, show error state
+  if (!response || !data) {
+    return (
+      <section className="rounded-2xl border bg-white p-4 shadow-sm">
+        <h2 className="mb-1 text-lg font-semibold">
+          Consumer Preferences by Age Group
+        </h2>
+        <div className="flex h-96 items-center justify-center text-red-500">
+          No data available
         </div>
       </section>
     );
@@ -164,8 +179,8 @@ export default function ConsumerPreferencesRadar() {
       </div>
 
       <div className="mt-4 rounded-xl border-t pt-3 text-xs text-gray-500">
-        Data source: {response?.metadata.source} (n=
-        {response?.metadata.totalResponses} responses)
+        Data source: {response.metadata.source} (n=
+        {response.metadata.totalResponses} responses)
       </div>
     </section>
   );
