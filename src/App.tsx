@@ -10,6 +10,7 @@ import { doLogout } from "./utils";
 import WordsOfInterest from "./views/WordsOfInterest";
 import SocialListening from "./views/SocialListening";
 import SocialMediaRecommendation from "./views/SocialMediaRecommendation";
+import TopProductsDashboard from "./views/TopProductsDashboard"; // Add this import
 
 /** Discriminated union so we can render a divider item cleanly */
 type NavLink = { type: "link"; key: string; label: string };
@@ -29,6 +30,7 @@ const NAV: readonly NavItem[] = [
 
   { type: "link", key: "batch", label: "Keywords Analysis" },
   { type: "link", key: "social", label: "Social Media Analysis" },
+  { type: "link", key: "topProducts", label: "Top Products Dashboard" }, // Add this line
 ] as const;
 
 type NavKey = Extract<NavItem, { type: "link" }>["key"];
@@ -142,12 +144,15 @@ function DashboardShell() {
           {nav === "snapshot" && <Snapshotter />}
           {nav === "words" && <WordsOfInterest />}
 
-          {/* Only show social components when on the Social tab */}
+          {/* Social Media Analysis section */}
           {nav === "social" && (
             <div className="grid gap-4">
               <SocialMediaRecommendation />
             </div>
           )}
+
+          {/* Top Products Dashboard - Add this section */}
+          {nav === "topProducts" && <TopProductsDashboard />}
         </main>
       </div>
     </div>
