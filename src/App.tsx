@@ -9,6 +9,7 @@ import BatchAnalytics from "./views/BatchAnalytics";
 import Snapshotter from "./views/Snapshotter";
 import { doLogout } from "./utils";
 import WordsOfInterest from "./views/WordsOfInterest";
+import SocialListening from "./views/SocialListening";
 import SocialMediaRecommendation from "./views/SocialMediaRecommendation";
 
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
   { key: "batch", label: "Batch Analytics" },
   { key: "snapshot", label: "Product Watchlist" },
   { key: "words", label: "Words of Interest" },
+  { key: "social", label: "Social Listening" },
   { key: "social", label: "Social Media Strategy" },
 ] as const;
 type NavKey = (typeof NAV)[number]["key"];
@@ -118,6 +120,7 @@ function DashboardShell() {
           {nav === "batch" && <BatchAnalytics />}
           {nav === "snapshot" && <Snapshotter />}
           {nav === "words" && <WordsOfInterest />}
+          {nav === "social" && <SocialListening />}
           {nav === "social" && <SocialMediaRecommendation />}
         </main>
       </div>

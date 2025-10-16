@@ -23,3 +23,16 @@ resource "aws_secretsmanager_secret_version" "scraper" {
   secret_id     = aws_secretsmanager_secret.scraper.id
   secret_string = jsonencode({ "Scrapper-API" = var.scrapingbee_secret_value })
 }
+
+
+# ✅ NEW: Social scraper API secret (for your Instagram scraping)
+resource "aws_secretsmanager_secret" "social_scraper" {  # ← Different name!
+  name = "${var.project}/social-scraper"  # ← Different secret name!
+}
+
+resource "aws_secretsmanager_secret_version" "social_scraper" {  # ← Different name!
+  secret_id     = aws_secretsmanager_secret.social_scraper.id
+  secret_string = jsonencode({ 
+    "api_key" = var.scrapingbee_secret_value  # Uses same variable but different key name
+  })
+}

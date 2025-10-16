@@ -57,6 +57,25 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   // --- 1) Bootstrap auth exactly once (guard StrictMode double-effect) ---
   const ensureAuthed = React.useCallback(async () => {
+      const isLocal = window.location.hostname === "localhost";
+     /* //ETHAN DELETE THIS 
+      if (isLocal) {
+        // 👇 Inject a mock token for dev testing
+        setAuth({
+          apiBase: CONFIG.API_BASE,
+          wsBase: CONFIG.WS_BASE,
+          token: "mock-dev-token", // use any dummy string
+        });
+        setExpired(false);
+        setTokenVersion((v) => v + 1);
+        setLoading(false);
+        console.log("⚠️ Running in mock auth mode (localhost).");
+        return;
+      }
+      */
+
+
+
     const res = await startCognitoAuth(
       {
         domain: COGNITO.domain,
@@ -67,7 +86,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       {
         persist: true,
         preferIdToken: false, // flip to true if your API expects id_token instead
-        autoLoginIfNoTokens: false,
+        autoLoginIfNoTokens: true,
       }
     );
 
