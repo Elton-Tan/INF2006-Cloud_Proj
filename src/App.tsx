@@ -9,15 +9,8 @@ import Snapshotter from "./views/Snapshotter";
 import { doLogout } from "./utils";
 import WordsOfInterest from "./views/WordsOfInterest";
 import SocialListening from "./views/SocialListening";
+import SocialMediaRecommendation from "./views/SocialMediaRecommendation";
 
-<<<<<<< HEAD
-const NAV = [
-  { key: "live", label: "Live Feed" },
-  { key: "batch", label: "Batch Analytics" },
-  { key: "snapshot", label: "Product Watchlist" },
-  { key: "words", label: "Words of Interest" },
-  { key: "social", label: "Social Listening" },
-=======
 /** Discriminated union so we can render a divider item cleanly */
 type NavLink = { type: "link"; key: string; label: string };
 type NavDivider = { type: "divider"; label: string };
@@ -36,7 +29,6 @@ const NAV: readonly NavItem[] = [
 
   { type: "link", key: "batch", label: "Keywords Analysis" },
   { type: "link", key: "social", label: "Social Media Analysis" },
->>>>>>> 90eaa9c7 (Update nav divider + social tab fixes)
 ] as const;
 
 type NavKey = Extract<NavItem, { type: "link" }>["key"];
@@ -149,9 +141,6 @@ function DashboardShell() {
           {nav === "batch" && <BatchAnalytics />}
           {nav === "snapshot" && <Snapshotter />}
           {nav === "words" && <WordsOfInterest />}
-<<<<<<< HEAD
-          {nav === "social" && <SocialListening />}
-=======
 
           {/* Only show social components when on the Social tab */}
           {nav === "social" && (
@@ -159,7 +148,6 @@ function DashboardShell() {
               <SocialMediaRecommendation />
             </div>
           )}
->>>>>>> 90eaa9c7 (Update nav divider + social tab fixes)
         </main>
       </div>
     </div>
