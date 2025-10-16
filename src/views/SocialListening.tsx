@@ -13,6 +13,7 @@ import type {
   SocialHashtag,
   PlatformSentiment,
 } from "../config";
+import SocialMediaRecommendation from "./SocialMediaRecommendation";
 
 type SocialData = {
   brands: SocialBrand[];
@@ -116,6 +117,11 @@ export default function SocialListening() {
 
         {/* Card 4: Trending Hashtags */}
         <HashtagsCard hashtags={data.hashtags} />
+      </div>
+
+      {/* Social Media Recommendations Section */}
+      <div className="mt-6">
+        <SocialMediaRecommendation />
       </div>
     </div>
   );
