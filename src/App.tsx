@@ -1,8 +1,7 @@
 // src/App.tsx
 import React from "react";
 import { AppProviders, useAuth } from "./contexts";
-import { onAuthExpired } from "./cognitoAuth";
-import { login } from "./cognitoAuth";
+import { onAuthExpired, login } from "./cognitoAuth";
 import { COGNITO } from "./config";
 import LiveFeed from "./views/LiveFeed";
 import BatchAnalytics from "./views/BatchAnalytics";
@@ -11,14 +10,36 @@ import { doLogout } from "./utils";
 import WordsOfInterest from "./views/WordsOfInterest";
 import SocialListening from "./views/SocialListening";
 
+<<<<<<< HEAD
 const NAV = [
   { key: "live", label: "Live Feed" },
   { key: "batch", label: "Batch Analytics" },
   { key: "snapshot", label: "Product Watchlist" },
   { key: "words", label: "Words of Interest" },
   { key: "social", label: "Social Listening" },
+=======
+/** Discriminated union so we can render a divider item cleanly */
+type NavLink = { type: "link"; key: string; label: string };
+type NavDivider = { type: "divider"; label: string };
+type NavItem = NavLink | NavDivider;
+
+const NAV: readonly NavItem[] = [
+  // New top divider for the live/interactive area
+  { type: "divider", label: "Live Data & Settings" },
+
+  { type: "link", key: "live", label: "Alerts & Trends" },
+  { type: "link", key: "listening", label: "Social Listening" },
+  { type: "link", key: "words", label: "Words of Interest" },
+  { type: "link", key: "snapshot", label: "Product Watchlist" },
+
+  { type: "divider", label: "Historical & Offline Analysis" },
+
+  { type: "link", key: "batch", label: "Keywords Analysis" },
+  { type: "link", key: "social", label: "Social Media Analysis" },
+>>>>>>> 90eaa9c7 (Update nav divider + social tab fixes)
 ] as const;
-type NavKey = (typeof NAV)[number]["key"];
+
+type NavKey = Extract<NavItem, { type: "link" }>["key"];
 
 function SessionExpiredModal({
   open,
@@ -62,7 +83,6 @@ function SessionExpiredModal({
 function DashboardShell() {
   const [nav, setNav] = React.useState<NavKey>("live");
   const { token } = useAuth();
-
   const [expiredOpen, setExpiredOpen] = React.useState(false);
 
   // Open modal when the auth lib emits "expired"
@@ -99,26 +119,47 @@ function DashboardShell() {
       <div className="mx-auto grid max-w-7xl grid-cols-12 gap-4 px-4 py-4">
         <aside className="col-span-12 h-full rounded-2xl border bg-white p-2 shadow-sm md:col-span-3 lg:col-span-2">
           <nav className="flex flex-col gap-1">
-            {NAV.map((n) => (
-              <button
-                key={n.key}
-                onClick={() => setNav(n.key)}
-                className={`w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-gray-100 ${
-                  nav === n.key ? "bg-gray-100 font-medium" : ""
-                }`}
-              >
-                {n.label}
-              </button>
-            ))}
+            {NAV.map((item, idx) =>
+              item.type === "divider" ? (
+                <div
+                  key={`divider-${idx}`}
+                  className="mt-3 mb-2 rounded-lg px-3 py-1.5 bg-primary/10 text-primary
+                 text-[11px] font-semibold uppercase tracking-wider"
+                >
+                  {item.label}
+                </div>
+              ) : (
+                <button
+                  key={item.key}
+                  onClick={() => setNav(item.key)}
+                  className={`w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-gray-100 ${
+                    nav === item.key ? "bg-gray-100 font-medium" : ""
+                  }`}
+                >
+                  {item.label}
+                </button>
+              )
+            )}
           </nav>
         </aside>
 
         <main className="col-span-12 grid gap-4 md:col-span-9 lg:col-span-10">
           {nav === "live" && <LiveFeed />}
+          {nav === "listening" && <SocialListening />}
           {nav === "batch" && <BatchAnalytics />}
           {nav === "snapshot" && <Snapshotter />}
           {nav === "words" && <WordsOfInterest />}
+<<<<<<< HEAD
           {nav === "social" && <SocialListening />}
+=======
+
+          {/* Only show social components when on the Social tab */}
+          {nav === "social" && (
+            <div className="grid gap-4">
+              <SocialMediaRecommendation />
+            </div>
+          )}
+>>>>>>> 90eaa9c7 (Update nav divider + social tab fixes)
         </main>
       </div>
     </div>

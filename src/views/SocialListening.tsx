@@ -69,7 +69,7 @@ export default function SocialListening() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="text-gray-500">Loading social insights...</div>
+        <div className="text-gray-500">Loading live social media data...</div>
       </div>
     );
   }
@@ -211,11 +211,7 @@ function SentimentCard({
   );
 }
 
-function InfluencersCard({
-  influencers,
-}: {
-  influencers: SocialInfluencer[];
-}) {
+function InfluencersCard({ influencers }: { influencers: SocialInfluencer[] }) {
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="mb-4 text-lg font-semibold">Top Influencers</h2>
@@ -264,10 +260,7 @@ function InfluencersCard({
 }
 
 function HashtagsCard({ hashtags }: { hashtags: SocialHashtag[] }) {
-  const maxEngagement = Math.max(
-    ...hashtags.map((h) => h.total_engagement),
-    1
-  );
+  const maxEngagement = Math.max(...hashtags.map((h) => h.total_engagement), 1);
 
   const getFontSize = (engagement: number) => {
     const ratio = engagement / maxEngagement;
@@ -287,7 +280,9 @@ function HashtagsCard({ hashtags }: { hashtags: SocialHashtag[] }) {
               fontSize: `${getFontSize(tag.total_engagement)}px`,
               color: `hsl(${200 + idx * 4}, 70%, 50%)`,
             }}
-            title={`${tag.post_count} posts • ${tag.total_engagement.toLocaleString()} engagement`}
+            title={`${
+              tag.post_count
+            } posts • ${tag.total_engagement.toLocaleString()} engagement`}
           >
             {tag.hashtag}
           </div>
