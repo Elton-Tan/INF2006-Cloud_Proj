@@ -37,9 +37,19 @@ data "archive_file" "numpy_layer_zip" {
   output_path = "${path.module}/numpy_layer.zip"
 }
 
+
+resource "aws_s3_object" "numpy_layer" {
+  bucket = aws_s3_bucket.lambda_layers.id
+  key    = "lambda-layers/numpy-layer.zip"
+  source = data.archive_file.numpy_layer_zip.output_path
+  etag   = data.archive_file.numpy_layer_zip.output_md5
+}
+
+
 resource "aws_lambda_layer_version" "numpy_layer" {
   layer_name          = "${var.project}-numpy"
-  filename            = data.archive_file.numpy_layer_zip.output_path
+  s3_bucket           = aws_s3_object.numpy_layer.bucket
+  s3_key              = aws_s3_object.numpy_layer.key
   compatible_runtimes = ["python3.12"]
   description         = "NumPy 1.26.x for Lambda"
 }
@@ -75,19 +85,7 @@ resource "aws_lambda_layer_version" "pytrends_layer" {
 
 # Add these to the end of layers.tf:
 
-# ===== sklearn layer =====
-data "archive_file" "sklearn_layer_zip" {
-  type        = "zip"
-  source_dir  = "${path.module}/layers/sklearn_layer"
-  output_path = "${path.module}/sklearn_layer.zip"
-}
 
-resource "aws_lambda_layer_version" "sklearn_layer" {
-  layer_name          = "${var.project}-sklearn"
-  filename            = data.archive_file.sklearn_layer_zip.output_path
-  compatible_runtimes = ["python3.12"]
-  description         = "scikit-learn for ML"
-}
 
 # ===== textblob layer =====
 data "archive_file" "textblob_layer_zip" {
@@ -103,17 +101,27 @@ resource "aws_lambda_layer_version" "textblob_layer" {
   description         = "TextBlob for sentiment"
 }
 
-
-# ===== spacy layer =====
-data "archive_file" "spacy_layer_zip" {
-  type        = "zip"
-  source_dir  = "${path.module}/layers/spacy_layer"
-  output_path = "${path.module}/spacy_layer.zip"
+# Upload OPTIMIZED sklearn layer to S3
+resource "aws_s3_object" "sklearn_layer" {
+  bucket = aws_s3_bucket.lambda_layers.id
+  key    = "sklearn_layer_optimized.zip"
+  source = "${path.module}/sklearn_layer_optimized.zip"  # ✅ New filename
+  etag   = filemd5("${path.module}/sklearn_layer_optimized.zip")
 }
 
-resource "aws_lambda_layer_version" "spacy_layer" {
-  layer_name          = "${var.project}-spacy"
-  filename            = data.archive_file.spacy_layer_zip.output_path
+# Scikit-learn layer (via S3)
+resource "aws_lambda_layer_version" "sklearn_layer" {
+  layer_name          = "${var.project}-sklearn-layer"
+  s3_bucket           = aws_s3_bucket.lambda_layers.id
+  s3_key              = aws_s3_object.sklearn_layer.key
   compatible_runtimes = ["python3.12"]
-  description         = "spaCy NLP"
+  source_code_hash    = filebase64sha256("${path.module}/sklearn_layer_optimized.zip")  # ✅ New filename
+}
+
+# NLTK layer stays the same
+resource "aws_lambda_layer_version" "nltk_layer" {
+  filename            = "${path.module}/nltk_layer.zip"
+  layer_name          = "${var.project}-nltk-layer"
+  compatible_runtimes = ["python3.12"]
+  source_code_hash    = filebase64sha256("${path.module}/nltk_layer.zip")
 }

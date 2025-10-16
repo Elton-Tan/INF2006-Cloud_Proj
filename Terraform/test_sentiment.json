@@ -1,0 +1,1 @@
+{"statusCode": 200, "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"}, "body": "{\"platforms\": {\"instagram\": {\"positive\": 118, \"negative\": 16, \"neutral\": 34, \"total\": 168, \"positive_pct\": 70.2, \"negative_pct\": 9.5, \"neutral_pct\": 20.2}}}"}
