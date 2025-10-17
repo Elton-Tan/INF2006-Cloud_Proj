@@ -9,10 +9,11 @@ Next steps:
 5. Meta ad library to know whether competitor uploaded any ads and what kind
 6. Keyword analysis - OK!
 
-To kick off front-end testing with Tim (industry partner). Gather feedback and then put in report! --> READY
-
-CloudFront OK, Cognito Hook up OK, all looking good to begin front end testing with TIM ----> to confirm via meeting (Reminder for myself: Please remember to recheck this. Get at least 1 user testing phase before the submission to align expectations!!! IMPORTANT)
-
+NEED TO:
+RESTART RDS
+RECREATE NAT
+RESTART EVENTBRIDGE
+RESTART CLOUDFRONT
 
 Dont authorise API first. Test on POSTMAN. Only authorise when OK to make it less troublesome
 
