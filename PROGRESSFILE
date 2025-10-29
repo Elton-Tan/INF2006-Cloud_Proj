@@ -1,13 +1,10 @@
 ALWAYS READ THIS TO KNOW WHAT IS GOING ON:
 This project is about cloud computing INF2006. REQUIRE NODE JS 21 using tailwind and react. 
 Next steps:
-1. To solve scrapper bot issue by creating dummy amazon account and set up IP rotation to prevent IP ban <- OK but no amazon. Need to expand to the website Tim is talking about but thats not the highest priority for now.
-
-2. See if we can use google keyword appearances to forecast demand. (OK)
-3. Focus to build infra for POC before proceeding on real implement 
-4. Snapshot (done)
-5. Meta ad library to know whether competitor uploaded any ads and what kind
-6. Keyword analysis - OK!
+1. Finish up the live alerts
+2. Run Hadoop and Spark for sentiment analysis, word count and maybe even prediction (but perhaps we dont need to for prediction)
+3. Agentic capabilities using Azure Cloud (we can really try this perhaps we can score better) [accomplish more than what lab has taught]
+4. Complete report and API endpoints
 
 NEED TO:
 RESTART RDS
@@ -16,9 +13,6 @@ RESTART EVENTBRIDGE
 RESTART CLOUDFRONT
 
 Dont authorise API first. Test on POSTMAN. Only authorise when OK to make it less troublesome
-
-
-
 then npm start
 
 npm start build, then host on S3. ONLY ACCEPT STATIC FILES because we are using S3! 
