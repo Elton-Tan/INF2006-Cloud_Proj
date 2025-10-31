@@ -312,7 +312,7 @@ export async function startCognitoAuth(
   cfg: Cfg,
   opts: StartOpts = {}
 ): Promise<StartResult> {
-  const preferId = opts.preferIdToken ?? cfg.useIdToken ?? true;
+  const preferId = opts.preferIdToken ?? cfg.useIdToken ?? false;
   const autoLogin = opts.autoLoginIfNoTokens ?? true;
 
   // 1) Handle redirect with ?code=... (guard duplicate exchanges)
@@ -433,7 +433,7 @@ export async function startCognitoAuth(
   document.addEventListener("visibilitychange", visHandler as any);
 
   const token =
-    opts.preferIdToken ?? cfg.useIdToken ?? true
+    opts.preferIdToken ?? cfg.useIdToken ?? false
       ? tokens.id_token
       : tokens.access_token;
 
@@ -452,4 +452,15 @@ export function onAuthExpired(cb: () => void) {
   const handler = () => cb();
   window.addEventListener(AUTH_EXPIRED_EVENT, handler);
   return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handler);
+}
+
+export function decodeExpSec(jwt?: string | null): number {
+  if (!jwt) return 0;
+  try {
+    const [, b64] = jwt.split(".");
+    const json = JSON.parse(atob(b64.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof json.exp === "number" ? json.exp : 0;
+  } catch {
+    return 0;
+  }
 }

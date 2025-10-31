@@ -57,8 +57,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   // --- 1) Bootstrap auth exactly once (guard StrictMode double-effect) ---
   const ensureAuthed = React.useCallback(async () => {
-      const isLocal = window.location.hostname === "localhost";
-     /* //ETHAN DELETE THIS 
+    const isLocal = window.location.hostname === "localhost";
+    /* //ETHAN DELETE THIS 
       if (isLocal) {
         // 👇 Inject a mock token for dev testing
         setAuth({
@@ -73,8 +73,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         return;
       }
       */
-
-
 
     const res = await startCognitoAuth(
       {
@@ -140,7 +138,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           localStorage.getItem("cognito.tokens.v1");
         if (!raw) return;
         const j = JSON.parse(raw);
-        const tok: string | null = j?.access_token || j?.id_token || null;
+        const tok: string | null = j?.access_token ?? j?.id_token ?? null;
         if (tok) {
           setAuth({
             apiBase: CONFIG.API_BASE,

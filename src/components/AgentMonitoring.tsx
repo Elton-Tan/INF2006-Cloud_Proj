@@ -38,12 +38,27 @@ const STEP_NAME: Record<string, string> = {
 const LS_JOB = "agentMonitoring.job";
 const LS_ENABLED = "agentMonitoring.enabled";
 
+/* ---------------- helpers ---------------- */
+
 function toneClass(kind: "info" | "ok" | "fail") {
   if (kind === "ok") return "text-green-700";
   if (kind === "fail") return "text-red-700";
   return "text-gray-800";
 }
 
+// Minimal JWT exp decoder (seconds since epoch)
+function decodeExpSec(jwt?: string | null): number {
+  if (!jwt) return 0;
+  try {
+    const [, b64] = jwt.split(".");
+    const json = JSON.parse(atob(b64.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof json.exp === "number" ? json.exp : 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Centralized fetch with auth + 401/403 handling
 async function fetchJSON(url: string, opts: RequestInit = {}, token?: string) {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -56,6 +71,14 @@ async function fetchJSON(url: string, opts: RequestInit = {}, token?: string) {
   const resp = await fetch(url, { ...opts, headers });
   const text = await resp.text();
   const data = text ? JSON.parse(text) : {};
+
+  if (resp.status === 401 || resp.status === 403) {
+    // signal app-wide “session expired”
+    try {
+      window.dispatchEvent(new CustomEvent("cognito.auth.expired"));
+    } catch {}
+    throw new Error("Unauthorized — session expired. Please sign in again.");
+  }
   if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
   return data;
 }
@@ -83,8 +106,16 @@ function StatusPill({ active }: { active: boolean }) {
   );
 }
 
+/* ---------------- component ---------------- */
+
 export default function AgentMonitoring() {
   const { token } = useAuth();
+
+  // keep a live ref so effects/handlers don’t capture stale tokens
+  const tokenRef = React.useRef<string | null>(token || null);
+  React.useEffect(() => {
+    tokenRef.current = token || null;
+  }, [token]);
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [disableOpen, setDisableOpen] = React.useState(false);
@@ -155,13 +186,24 @@ export default function AgentMonitoring() {
 
   // start a run; also mark monitoring Enabled
   const startMonitoring = async () => {
-    if (!token) {
+    const t = tokenRef.current;
+    if (!t) {
       alert("You must be signed in to start monitoring.");
       return;
     }
+
+    // guard: don’t kick off with a near-expiry token (avoid “OK flash”)
+    const now = Math.floor(Date.now() / 1000);
+    const exp = decodeExpSec(t);
+    if (exp && exp - now < 30) {
+      window.dispatchEvent(new CustomEvent("cognito.auth.expired"));
+      alert("Session expired — please sign in again.");
+      return;
+    }
+
     setStarting(true);
     try {
-      // HARD RESET to prevent stale "OK" flash
+      // HARD RESET to prevent stale "OK" flash but keep modal UX consistent
       clearTimer();
       setJob(null);
       setFinalSnapshot(null);
@@ -170,7 +212,7 @@ export default function AgentMonitoring() {
       const r = await fetchJSON(
         `${CONFIG.API_BASE}/agent/monitoring/start`,
         { method: "POST", body: JSON.stringify({}) },
-        token
+        t
       );
 
       setEnabled(true);
@@ -188,7 +230,7 @@ export default function AgentMonitoring() {
   const disableMonitoring = async () => {
     setDisableOpen(false);
     setEnabled(false);
-    if (!jobId || !token) return;
+    if (!jobId || !tokenRef.current) return;
     const state = job?.status ?? "idle";
     if (state === "running" || state === "queued") {
       setCancelling(true);
@@ -196,7 +238,7 @@ export default function AgentMonitoring() {
         await fetchJSON(
           `${CONFIG.API_BASE}/agent/monitoring/cancel`,
           { method: "POST", body: JSON.stringify({ job_id: jobId }) },
-          token
+          tokenRef.current
         );
       } catch (e: any) {
         alert(`Failed to cancel run: ${e.message || e}`);
@@ -208,7 +250,7 @@ export default function AgentMonitoring() {
 
   // poll current job only while we have a jobId
   React.useEffect(() => {
-    if (!jobId || !token) return;
+    if (!jobId || !tokenRef.current) return;
     let stopped = false;
     const done = (s: string) =>
       s === "succeeded" || s === "failed" || s === "cancelled";
@@ -220,7 +262,7 @@ export default function AgentMonitoring() {
             CONFIG.API_BASE
           }/agent/monitoring/status?job_id=${encodeURIComponent(jobId)}`,
           { method: "GET" },
-          token
+          tokenRef.current!
         );
         if (stopped) return;
 
@@ -244,7 +286,7 @@ export default function AgentMonitoring() {
       stopped = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobId, token]);
+  }, [jobId]);
 
   // Only render job info if it belongs to the CURRENT run
   const liveJob = job && jobId && job.job_id === jobId ? job : null;
