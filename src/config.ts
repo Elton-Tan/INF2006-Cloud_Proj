@@ -5,14 +5,14 @@ export const ASPECT_CONFIG = {
 };
 
 export const CONFIG = {
-  API_BASE: "https://d44acqkdpe03w.cloudfront.net",
+  API_BASE: "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev",
   WS_BASE: "https://d1n59ypscvrsxd.cloudfront.net/production",
 };
 
 export const COGNITO = {
   domain: "spirulina.auth.us-east-1.amazoncognito.com",
   clientId: "oh2vf9imle1l56nkk6fmkte0i",
-  redirectUri: "https://d29cblcrtk6lh8.cloudfront.net/",
+  redirectUri: "http://localhost:3000/",
   scopes: ["openid", "email"],
   useIdToken: true,
 };

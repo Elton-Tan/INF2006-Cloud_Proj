@@ -11,6 +11,7 @@ import WordsOfInterest from "./views/WordsOfInterest";
 import SocialListening from "./views/SocialListening";
 import SocialMediaRecommendation from "./views/SocialMediaRecommendation";
 import TopProductsDashboard from "./views/TopProductsDashboard"; // Add this import
+import AgentMonitoring from "./components/AgentMonitoring";
 
 /** Discriminated union so we can render a divider item cleanly */
 type NavLink = { type: "link"; key: string; label: string };
@@ -98,6 +99,7 @@ function DashboardShell() {
           <div className="hidden text-xs text-gray-500 sm:block">
             Prototype • v2
           </div>
+          {token && <AgentMonitoring />}
           {token && (
             <button
               onClick={doLogout}
