@@ -56,3 +56,8 @@ export type PlatformSentiment = {
   negative_pct: number;
   neutral_pct: number;
 };
+
+export const Q_EMBED = {
+  // Paste your Web experience "Deployed URL" (aka defaultEndpoint)
+  url: "https://zuddvmbg.chat.qbusiness.us-east-1.on.aws?code=f1e43a5b-fac1-4a99-84c1-60f3729a8f58",
+};

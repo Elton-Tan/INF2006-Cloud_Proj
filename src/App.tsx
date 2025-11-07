@@ -12,6 +12,7 @@ import SocialListening from "./views/SocialListening";
 import SocialMediaRecommendation from "./views/SocialMediaRecommendation";
 import TopProductsDashboard from "./views/TopProductsDashboard"; // Add this import
 import AgentMonitoring from "./components/AgentMonitoring";
+import QChatWidget from "./components/QChatWidget";
 
 /** Discriminated union so we can render a divider item cleanly */
 type NavLink = { type: "link"; key: string; label: string };
@@ -153,6 +154,7 @@ function DashboardShell() {
           {nav === "topProducts" && <TopProductsDashboard />}
         </main>
       </div>
+      <QChatWidget />
     </div>
   );
 }

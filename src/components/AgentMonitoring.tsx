@@ -4,6 +4,8 @@ import { CONFIG } from "../config";
 import { useAuth } from "../contexts";
 import ModalPortal from "./ModalPortal";
 
+/* ---------------- types ---------------- */
+
 type StepStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
 type StepInfo = {
   status: StepStatus;
@@ -19,6 +21,12 @@ type JobStatus = {
   ended_at?: string;
   steps: Record<string, StepInfo>;
   errors: Array<{ step: string; message: string }>;
+};
+
+type AgentPermission = {
+  id: number; // always 1
+  monitoring: boolean; // enable/disable agent monitoring
+  allows_action: boolean; // allow agent to act remotely
 };
 
 const ORDER: Array<keyof JobStatus["steps"]> = [
@@ -37,6 +45,7 @@ const STEP_NAME: Record<string, string> = {
 
 const LS_JOB = "agentMonitoring.job";
 const LS_ENABLED = "agentMonitoring.enabled";
+const LS_LAST_ACTION_CHECKED = "agentMonitoring.lastActionChecked";
 
 /* ---------------- helpers ---------------- */
 
@@ -58,7 +67,7 @@ function decodeExpSec(jwt?: string | null): number {
   }
 }
 
-// Centralized fetch with auth + 401/403 handling
+// Centralized fetch with optional auth + 401/403 handling
 async function fetchJSON(url: string, opts: RequestInit = {}, token?: string) {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -68,12 +77,11 @@ async function fetchJSON(url: string, opts: RequestInit = {}, token?: string) {
   if (opts.body && !headers["Content-Type"])
     headers["Content-Type"] = "application/json";
 
-  const resp = await fetch(url, { ...opts, headers });
+  const resp = await fetch(url, { ...opts, headers, credentials: "omit" });
   const text = await resp.text();
   const data = text ? JSON.parse(text) : {};
 
   if (resp.status === 401 || resp.status === 403) {
-    // signal app-wide “session expired”
     try {
       window.dispatchEvent(new CustomEvent("cognito.auth.expired"));
     } catch {}
@@ -117,19 +125,30 @@ export default function AgentMonitoring() {
     tokenRef.current = token || null;
   }, [token]);
 
+  // permission state (source of truth from DB)
+  const [perm, setPerm] = React.useState<AgentPermission | null>(null);
+
+  // UI / modal state
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [disableOpen, setDisableOpen] = React.useState(false);
   const [logOpen, setLogOpen] = React.useState(false);
 
+  // ops state
+  const [loadingPerm, setLoadingPerm] = React.useState(true);
+  const [savingPerm, setSavingPerm] = React.useState(false);
   const [starting, setStarting] = React.useState(false);
   const [cancelling, setCancelling] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
+  // job state
   const [jobId, setJobId] = React.useState<string | null>(null);
   const [job, setJob] = React.useState<JobStatus | null>(null);
   const [finalSnapshot, setFinalSnapshot] = React.useState<JobStatus | null>(
     null
   );
-  const [enabled, setEnabled] = React.useState<boolean>(false);
+
+  // visual “enabled” flag mirrors perm.monitoring for the pill/button
+  const enabled = !!perm?.monitoring;
 
   /**
    * Success timeline (manual close):
@@ -145,7 +164,21 @@ export default function AgentMonitoring() {
     tRef.current = null;
   };
 
-  // restore persisted state
+  // checkbox state inside the enable modal (persisted for convenience)
+  const [allowRemote, setAllowRemote] = React.useState<boolean>(() => {
+    try {
+      return localStorage.getItem(LS_LAST_ACTION_CHECKED) === "true";
+    } catch {
+      return false;
+    }
+  });
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(LS_LAST_ACTION_CHECKED, String(allowRemote));
+    } catch {}
+  }, [allowRemote]);
+
+  // restore persisted job id / enabled (legacy)
   React.useEffect(() => {
     try {
       const rawJob = localStorage.getItem(LS_JOB);
@@ -156,23 +189,19 @@ export default function AgentMonitoring() {
     } catch {}
     try {
       const rawEnabled = localStorage.getItem(LS_ENABLED);
-      if (rawEnabled != null) setEnabled(rawEnabled === "true");
+      if (rawEnabled != null) {
+        // DB is source of truth; kept to avoid UX flash only
+      }
     } catch {}
   }, []);
 
-  // persist state
+  // persist job id (just for UX)
   React.useEffect(() => {
     try {
       if (jobId) localStorage.setItem(LS_JOB, JSON.stringify({ jobId }));
       else localStorage.removeItem(LS_JOB);
     } catch {}
   }, [jobId]);
-
-  React.useEffect(() => {
-    try {
-      localStorage.setItem(LS_ENABLED, String(enabled));
-    } catch {}
-  }, [enabled]);
 
   // lock body when any modal opens
   const anyModalOpen = confirmOpen || disableOpen || logOpen;
@@ -184,15 +213,80 @@ export default function AgentMonitoring() {
     };
   }, [anyModalOpen]);
 
-  // start a run; also mark monitoring Enabled
+  /* ---------- permissions ---------- */
+
+  const loadPermission = React.useCallback(async () => {
+    setLoadingPerm(true);
+    setError(null);
+    try {
+      const r = await fetchJSON(
+        `${CONFIG.API_BASE}/agent/permission?id=1`,
+        { method: "GET" },
+        tokenRef.current || undefined
+      );
+
+      // Accept any of these shapes:
+      // 1) { item: { id, monitoring, allows_action } }
+      // 2) { items: [ { id, monitoring, allows_action }, ... ] }
+      // 3) { id, monitoring, allows_action }
+      const raw =
+        (r && r.item) ??
+        (Array.isArray(r?.items) ? r.items[0] : undefined) ??
+        r;
+
+      if (!raw || typeof raw !== "object") {
+        throw new Error("Malformed permission response");
+      }
+
+      const normalized: AgentPermission = {
+        id: Number((raw as any).id ?? 1),
+        monitoring: Boolean((raw as any).monitoring),
+        allows_action: Boolean((raw as any).allows_action),
+      };
+
+      setPerm(normalized);
+      setAllowRemote(normalized.allows_action);
+    } catch (e: any) {
+      setError(e?.message || String(e));
+    } finally {
+      setLoadingPerm(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadPermission();
+  }, [loadPermission]);
+
+  // update-only helper (forces Lambda's UPDATE path)
+  async function updatePermission(
+    monitoring: boolean,
+    allows_action: boolean,
+    token?: string
+  ) {
+    return fetchJSON(
+      `${CONFIG.API_BASE}/agent/permission`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          id: 1, // ← IMPORTANT: force UPDATE branch in your Lambda
+          monitoring,
+          allows_action,
+        }),
+      },
+      token
+    );
+  }
+
+  /* ---------- start: update DB → start job ---------- */
+
   const startMonitoring = async () => {
     const t = tokenRef.current;
+
     if (!t) {
       alert("You must be signed in to start monitoring.");
       return;
     }
-
-    // guard: don’t kick off with a near-expiry token (avoid “OK flash”)
+    // guard: don’t kick off with a near-expiry token
     const now = Math.floor(Date.now() / 1000);
     const exp = decodeExpSec(t);
     if (exp && exp - now < 30) {
@@ -201,9 +295,28 @@ export default function AgentMonitoring() {
       return;
     }
 
+    setSavingPerm(true);
+    try {
+      // 1) UPDATE singleton row id=1
+      await updatePermission(true, !!allowRemote, t);
+
+      // reflect immediately in UI
+      setPerm({ id: 1, monitoring: true, allows_action: !!allowRemote });
+      window.dispatchEvent(
+        new CustomEvent("agent.permission.updated", {
+          detail: { monitoring: true },
+        })
+      );
+      setConfirmOpen(false);
+    } catch (e: any) {
+      setSavingPerm(false);
+      alert(`Failed to enable permission: ${e?.message || e}`);
+      return;
+    }
+
+    // 2) Start job
     setStarting(true);
     try {
-      // HARD RESET to prevent stale "OK" flash but keep modal UX consistent
       clearTimer();
       setJob(null);
       setFinalSnapshot(null);
@@ -215,40 +328,58 @@ export default function AgentMonitoring() {
         t
       );
 
-      setEnabled(true);
       setJobId(r.job_id);
       setLogOpen(true);
-      setConfirmOpen(false);
     } catch (e: any) {
-      alert(`Failed to start: ${e.message || e}`);
+      alert(`Failed to start monitoring job: ${e?.message || e}`);
+      // Optional: rollback permission if start failed
+      // await updatePermission(false, false, t);
     } finally {
       setStarting(false);
+      setSavingPerm(false);
     }
   };
 
-  // request cancel (only affects an in-flight job), and Disables monitoring
+  /* ---------- disable: cancel job (if running) → update DB ---------- */
+
   const disableMonitoring = async () => {
     setDisableOpen(false);
-    setEnabled(false);
-    if (!jobId || !tokenRef.current) return;
-    const state = job?.status ?? "idle";
-    if (state === "running" || state === "queued") {
+
+    // 1) Cancel job if needed
+    if (jobId && (job?.status === "running" || job?.status === "queued")) {
       setCancelling(true);
       try {
         await fetchJSON(
           `${CONFIG.API_BASE}/agent/monitoring/cancel`,
           { method: "POST", body: JSON.stringify({ job_id: jobId }) },
-          tokenRef.current
+          tokenRef.current || undefined
         );
       } catch (e: any) {
-        alert(`Failed to cancel run: ${e.message || e}`);
+        alert(`Failed to cancel run: ${e?.message || e}`);
       } finally {
         setCancelling(false);
       }
     }
+
+    // 2) UPDATE singleton row id=1 to off/no-actions
+    setSavingPerm(true);
+    try {
+      await updatePermission(false, false, tokenRef.current || undefined);
+      setPerm({ id: 1, monitoring: false, allows_action: false });
+      window.dispatchEvent(
+        new CustomEvent("agent.permission.updated", {
+          detail: { monitoring: false },
+        })
+      );
+    } catch (e: any) {
+      alert(`Failed to disable monitoring: ${e?.message || e}`);
+    } finally {
+      setSavingPerm(false);
+    }
   };
 
-  // poll current job only while we have a jobId
+  /* ---------- status poll ---------- */
+
   React.useEffect(() => {
     if (!jobId || !tokenRef.current) return;
     let stopped = false;
@@ -288,31 +419,18 @@ export default function AgentMonitoring() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
-  // Only render job info if it belongs to the CURRENT run
-  const liveJob = job && jobId && job.job_id === jobId ? job : null;
-  const snapJob =
-    finalSnapshot && jobId && finalSnapshot.job_id === jobId
-      ? finalSnapshot
-      : null;
-  const effectiveJob: JobStatus | null = snapJob ?? liveJob;
+  /* ---------- success timeline ---------- */
 
-  const steps = effectiveJob?.steps || {};
+  const steps = (finalSnapshot ?? job)?.steps || {};
   const allSucceeded =
     ORDER.length > 0 && ORDER.every((k) => steps[k]?.status === "succeeded");
 
-  /* ---- CHAINED TIMELINE (manual close) ----
-     1 -> (immediately) 2 (Consolidating…), hold 3s, then 3 (All OK).
-     No auto-close; Close button appears at phase 3.
-  */
-
-  // 1 -> 2 (immediately show consolidating)
+  // 1 -> 2 immediately
   React.useEffect(() => {
-    if (allSucceeded && scriptPhase === 1) {
-      setScriptPhase(2);
-    }
+    if (allSucceeded && scriptPhase === 1) setScriptPhase(2);
   }, [allSucceeded, scriptPhase]);
 
-  // 2 -> 3 after 3000ms (keep "consolidating" visible for ~3s)
+  // 2 -> 3 after 3s
   React.useEffect(() => {
     if (!(allSucceeded && scriptPhase === 2)) return;
     clearTimer();
@@ -322,7 +440,7 @@ export default function AgentMonitoring() {
     return clearTimer;
   }, [allSucceeded, scriptPhase]);
 
-  // If success state disappears (new run/cancel/fail), reset timeline + timer
+  // reset timeline if success disappears
   React.useEffect(() => {
     if (!allSucceeded && scriptPhase !== 0) {
       clearTimer();
@@ -337,6 +455,7 @@ export default function AgentMonitoring() {
   ORDER.forEach((key) => {
     const s = steps[key]?.status as StepStatus | undefined;
     const name = STEP_NAME[key] || key;
+
     if (!s || s === "queued" || s === "running") {
       lines.push({
         id: `${key}-retr`,
@@ -374,22 +493,22 @@ export default function AgentMonitoring() {
   if (allSucceeded) {
     if (scriptPhase >= 1) {
       lines.push({
-        id: `review-1`,
-        text: `Consolidating live data with static data…`,
+        id: "review-1",
+        text: "Consolidating live data with static data…",
         kind: "info",
       });
     }
     if (scriptPhase >= 2) {
       lines.push({
-        id: `review-2`,
-        text: `Agent is re-reviewing it's new knowledge base…`,
+        id: "review-2",
+        text: "Agent is re-reviewing its new knowledge base…",
         kind: "info",
       });
     }
     if (scriptPhase >= 3) {
       lines.push({
-        id: `review-3`,
-        text: `All OK — your dashboard is now monitored. You may close this window.`,
+        id: "review-3",
+        text: "All OK — your dashboard is now monitored. You may close this window.",
         kind: "ok",
       });
     }
@@ -404,13 +523,12 @@ export default function AgentMonitoring() {
   }, [lines.length]);
 
   const overall =
-    effectiveJob?.status ?? (jobId ? "queued" : enabled ? "idle" : "idle");
-
+    (finalSnapshot ?? job)?.status ??
+    (jobId ? "queued" : enabled ? "idle" : "idle");
   const canCancel =
-    (effectiveJob?.status === "running" || effectiveJob?.status === "queued") &&
+    ((finalSnapshot ?? job)?.status === "running" ||
+      (finalSnapshot ?? job)?.status === "queued") &&
     !!jobId;
-
-  // Close allowed only on failure/cancel/idle OR after All OK (phase 3)
   const canClose =
     overall === "failed" ||
     overall === "cancelled" ||
@@ -429,18 +547,27 @@ export default function AgentMonitoring() {
       {/* Header controls */}
       <div className="flex items-center gap-2">
         <StatusPill active={enabled} />
+        {loadingPerm && (
+          <span className="text-xs text-gray-600">Loading permission…</span>
+        )}
+        {error && (
+          <span className={toneClass("fail") + " text-xs"}>Error: {error}</span>
+        )}
+
         {!enabled ? (
           <button
             onClick={() => setConfirmOpen(true)}
-            className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
-            title="Start agent monitoring"
+            className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50 disabled:opacity-60"
+            disabled={loadingPerm || savingPerm}
+            title="Enable agent monitoring"
           >
             Enable monitoring
           </button>
         ) : (
           <button
             onClick={() => setDisableOpen(true)}
-            className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+            className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50 disabled:opacity-60"
+            disabled={savingPerm}
             title="Disable agent monitoring"
           >
             Disable monitoring
@@ -448,37 +575,68 @@ export default function AgentMonitoring() {
         )}
       </div>
 
-      {/* Enable confirm */}
+      {/* Current state line */}
+      <div className="mt-2 text-xs text-gray-600">
+        {perm ? (
+          <>
+            <span>Monitoring: {perm.monitoring ? "On" : "Off"}</span>
+            <span className="mx-2">•</span>
+            <span>
+              Allow remote actions: {perm.allows_action ? "Yes" : "No"}
+            </span>
+          </>
+        ) : (
+          <span className="text-gray-500">No data loaded yet.</span>
+        )}
+      </div>
+
+      {/* Enable modal with a single checkbox */}
       {confirmOpen && (
         <ModalPortal>
           <div className="fixed inset-0 z-[9999] bg-black/40" />
           <div className="fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-sm max-h-[80vh] overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
             <div className="mb-2 text-lg font-semibold">Enable monitoring?</div>
             <p className="mb-4 text-sm text-gray-600">
-              You will be giving the agent permission to review and access the
-              information of your dashboard. The agent may also choose to
-              execute actions on your behalf. Do you wish to proceed?
+              You’ll enable the agent to review and keep your dashboard updated.
+              You can also allow the agent to act remotely on your behalf.
             </p>
+
+            <label className="flex items-start gap-2 mb-4">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={allowRemote}
+                onChange={(e) => setAllowRemote(e.target.checked)}
+              />
+              <span className="text-sm text-gray-800">
+                Allow agent to act remotely
+                <span className="block text-xs text-gray-500">
+                  If unchecked, the agent will not execute any actions.
+                </span>
+              </span>
+            </label>
+
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setConfirmOpen(false)}
                 className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                disabled={savingPerm || starting}
               >
                 Cancel
               </button>
               <button
                 onClick={startMonitoring}
-                disabled={starting}
+                disabled={savingPerm || starting}
                 className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-60"
               >
-                {starting ? "Starting…" : "Yes, enable"}
+                {savingPerm || starting ? "Saving…" : "OK"}
               </button>
             </div>
           </div>
         </ModalPortal>
       )}
 
-      {/* Disable confirm */}
+      {/* Disable confirm modal */}
       {disableOpen && (
         <ModalPortal>
           <div className="fixed inset-0 z-[9999] bg-black/40" />
@@ -487,22 +645,23 @@ export default function AgentMonitoring() {
               Disable monitoring?
             </div>
             <p className="mb-4 text-sm text-gray-600">
-              This will stop keeping the agent active. If a job is running, a
-              cancel request will be sent.
+              This will turn off monitoring and disallow any remote actions. If
+              a job is currently running, a cancel request will be sent first.
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setDisableOpen(false)}
                 className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                disabled={savingPerm || cancelling}
               >
                 Keep enabled
               </button>
               <button
                 onClick={disableMonitoring}
-                disabled={cancelling}
+                disabled={savingPerm || cancelling}
                 className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-60"
               >
-                {cancelling ? "Stopping…" : "Yes, disable"}
+                {savingPerm || cancelling ? "Stopping…" : "Yes, disable"}
               </button>
             </div>
           </div>
@@ -517,11 +676,13 @@ export default function AgentMonitoring() {
             <div className="p-5 pb-3 border-b flex items-center justify-between">
               <div className="text-lg font-semibold">
                 Agent Monitoring{" "}
-                {effectiveJob?.job_id ? `• ${effectiveJob.job_id}` : ""}
+                {(finalSnapshot ?? job)?.job_id
+                  ? `• ${(finalSnapshot ?? job)!.job_id}`
+                  : ""}
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded-full border px-2 py-0.5 text-xs text-gray-700 bg-gray-50 border-gray-200">
-                  Overall: {effectiveJob?.status ?? "idle"}
+                  Overall: {(finalSnapshot ?? job)?.status ?? "idle"}
                 </span>
                 {canClose && (
                   <button
@@ -551,9 +712,10 @@ export default function AgentMonitoring() {
 
             <div className="px-5 pb-5 pt-3 border-t flex items-center justify-between">
               <div className="text-xs text-gray-500">
-                {effectiveJob?.started_at &&
-                  `Started ${effectiveJob.started_at}`}
-                {effectiveJob?.ended_at && ` • Ended ${effectiveJob.ended_at}`}
+                {(finalSnapshot ?? job)?.started_at &&
+                  `Started ${(finalSnapshot ?? job)!.started_at}`}
+                {(finalSnapshot ?? job)?.ended_at &&
+                  ` • Ended ${(finalSnapshot ?? job)!.ended_at}`}
               </div>
               <div className="flex items-center gap-2">
                 {canCancel && (
@@ -567,9 +729,9 @@ export default function AgentMonitoring() {
                 <button
                   onClick={clearLog}
                   className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
-                  disabled={!effectiveJob && scriptPhase === 0}
+                  disabled={!job && !finalSnapshot && scriptPhase === 0}
                   title={
-                    !effectiveJob && scriptPhase === 0
+                    !job && !finalSnapshot && scriptPhase === 0
                       ? "No log to clear"
                       : "Clear current log view"
                   }
