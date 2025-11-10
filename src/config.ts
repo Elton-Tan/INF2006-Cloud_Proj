@@ -7,6 +7,7 @@ export const ASPECT_CONFIG = {
 export const CONFIG = {
   API_BASE: "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev",
   WS_BASE: "https://d1n59ypscvrsxd.cloudfront.net/production",
+  Q_URL: "https://su9taxgq.chat.qbusiness.us-east-1.on.aws/",
 };
 
 export const COGNITO = {
