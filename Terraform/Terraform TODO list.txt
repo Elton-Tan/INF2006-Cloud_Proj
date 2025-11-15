@@ -1,0 +1,54 @@
+Terraform TODO list
+=========================================
+Lambda
+set-agent-permission
+layer: spirulina-MySQL
+ENV VAR:
+DB_SECRET: RDS secret
+REGION: us-east-1
+
+-------------------------------
+agent_monitoring_api
+ENV VAR
+COGNITO_OAUTH_SECRET_ARN (create in secret)
+JOBS_QUEUE_URL (create in SQS and link)
+JOBS_TABLE (created un DynamoDB)
+
+--------------------------------
+get-agent-permission
+ENV VAR:
+DB_NAME_KEY: spirulinadb
+DB_SECRET_ARN: (RDS SECRET)
+REGION: us-east-1
+
+--------------------------------
+agentic-flow
+ENV VAR:
+GEMINI_SECRET_ARN: (gemini secret)
+IMAGE_BUCKET: (set image bucket terraform)
+IMAGE_MODEL_ID: amazon.titan-image-generator-v2:0
+KB_ID: (set up bedrock in Terraform - linked to knowledge base)
+KB_MODEL_ARN: arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-text-express-v1
+OUTPUT_BUCKET: (set via terraform)
+
+-----------------------------------
+agent-worker
+ENV VAR
+API_BASE: (api base of gateway)
+JOBS_TABLE: AgentJobs
+PURGE_BEFORE_WRITE: True
+S3_BUCKET: (set S3 bucket knowledge base via Terraform)
+S3_PREFIX: env/prod
+WS_API_URL: (web socket url via terraform)
+
+---------------------------------------
+Other services as inferred:
+Link bedrock agent to S3 knowledge base via terraform
+SQS for agent_monitoring_api
+
+API gateway for each of the created lambda
+------------------------
+/agent/permission GET
+/agent/monitoring/start POST
+/agent/status GET
+(which lambda tointegrate with is easily identified from the naming)
