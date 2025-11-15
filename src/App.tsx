@@ -13,6 +13,7 @@ import SocialMediaRecommendation from "./views/SocialMediaRecommendation";
 import TopProductsDashboard from "./views/TopProductsDashboard"; // Add this import
 import AgentMonitoring from "./components/AgentMonitoring";
 import QChatWidget from "./components/QChatWidget";
+import CreateAd from "./components/CreateAd";
 
 /** Discriminated union so we can render a divider item cleanly */
 type NavLink = { type: "link"; key: string; label: string };
@@ -27,6 +28,7 @@ const NAV: readonly NavItem[] = [
   { type: "link", key: "listening", label: "Social Listening" },
   { type: "link", key: "words", label: "Words of Interest" },
   { type: "link", key: "snapshot", label: "Product Watchlist" },
+  { type: "link", key: "ad", label: "Create Ad" },
 
   { type: "divider", label: "Historical & Offline Analysis" },
 
@@ -146,6 +148,7 @@ function DashboardShell() {
           {nav === "batch" && <BatchAnalytics />}
           {nav === "snapshot" && <Snapshotter />}
           {nav === "words" && <WordsOfInterest />}
+          {nav === "ad" && <CreateAd />}
 
           {/* Social Media Analysis section */}
           {nav === "social" && <SocialMediaRecommendation />}
