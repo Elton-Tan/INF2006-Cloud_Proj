@@ -45,3 +45,9 @@ eventbridge_rule_names = [
   "spirulina-train-daily",
   "spirulina-trend-daily"
 ]
+
+rds_secret_arn = "arn:aws:secretsmanager:us-east-1:063331379930:secret:spirulina/db-FPuMQT"
+
+private_subnet_ids = ["subnet-0f4c643307c8f2687", "subnet-0af43a4539acfddcb"]
+
+lambda_security_group_ids = ["sg-0b9b0b16700e6e65f"]
