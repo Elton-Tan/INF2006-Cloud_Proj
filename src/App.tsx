@@ -151,7 +151,7 @@ function DashboardShell() {
           {nav === "snapshot" && <Snapshotter />}
           {nav === "words" && <WordsOfInterest />}
           {nav === "ad" && <CreateAd />}
-
+  
           {/* Social Media Analysis section */}
           {nav === "social" && <SocialMediaRecommendation />}
 
