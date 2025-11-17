@@ -10,10 +10,11 @@ import { doLogout } from "./utils";
 import WordsOfInterest from "./views/WordsOfInterest";
 import SocialListening from "./views/SocialListening";
 import SocialMediaRecommendation from "./views/SocialMediaRecommendation";
-import TopProductsDashboard from "./views/TopProductsDashboard"; // Add this import
+import TopProductsDashboard from "./views/TopProductsDashboard"; 
 import AgentMonitoring from "./components/AgentMonitoring";
 import QChatWidget from "./components/QChatWidget";
 import CreateAd from "./components/CreateAd";
+import RealTimeAlerts from "./views/RealTimeAlerts";
 
 /** Discriminated union so we can render a divider item cleanly */
 type NavLink = { type: "link"; key: string; label: string };
@@ -23,7 +24,7 @@ type NavItem = NavLink | NavDivider;
 const NAV: readonly NavItem[] = [
   // New top divider for the live/interactive area
   { type: "divider", label: "Live Data & Settings" },
-
+  
   { type: "link", key: "live", label: "Alerts & Trends" },
   { type: "link", key: "listening", label: "Social Listening" },
   { type: "link", key: "words", label: "Words of Interest" },
@@ -35,6 +36,7 @@ const NAV: readonly NavItem[] = [
   { type: "link", key: "batch", label: "Keywords Analysis" },
   { type: "link", key: "social", label: "Social Media Analysis" },
   { type: "link", key: "topProducts", label: "Top Products Dashboard" },
+  { type: "link", key: "alerts", label: "Real-Time Alerts"},
 ] as const;
 
 type NavKey = Extract<NavItem, { type: "link" }>["key"];
@@ -153,8 +155,8 @@ function DashboardShell() {
           {/* Social Media Analysis section */}
           {nav === "social" && <SocialMediaRecommendation />}
 
-          {/* Top Products Dashboard - Add this section */}
           {nav === "topProducts" && <TopProductsDashboard />}
+          {nav === "alerts" && <RealTimeAlerts />}
         </main>
       </div>
       <QChatWidget />
