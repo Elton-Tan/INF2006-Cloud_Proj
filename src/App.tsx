@@ -30,13 +30,13 @@ const NAV: readonly NavItem[] = [
   { type: "link", key: "words", label: "Words of Interest" },
   { type: "link", key: "snapshot", label: "Product Watchlist" },
   { type: "link", key: "ad", label: "Create Ad" },
+    { type: "link", key: "alerts", label: "Real-Time Alerts"},
 
   { type: "divider", label: "Historical & Offline Analysis" },
 
   { type: "link", key: "batch", label: "Keywords Analysis" },
   { type: "link", key: "social", label: "Social Media Analysis" },
   { type: "link", key: "topProducts", label: "Top Products Dashboard" },
-  { type: "link", key: "alerts", label: "Real-Time Alerts"},
 ] as const;
 
 type NavKey = Extract<NavItem, { type: "link" }>["key"];
