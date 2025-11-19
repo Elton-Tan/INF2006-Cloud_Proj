@@ -4,7 +4,7 @@ import { useAuth } from "../contexts";
 
 // IMPORTANT: Replace this with your actual API Gateway URL
 // Find it in: API Gateway Console > Your API > Stages > Invoke URL
-const API_BASE_URL = "arn:aws:apigateway:us-east-1::/apis/sa0cp2a3r8/routes/p2d7f78";
+const API_BASE_URL = "https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev";
 
 type AlertType = "stockout" | "price_jump" | "trend_spike";
 type AlertSeverity = "critical" | "warning" | "info";
