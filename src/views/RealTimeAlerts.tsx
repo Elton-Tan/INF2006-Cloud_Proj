@@ -2,6 +2,10 @@
 import React from "react";
 import { useAuth } from "../contexts";
 
+// IMPORTANT: Replace this with your actual API Gateway URL
+// Find it in: API Gateway Console > Your API > Stages > Invoke URL
+const API_BASE_URL = "https://YOUR-API-ID.execute-api.YOUR-REGION.amazonaws.com/dev";
+
 type AlertType = "stockout" | "price_jump" | "trend_spike";
 type AlertSeverity = "critical" | "warning" | "info";
 
@@ -52,13 +56,18 @@ export default function RealTimeAlerts() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/alerts/live", {
+      // Use the full API Gateway URL
+      const response = await fetch(`${API_BASE_URL}/api/alerts/live`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      if (!response.ok) throw new Error("Failed to fetch alerts");
+      if (!response.ok) {
+        console.error("API Error:", response.status, response.statusText);
+        throw new Error("Failed to fetch alerts");
+      }
       
       const data = await response.json();
+      console.log("Loaded alerts:", data); // Debug log
       setAlerts(data.alerts || []);
       setStats(data.stats || stats);
     } catch (err) {
@@ -78,7 +87,7 @@ export default function RealTimeAlerts() {
 
   const markAsRead = async (alertId: string) => {
     try {
-      const response = await fetch(`/api/alerts/${alertId}/read`, {
+      const response = await fetch(`${API_BASE_URL}/api/alerts/${alertId}/read`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -97,7 +106,7 @@ export default function RealTimeAlerts() {
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch("/api/alerts/mark-all-read", {
+      const response = await fetch(`${API_BASE_URL}/api/alerts/mark-all-read`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
