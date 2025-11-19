@@ -12,9 +12,23 @@ type AgentPermission = {
   allows_action: boolean;
 };
 
+type SocialResult = {
+  status: "success" | "error" | "skipped";
+  reason?: string;
+  error?: string;
+  permalink?: string;
+  post_id?: string;
+  media_id?: string;
+};
+
+type PublishResult = {
+  facebook?: SocialResult;
+  instagram?: SocialResult;
+};
+
 const IMAGE_KEYS: Record<CampaignType, string> = {
-  cream: "Spirulina Cream.jpg", // key1 in your input bucket
-  lotion: "Spirulina Lotion.jpg", // key2 in your input bucket
+  cream: "Spirulina Cream.jpg",
+  lotion: "Spirulina Lotion.jpg",
 };
 
 const DEFAULT_PRODUCT_QUERY: Record<CampaignType, string> = {
@@ -28,25 +42,27 @@ export default function CreateAd() {
   const { token } = useAuth();
 
   const [campaignType, setCampaignType] = React.useState<CampaignType>("cream");
-  const [imageSource, setImageSource] = React.useState<ImageSource>("ai"); // NEW
+  const [imageSource, setImageSource] = React.useState<ImageSource>("ai");
   const [slogan, setSlogan] = React.useState("");
+  const [hashtag, setHashtag] = React.useState("");
   const [customPrompt, setCustomPrompt] = React.useState(
     "Lifestyle shot on a bathroom counter with soft morning light"
   );
   const [loading, setLoading] = React.useState(false);
+  const [publishing, setPublishing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [publishResult, setPublishResult] =
+    React.useState<PublishResult | null>(null);
   const [lastImageInfo, setLastImageInfo] = React.useState<{
     bucket: string;
     key: string;
   } | null>(null);
 
-  // for uploaded image
   const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
   const [uploadedPreview, setUploadedPreview] = React.useState<string | null>(
     null
   );
 
-  // ----- permission state (copied from QChatWidget pattern) -----
   const [permLoaded, setPermLoaded] = React.useState(false);
   const [monitoringAllowed, setMonitoringAllowed] = React.useState(false);
 
@@ -55,73 +71,11 @@ export default function CreateAd() {
     []
   );
 
-  const fetchJSON = React.useCallback(
-    async (
-      url: string,
-      init: RequestInit = {},
-      withAuth = false,
-      signal?: AbortSignal
-    ) => {
-      const headers: Record<string, string> = {
-        Accept: "application/json",
-        ...(init.headers as Record<string, string> | undefined),
-      };
-      if (withAuth && token) headers.Authorization = `Bearer ${token}`;
-      if (init.body && !headers["Content-Type"]) {
-        headers["Content-Type"] = "application/json";
-      }
-
-      const resp = await fetch(url, { ...init, headers, signal });
-      const text = await resp.text();
-      const data = text ? JSON.parse(text) : {};
-      if (resp.status === 401 || resp.status === 403) {
-        throw new Error("Unauthorized.");
-      }
-      if (!resp.ok) {
-        throw new Error(data?.error || `HTTP ${resp.status}`);
-      }
-      return data;
-    },
-    [token]
-  );
-
-  const parsePermission = React.useCallback(
-    (r: any): AgentPermission | null => {
-      const raw =
-        (r && r.item) ??
-        (Array.isArray(r?.items)
-          ? r.items.find((x: any) => Number(x?.id) === 1) ?? r.items[0]
-          : undefined) ??
-        r;
-
-      if (!raw || typeof raw !== "object") return null;
-      return {
-        id: Number(raw.id ?? 1),
-        monitoring: Boolean(raw.monitoring),
-        allows_action: Boolean(raw.allows_action),
-      };
-    },
-    []
-  );
-
-  const loadPermission = React.useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const r = await fetchJSON(
-          permissionEndpoint,
-          { method: "GET" },
-          true,
-          signal
-        );
-        const perm = parsePermission(r);
-        setMonitoringAllowed(Boolean(perm?.monitoring));
-      } catch {
-        setMonitoringAllowed(false);
-      } finally {
-        setPermLoaded(true);
-      }
-    },
-    [fetchJSON, parsePermission, permissionEndpoint]
+  const { fetchJSON, loadPermission } = usePermissionHelpers(
+    token,
+    permissionEndpoint,
+    setMonitoringAllowed,
+    setPermLoaded
   );
 
   // initial permission load
@@ -167,7 +121,7 @@ export default function CreateAd() {
     if (uploadedPreview) URL.revokeObjectURL(uploadedPreview);
     const url = URL.createObjectURL(file);
     setUploadedPreview(url);
-    setLastImageInfo(null); // clear any previous AI image meta
+    setLastImageInfo(null);
   };
 
   const handleGenerate = async () => {
@@ -176,13 +130,15 @@ export default function CreateAd() {
         !isLoggedIn
           ? "You must be logged in to generate an AI image."
           : imageSource !== "ai"
-          ? "Switch to 'Use AI image' to generate an AI image."
+          ? "Switch to 'Use AI-generated image' to generate an AI image."
           : "AI generation is currently disabled by admin."
       );
       return;
     }
 
     setLoading(true);
+    setPublishing(false);
+    setPublishResult(null);
     setError(null);
 
     const image_key = IMAGE_KEYS[campaignType];
@@ -209,16 +165,14 @@ export default function CreateAd() {
 
       const data = await res.json();
 
-      // Expecting { slogan, output_bucket, output_key }
-      if (data.slogan) {
-        setSlogan(data.slogan);
-      }
+      if (data.slogan) setSlogan(data.slogan);
+      if (data.hashtag) setHashtag(data.hashtag);
+
       if (data.output_bucket && data.output_key) {
         setLastImageInfo({
           bucket: data.output_bucket,
           key: data.output_key,
         });
-        // when AI is used, clear any uploaded preview
         if (uploadedPreview) URL.revokeObjectURL(uploadedPreview);
         setUploadedPreview(null);
         setUploadedFile(null);
@@ -231,24 +185,61 @@ export default function CreateAd() {
     }
   };
 
-  // AI image preview URL (from S3)
+  // ---- Publish to Facebook & Instagram (/ad Lambda) ----
+  const canPublish = isLoggedIn && !!lastImageInfo && !!slogan && !publishing;
+
+  const handlePublish = async () => {
+    if (!canPublish || !lastImageInfo) return;
+
+    setPublishing(true);
+    setError(null);
+    setPublishResult(null);
+
+    const trimmedHashtag = hashtag.trim();
+    const caption = (slogan + " " + trimmedHashtag).trim();
+
+    try {
+      const data = await fetchJSON(
+        `${apiBase}/ad`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            slogan: caption,
+            image_bucket: lastImageInfo.bucket,
+            image_key: lastImageInfo.key,
+          }),
+        },
+        true
+      );
+
+      setPublishResult(data as PublishResult);
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message || "Failed to post to social media");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const aiImageUrl =
     lastImageInfo &&
     `https://${lastImageInfo.bucket}.s3.amazonaws.com/${lastImageInfo.key}`;
 
-  // decide which image preview to show
   const showUploadedPreview =
     imageSource === "upload" && uploadedPreview !== null;
   const showAIPreview = imageSource === "ai" && aiImageUrl;
 
+  const fbResult = publishResult?.facebook;
+  const igResult = publishResult?.instagram;
+
   return (
     <div className="bg-white shadow rounded-xl p-6 space-y-4">
-      <h2 className="text-xl font-semibold mb-2">Create Ad</h2>
+      <h2 className="text-xl font-semibold mb-2">Create Social Media Post</h2>
 
       {/* Campaign type selector */}
       <div className="space-y-1">
         <label className="block text-sm font-medium text-gray-700">
-          Generate Ad for
+          Generate Post for
         </label>
         <select
           value={campaignType}
@@ -324,22 +315,36 @@ export default function CreateAd() {
         </div>
       )}
 
-      {/* Slogan field (user can type or overwritten by AI) */}
+      {/* Slogan field */}
       <div className="space-y-1">
         <label className="block text-sm font-medium text-gray-700">
-          Slogan
+          Post Description
         </label>
         <textarea
           value={slogan}
           onChange={(e) => setSlogan(e.target.value)}
           rows={2}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-          placeholder="Type your own slogan, or click Generate to fill this with AI"
+          placeholder="Type your own post description, or click Generate to fill this with AI"
         />
       </div>
 
-      {/* Generate button (AI only) */}
-      <div className="flex items-center gap-3">
+      {/* Hashtag field */}
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">
+          Hashtag
+        </label>
+        <input
+          type="text"
+          value={hashtag}
+          onChange={(e) => setHashtag(e.target.value)}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+          placeholder="Type your own hashtag (e.g. #SkinCare) or let AI suggest one"
+        />
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={handleGenerate}
@@ -350,12 +355,25 @@ export default function CreateAd() {
               : "bg-sky-600 hover:bg-sky-700"
           }`}
         >
-          {loading ? "Generating…" : "Generate AI image & slogan"}
+          {loading ? "Generating…" : "Generate AI image, slogan & hashtag"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handlePublish}
+          disabled={!canPublish}
+          className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white ${
+            !canPublish
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-emerald-600 hover:bg-emerald-700"
+          }`}
+        >
+          {publishing ? "Posting…" : "Post to Facebook & Instagram"}
         </button>
 
         {!isLoggedIn && (
           <span className="text-xs text-red-500">
-            Please log in to use AI generation.
+            Please log in to use AI generation and posting.
           </span>
         )}
         {isLoggedIn &&
@@ -369,7 +387,7 @@ export default function CreateAd() {
         {imageSource === "upload" && (
           <span className="text-xs text-gray-500">
             Using uploaded image. Switch back to &quot;Use AI-generated
-            image&quot; if you want AI to create the visual.
+            image&quot; to generate a new visual and post it automatically.
           </span>
         )}
       </div>
@@ -378,6 +396,49 @@ export default function CreateAd() {
       {error && (
         <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
           {error}
+        </div>
+      )}
+
+      {/* Simple social status display */}
+      {publishResult && (
+        <div className="space-y-2 text-sm">
+          {/* Facebook */}
+          {fbResult && (
+            <div
+              className={`px-3 py-2 rounded-md border ${
+                fbResult.status === "success"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : fbResult.status === "error"
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            >
+              {fbResult.status === "success" &&
+                "Posted to Facebook successfully."}
+              {fbResult.status === "error" && "Failed to post to Facebook."}
+              {fbResult.status === "skipped" &&
+                "Skipped posting to Facebook (configuration not set)."}
+            </div>
+          )}
+
+          {/* Instagram */}
+          {igResult && (
+            <div
+              className={`px-3 py-2 rounded-md border ${
+                igResult.status === "success"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : igResult.status === "error"
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }`}
+            >
+              {igResult.status === "success" &&
+                "Posted to Instagram successfully."}
+              {igResult.status === "error" && "Failed to post to Instagram."}
+              {igResult.status === "skipped" &&
+                "Skipped posting to Instagram (configuration not set)."}
+            </div>
+          )}
         </div>
       )}
 
@@ -403,4 +464,87 @@ export default function CreateAd() {
       )}
     </div>
   );
+}
+
+/**
+ * Tiny helper hook to keep the top component readable
+ */
+function usePermissionHelpers(
+  token: string | null,
+  permissionEndpoint: string,
+  setMonitoringAllowed: (v: boolean) => void,
+  setPermLoaded: (v: boolean) => void
+) {
+  const fetchJSON = React.useCallback(
+    async (
+      url: string,
+      init: RequestInit = {},
+      withAuth = false,
+      signal?: AbortSignal
+    ) => {
+      const headers: Record<string, string> = {
+        Accept: "application/json",
+        ...(init.headers as Record<string, string> | undefined),
+      };
+      if (withAuth && token) headers.Authorization = `Bearer ${token}`;
+      if (init.body && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      const resp = await fetch(url, { ...init, headers, signal });
+      const text = await resp.text();
+      const data = text ? JSON.parse(text) : {};
+      if (resp.status === 401 || resp.status === 403) {
+        throw new Error("Unauthorized.");
+      }
+      if (!resp.ok) {
+        throw new Error(data?.error || `HTTP ${resp.status}`);
+      }
+      return data;
+    },
+    [token]
+  );
+
+  const parsePermission = React.useCallback((r: any) => {
+    const raw =
+      (r && r.item) ??
+      (Array.isArray(r?.items)
+        ? r.items.find((x: any) => Number(x?.id) === 1) ?? r.items[0]
+        : undefined) ??
+      r;
+    if (!raw || typeof raw !== "object") return null;
+    return {
+      id: Number(raw.id ?? 1),
+      monitoring: Boolean(raw.monitoring),
+      allows_action: Boolean(raw.allows_action),
+    } as AgentPermission;
+  }, []);
+
+  const loadPermission = React.useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const r = await fetchJSON(
+          permissionEndpoint,
+          { method: "GET" },
+          true,
+          signal
+        );
+        const perm = parsePermission(r);
+        setMonitoringAllowed(Boolean(perm?.monitoring));
+      } catch {
+        setMonitoringAllowed(false);
+      } finally {
+        setPermLoaded(true);
+      }
+    },
+    [
+      fetchJSON,
+      parsePermission,
+      permissionEndpoint,
+      setMonitoringAllowed,
+      setPermLoaded,
+    ]
+  );
+
+  return { fetchJSON, loadPermission };
 }

@@ -1,0 +1,55 @@
+#!/bin/bash
+# Plan only agent resources - excludes deleted ALB, NAT, etc.
+
+terraform plan \
+  -target=aws_iam_role.bedrock_kb_role \
+  -target=aws_iam_role_policy.bedrock_kb_policy \
+  -target=aws_opensearchserverless_security_policy.agent_kb_encryption \
+  -target=aws_opensearchserverless_security_policy.agent_kb_network \
+  -target=aws_opensearchserverless_access_policy.agent_kb_data_access \
+  -target=aws_opensearchserverless_collection.agent_kb_collection \
+  -target=aws_s3_bucket.agent_knowledge_base \
+  -target=aws_s3_bucket_versioning.agent_knowledge_base \
+  -target=aws_s3_bucket.agent_images_input \
+  -target=aws_s3_bucket.agent_images_output \
+  -target=aws_s3_bucket_cors_configuration.agent_images_output \
+  -target=aws_bedrockagent_knowledge_base.agent_kb \
+  -target=aws_bedrockagent_data_source.agent_kb_s3_source \
+  -target=aws_dynamodb_table.agent_jobs \
+  -target=aws_sqs_queue.agent_jobs_queue \
+  -target=aws_sqs_queue.agent_jobs_dlq \
+  -target=aws_sqs_queue_redrive_policy.agent_jobs_queue_redrive \
+  -target=aws_secretsmanager_secret.gemini_api_key \
+  -target=aws_secretsmanager_secret_version.gemini_api_key \
+  -target=aws_secretsmanager_secret.cognito_oauth \
+  -target=aws_secretsmanager_secret_version.cognito_oauth \
+  -target=aws_iam_role.agent_lambda_role \
+  -target=aws_iam_role_policy_attachment.agent_lambda_basic \
+  -target=aws_iam_role_policy_attachment.agent_lambda_vpc \
+  -target=aws_iam_role_policy.agent_lambda_permissions \
+  -target=aws_lambda_function.set_agent_permission \
+  -target=aws_cloudwatch_log_group.set_agent_permission \
+  -target=aws_lambda_function.get_agent_permission \
+  -target=aws_cloudwatch_log_group.get_agent_permission \
+  -target=aws_lambda_function.agent_monitoring_api \
+  -target=aws_cloudwatch_log_group.agent_monitoring_api \
+  -target=aws_lambda_function.agentic_flow \
+  -target=aws_cloudwatch_log_group.agentic_flow \
+  -target=aws_lambda_function.agent_worker \
+  -target=aws_cloudwatch_log_group.agent_worker \
+  -target=aws_lambda_event_source_mapping.agent_worker_sqs \
+  -target=aws_apigatewayv2_integration.get_agent_permission \
+  -target=aws_apigatewayv2_route.get_agent_permission \
+  -target=aws_lambda_permission.get_agent_permission_apigw \
+  -target=aws_apigatewayv2_integration.set_agent_permission \
+  -target=aws_apigatewayv2_route.set_agent_permission \
+  -target=aws_lambda_permission.set_agent_permission_apigw \
+  -target=aws_apigatewayv2_integration.agent_monitoring_start \
+  -target=aws_apigatewayv2_route.agent_monitoring_start \
+  -target=aws_lambda_permission.agent_monitoring_start_apigw \
+  -target=aws_apigatewayv2_integration.agent_status \
+  -target=aws_apigatewayv2_route.agent_status \
+  -target=aws_apigatewayv2_integration.agentic_flow \
+  -target=aws_apigatewayv2_route.agentic_flow \
+  -target=aws_lambda_permission.agentic_flow_apigw \
+  -out=agent_only.tfplan

@@ -166,20 +166,6 @@ resource "aws_apigatewayv2_route" "public" {
 locals {
   # Function names for permissions
   lambda_permissions = {
-<<<<<<< HEAD
-    enqueue               = aws_lambda_function.enqueue.function_name
-    watchlist_read        = aws_lambda_function.watchlist_read.function_name
-    delete_watchlist      = aws_lambda_function.delete_watchlist.function_name
-    watchlist_series      = aws_lambda_function.watchlist_series.function_name
-    trends_read           = aws_lambda_function.trends_read.function_name
-    trends_keywords_read  = aws_lambda_function.trends_keywords_read.function_name
-    trends_keywords_write = aws_lambda_function.trends_keywords_write.function_name
-
-    social_brands      = aws_lambda_function.social_brands.function_name
-    social_influencers = aws_lambda_function.social_influencers.function_name
-    social_hashtags    = aws_lambda_function.social_hashtags.function_name
-    social_sentiment   = aws_lambda_function.social_sentiment.function_name
-=======
     enqueue                = aws_lambda_function.enqueue.function_name
     watchlist_read         = aws_lambda_function.watchlist_read.function_name
     delete_watchlist       = aws_lambda_function.delete_watchlist.function_name
@@ -188,7 +174,11 @@ locals {
     trends_keywords_read   = aws_lambda_function.trends_keywords_read.function_name
     trends_keywords_write  = aws_lambda_function.trends_keywords_write.function_name
     trends_keywords_delete = aws_lambda_function.trends_keywords_delete.function_name
->>>>>>> a799aa10668db323ac39bb08a3d4baa1a6af5380
+
+    social_brands      = aws_lambda_function.social_brands.function_name
+    social_influencers = aws_lambda_function.social_influencers.function_name
+    social_hashtags    = aws_lambda_function.social_hashtags.function_name
+    social_sentiment   = aws_lambda_function.social_sentiment.function_name
   }
 }
 
@@ -201,7 +191,6 @@ resource "aws_lambda_permission" "api_invoke" {
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }
 
-<<<<<<< HEAD
 # ========== SOCIAL LISTENING INTEGRATIONS ==========
 
 resource "aws_apigatewayv2_integration" "social_brands" {
@@ -235,5 +224,3 @@ resource "aws_apigatewayv2_integration" "social_sentiment" {
   payload_format_version = "2.0"
   timeout_milliseconds   = 29000
 }
-=======
->>>>>>> a799aa10668db323ac39bb08a3d4baa1a6af5380
