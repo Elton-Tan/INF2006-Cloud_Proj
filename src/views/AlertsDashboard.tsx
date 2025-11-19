@@ -26,7 +26,7 @@ const AlertsDashboard: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // API endpoint
-  const API_URL = 'https://my2tvaaw7i.execute-api.us-east-1.amazonaws.com/prod/alerts';
+  const API_URL = 'https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/alert';
 
   // Fetch alerts from API
   const fetchAlerts = async () => {
