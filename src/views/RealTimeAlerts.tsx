@@ -57,9 +57,9 @@ export default function RealTimeAlerts() {
     setLoading(true);
     try {
       // Use the full API Gateway URL
-      const response = await fetch(`${API_BASE_URL}/api/alerts/live`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+const response = await fetch(`${API_BASE_URL}/alert/live`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
       
       if (!response.ok) {
         console.error("API Error:", response.status, response.statusText);
@@ -87,10 +87,10 @@ export default function RealTimeAlerts() {
 
   const markAsRead = async (alertId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/alerts/${alertId}/read`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+const response = await fetch(`${API_BASE_URL}/alert/${alertId}/read`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${token}` },
+});
       
       if (response.ok) {
         setAlerts((prev) =>
@@ -106,10 +106,10 @@ export default function RealTimeAlerts() {
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/alerts/mark-all-read`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+const response = await fetch(`${API_BASE_URL}/alert/mark-all-read`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${token}` },
+});
       
       if (response.ok) {
         setAlerts((prev) => prev.map((alert) => ({ ...alert, is_read: true })));
