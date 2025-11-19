@@ -28,7 +28,7 @@ const NAV: readonly NavItem[] = [
   { type: "link", key: "listening", label: "Social Listening" },
   { type: "link", key: "words", label: "Words of Interest" },
   { type: "link", key: "snapshot", label: "Product Watchlist" },
-  { type: "link", key: "ad", label: "Create Ad" },
+  { type: "link", key: "ad", label: "Create Post" },
 
   { type: "divider", label: "Historical & Offline Analysis" },
 
