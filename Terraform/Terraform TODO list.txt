@@ -52,3 +52,24 @@ API gateway for each of the created lambda
 /agent/monitoring/start POST
 /agent/status GET
 (which lambda tointegrate with is easily identified from the naming)
+
+=============== ^ Assume above is done ==============================
+Lambda for post-social
+ENV VAR:
+FB_PAGE_ACCESS_TOKEN = 'XXXX"
+FB_PAGE_ID = "XXXX"
+IG_USER_ID = "XXXX"
+
+API_BASE:
+/ad POST - integrate with lambda post-social
+
+Lambda for set-agent-permission
+DB_SECRET_ARN = "" (connect from DB created in terraform)
+REGION: "us-east-1"
+
+API Gateway
+/agent/status POST
+(which lambda tointegrate with is easily identified from the naming)
+
+
+
