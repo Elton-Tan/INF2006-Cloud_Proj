@@ -257,9 +257,9 @@ const RealTimeAlerts: React.FC = () => {
   // Fetch initial alerts from REST API
   const fetchAlerts = async () => {
     try {
-      console.log('Fetching alerts from:', `${REST_API_URL}/alerts/live`);
-      
-      const response = await fetch(`${REST_API_URL}/alerts/live`, {
+      console.log('Fetching alerts from:', `${REST_API_URL}/alert/live`);
+
+      const response = await fetch(`${REST_API_URL}/alert/live`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
