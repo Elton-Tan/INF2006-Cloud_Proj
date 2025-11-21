@@ -75,6 +75,25 @@ def lambda_handler(event, _ctx):
             cols = [d[0] for d in cur.description]
             rows = [dict(zip(cols, r)) for r in cur.fetchall()]
 
+        # Transform data to match frontend expectations
+        transformed_alerts = []
+        for row in rows:
+            alert = {
+                'id': row['id'],
+                'type': row['title'],
+                'severity': row['severity'],
+                'message': row['description'],
+                'timestamp': row['ts'],
+                'read': False,
+                'details': {
+                    'market': row.get('market'),
+                    'channel': row.get('channel')
+                }
+            }
+            # Remove None values from details
+            alert['details'] = {k: v for k, v in alert['details'].items() if v is not None}
+            transformed_alerts.append(alert)
+
         return {
             "statusCode": 200,
             "headers": {
@@ -83,7 +102,7 @@ def lambda_handler(event, _ctx):
                 "access-control-allow-methods": "GET,OPTIONS",
                 "access-control-allow-headers": "content-type,authorization",
             },
-            "body": json.dumps({"alerts": rows}, default=_json_default),
+            "body": json.dumps({"alerts": transformed_alerts}, default=_json_default),
         }
     except Exception as e:
         return {
