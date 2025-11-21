@@ -78,20 +78,26 @@ def lambda_handler(event, _ctx):
         # Transform data to match frontend expectations
         transformed_alerts = []
         for row in rows:
+            # Skip rows with missing required fields
+            if not row.get('id') or not row.get('title') or not row.get('severity'):
+                continue
+
             alert = {
                 'id': row['id'],
                 'type': row['title'],
-                'severity': row['severity'],
-                'message': row['description'],
+                'severity': row['severity'] or 'info',  # Default to 'info' if None
+                'message': row.get('description') or '',
                 'timestamp': row['ts'],
                 'read': False,
-                'details': {
-                    'market': row.get('market'),
-                    'channel': row.get('channel')
-                }
+                'details': {}
             }
-            # Remove None values from details
-            alert['details'] = {k: v for k, v in alert['details'].items() if v is not None}
+
+            # Add optional details
+            if row.get('market'):
+                alert['details']['market'] = row['market']
+            if row.get('channel'):
+                alert['details']['channel'] = row['channel']
+
             transformed_alerts.append(alert)
 
         return {
