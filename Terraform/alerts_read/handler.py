@@ -10,6 +10,35 @@ def _json_default(o):
         return float(o)
     return str(o)
 
+def _get_db_config():
+    """
+    Load database configuration from AWS Secrets Manager or environment variables.
+    Supports both Lambda (Secrets Manager) and local testing (env vars).
+    """
+    # Try Secrets Manager first (for Lambda/production)
+    secret_arn = os.environ.get("DB_SECRET_ARN")
+    if secret_arn:
+        region = os.getenv("AWS_REGION", os.getenv("REGION", "us-east-1"))
+        sm = boto3.client("secretsmanager", region_name=region)
+        sec = sm.get_secret_value(SecretId=secret_arn)["SecretString"]
+        cfg = json.loads(sec)
+        return {
+            "host": cfg["host"],
+            "user": cfg.get("username", cfg.get("user")),
+            "password": cfg["password"],
+            "database": cfg.get("database", "spirulinadb"),
+            "port": int(cfg.get("port", 3306)),
+        }
+
+    # Fallback to environment variables (for local testing)
+    return {
+        "host": os.environ.get("DB_HOST"),
+        "user": os.environ.get("DB_USER"),
+        "password": os.environ.get("DB_PASSWORD"),
+        "database": os.environ.get("DB_NAME", "spirulinadb"),
+        "port": int(os.environ.get("DB_PORT", 3306)),
+    }
+
 def lambda_handler(event, _ctx):
     # Support ?limit= query param (default 50, max 200)
     limit = 50
@@ -20,19 +49,15 @@ def lambda_handler(event, _ctx):
         except:
             pass
 
-    region = os.getenv("AWS_REGION", os.getenv("REGION", "us-east-1"))
-    secret_arn = os.environ["DB_SECRET_ARN"]
-
-    sm = boto3.client("secretsmanager", region_name=region)
-    sec = sm.get_secret_value(SecretId=secret_arn)["SecretString"]
-    cfg = json.loads(sec)
+    # Get database configuration
+    cfg = _get_db_config()
 
     conn = pymysql.connect(
         host=cfg["host"],
-        user=cfg["username"],
+        user=cfg["user"],
         password=cfg["password"],
-        database="spirulinadb",  # Explicitly use spirulinadb
-        port=int(cfg.get("port", 3306)),
+        database=cfg["database"],
+        port=cfg["port"],
         autocommit=True,
         cursorclass=pymysql.cursors.Cursor,
     )
