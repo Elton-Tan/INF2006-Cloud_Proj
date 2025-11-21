@@ -14,7 +14,6 @@ import TopProductsDashboard from "./views/TopProductsDashboard";
 import AgentMonitoring from "./components/AgentMonitoring";
 import QChatWidget from "./components/QChatWidget";
 import CreateAd from "./components/CreateAd";
-import RealTimeAlerts from "./views/RealTimeAlerts";
 
 /** Discriminated union so we can render a divider item cleanly */
 type NavLink = { type: "link"; key: string; label: string };
@@ -30,7 +29,6 @@ const NAV: readonly NavItem[] = [
   { type: "link", key: "words", label: "Words of Interest" },
   { type: "link", key: "snapshot", label: "Product Watchlist" },
   { type: "link", key: "ad", label: "Create Post" },
-  { type: "link", key: "alerts", label: "Real-Time Alerts" },
 
   { type: "divider", label: "Historical & Offline Analysis" },
 
@@ -156,7 +154,6 @@ function DashboardShell() {
           {nav === "social" && <SocialMediaRecommendation />}
 
           {nav === "topProducts" && <TopProductsDashboard />}
-          {nav === "alerts" && <RealTimeAlerts />}
         </main>
       </div>
       <QChatWidget />
