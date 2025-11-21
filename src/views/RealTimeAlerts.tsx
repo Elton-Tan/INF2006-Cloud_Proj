@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../contexts';
 
 // API Configuration
 const WEBSOCKET_URL = 'wss://sdzrplzis6.execute-api.us-east-1.amazonaws.com/production/';
-const REST_API_URL = 'https://sa0cp2a3r8.execute-api.us-east-1.amazonaws.com/dev';
 
 // Inline styles
 const styles = {
@@ -237,6 +237,7 @@ interface Alert {
 }
 
 const RealTimeAlerts: React.FC = () => {
+  const { apiBase, token } = useAuth();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [filteredAlerts, setFilteredAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState({
@@ -257,13 +258,18 @@ const RealTimeAlerts: React.FC = () => {
   // Fetch initial alerts from REST API
   const fetchAlerts = async () => {
     try {
-      console.log('Fetching alerts from:', `${REST_API_URL}/alerts`);
+      console.log('Fetching alerts from:', `${apiBase}/alerts`);
 
-      const response = await fetch(`${REST_API_URL}/alerts`, {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiBase}/alerts`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        headers: headers,
       });
 
       if (!response.ok) {
