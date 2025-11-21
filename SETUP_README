@@ -1,0 +1,31 @@
+1.  Download Terraform folder and open in VSCode
+2.  Sign up for an account in ScrappingBEE via this website: https://app.scrapingbee.com
+3.1 Open up secrets.tf and replace scrappingBEE API value with YOPUR OWN API key
+3.2  
+4. Install the terraform packages
+5. Now create an AWS account (it can take p to 1 day to be approved)
+[From this step onwards, ensure ur region is US-EAST-1]
+6. Go to IAM and retrieve the AWS access key by clicking on your user. It should like something like AKIAXXXXXXXXXXXXXXXXXX
+7. Set the access key in your terraform profile
+8. Initiate Terraform and call terraform apply
+[this will take sometime to create....]
+9. Once all the services are set up, go back to Visual Studio Code and look for a folder called build
+10. Go to a S3 bucket (set as private), and upload the whole build folder into the S3. 
+11. Once complete, navigate to AWS cloudfront and attach a cloudfront to the S3 bucket (note the URL after attachment)
+12. Go to secrets manager again, you will see a secret facebook_app_id and instagram_app_id
+[Follow the following steps]
+13. Go to https://developers.facebook.com/
+14. Sign up for an account
+15. Create a Use case, and select manage everything on your page and manage messaging and content on instagram
+16. Once created, go to Tools > Graph API explorer
+17. assign permission for pages_show_list, instagram_basic, instagram_content_publish, pages_read_engagement and pages_manage_posts
+18. click generate access token then generate page token
+19. Replace the page token in your secrets for facebook and instagram respectively
+[Now navigate to Amazon Q business in AWS console]
+20. click on create app
+21. Once created, attach the agent_knowledge_base as the knowledge S3 (go to integrations and select S3)
+22. Select single availability index (starter index)
+23. DO NOT select anonymous access. Select the $3 subscription model (if not u will be charged $200) - when prompted, create a new user and give it a username
+24. Now go to IAM Identity Access center. U can see the username
+25. Now when u visit the app, to access Amazon Q, u will provide the login details (click on chat bubble > it will prompt login > login with the details)
+
