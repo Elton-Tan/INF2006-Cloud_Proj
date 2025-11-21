@@ -636,6 +636,212 @@ function TrendsTrends() {
   );
 }
 
+/* ---------------------------- Mock Data Generator (for testing) --------------------------- */
+
+// Set this to true to generate mock alerts for testing the UI
+const ENABLE_MOCK_ALERTS = true;
+
+function generateMockAlerts(count: number = 10): Alert[] {
+  const titles = [
+    'Stock Alert: Lamisil Low Stock',
+    'Price Jump: Canesten increased by 15%',
+    'Trend Spike: "foot cream" searches up 200%',
+    'Stock Alert: Spiruvita Out of Stock',
+    'Price Drop: Generic antifungal -20%',
+    'Trend Spike: "athlete foot treatment" trending',
+    'Stock Alert: Heel balm running low',
+    'Price Alert: Competitor undercut detected',
+    'Trend Alert: Seasonal spike detected',
+    'Stock Alert: Multiple products low inventory',
+  ];
+
+  const descriptions = [
+    'Product stock level below threshold across multiple marketplaces.',
+    'Significant price change detected from competitor monitoring.',
+    'Google Trends showing unusual search volume increase.',
+    'Product unavailable on major platform, potential stockout.',
+    'Price reduction may indicate promotional activity.',
+    'Search interest spike suggests growing market demand.',
+    'Inventory levels require attention to prevent stockouts.',
+    'Competitor pricing strategy change detected.',
+    'Historical patterns suggest seasonal demand increase.',
+    'Alert requires immediate inventory review.',
+  ];
+
+  const severities: Alert['severity'][] = ['low', 'medium', 'high'];
+  const markets = ['SG', 'MY', 'ID', 'TH', 'PH'];
+  const channels = ['Shopee', 'Lazada', 'Amazon', 'Qoo10', 'Direct'];
+
+  return Array.from({ length: count }, (_, i) => ({
+    id: `mock-${Date.now()}-${i}`,
+    ts: new Date(Date.now() - i * 3600000).toISOString(),
+    title: titles[i % titles.length],
+    description: descriptions[i % descriptions.length],
+    severity: severities[i % severities.length],
+    market: markets[i % markets.length],
+    channel: channels[i % channels.length],
+  }));
+}
+
+/* ---------------------------- Alert Feed --------------------------- */
+
+function AlertFeed({ alerts, loading }: { alerts: Alert[]; loading?: boolean }) {
+  const [filters, setFilters] = React.useState({
+    type: 'All',
+    severity: 'All',
+    unreadOnly: false
+  });
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('AlertFeed received alerts:', alerts.length, alerts);
+  }, [alerts]);
+
+  // Calculate stats
+  const stats = React.useMemo(() => {
+    const total = alerts.length;
+    const stockOuts = alerts.filter(a => a.title.toLowerCase().includes('stock')).length;
+    const priceJumps = alerts.filter(a => a.title.toLowerCase().includes('price')).length;
+    const trendSpikes = alerts.filter(a => a.title.toLowerCase().includes('trend')).length;
+    return { total, stockOuts, priceJumps, trendSpikes };
+  }, [alerts]);
+
+  // Filter alerts
+  const filteredAlerts = React.useMemo(() => {
+    let filtered = [...alerts];
+
+    if (filters.type !== 'All') {
+      filtered = filtered.filter(a => {
+        const title = a.title.toLowerCase();
+        if (filters.type === 'Stock Out') return title.includes('stock');
+        if (filters.type === 'Price Jump') return title.includes('price');
+        if (filters.type === 'Trend Spike') return title.includes('trend');
+        return true;
+      });
+    }
+
+    if (filters.severity !== 'All') {
+      filtered = filtered.filter(a => a.severity === filters.severity.toLowerCase());
+    }
+
+    console.log('Filtered alerts:', filtered.length, filtered);
+    return filtered;
+  }, [alerts, filters]);
+
+  const getSeverityColor = (severity: string): string => {
+    if (severity === 'high') return '#ef4444';
+    if (severity === 'medium') return '#f59e0b';
+    return '#3b82f6';
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-lg border bg-white p-3">
+          <div className="text-xs text-gray-500">Total Alerts</div>
+          <div className="text-2xl font-semibold text-gray-900">{stats.total}</div>
+        </div>
+        <div className="rounded-lg border bg-white p-3">
+          <div className="text-xs text-gray-500">Stock Outs</div>
+          <div className="text-2xl font-semibold text-red-500">{stats.stockOuts}</div>
+        </div>
+        <div className="rounded-lg border bg-white p-3">
+          <div className="text-xs text-gray-500">Price Jumps</div>
+          <div className="text-2xl font-semibold text-orange-500">{stats.priceJumps}</div>
+        </div>
+        <div className="rounded-lg border bg-white p-3">
+          <div className="text-xs text-gray-500">Trend Spikes</div>
+          <div className="text-2xl font-semibold text-green-500">{stats.trendSpikes}</div>
+        </div>
+      </div>
+
+      {/* Filters Bar */}
+      <div className="flex flex-wrap gap-4 rounded-lg border bg-white p-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Type:</span>
+          {['All', 'Stock Out', 'Price Jump', 'Trend Spike'].map(type => (
+            <button
+              key={type}
+              onClick={() => setFilters({...filters, type})}
+              className={`rounded-md px-3 py-1 text-sm transition ${
+                filters.type === type
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200'
+              }`}
+            >
+              {type === 'Stock Out' ? 'Stock Outs' : type === 'Price Jump' ? 'Price Jumps' : type === 'Trend Spike' ? 'Trend Spikes' : type}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Severity:</span>
+          {['All', 'high', 'medium', 'low'].map(sev => (
+            <button
+              key={sev}
+              onClick={() => setFilters({...filters, severity: sev === 'All' ? 'All' : sev})}
+              className={`rounded-md px-3 py-1 text-sm capitalize transition ${
+                filters.severity === sev
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200'
+              }`}
+            >
+              {sev === 'high' ? 'Critical' : sev === 'medium' ? 'Warning' : sev === 'low' ? 'Info' : sev}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Alerts List */}
+      <div className="flex max-h-96 flex-col gap-3 overflow-auto pr-2">
+        {loading ? (
+          <div className="flex h-24 items-center justify-center rounded-lg border bg-white text-sm text-gray-500">
+            Loading alerts...
+          </div>
+        ) : filteredAlerts.length === 0 ? (
+          <div className="flex h-24 items-center justify-center rounded-lg border bg-white text-sm text-gray-500">
+            {alerts.length === 0
+              ? 'No alerts yet. Alerts will appear here in real-time as events occur.'
+              : 'No alerts match your filters'
+            }
+          </div>
+        ) : (
+          filteredAlerts.map((a) => (
+            <div
+              key={a.id}
+              className="flex min-h-[100px] overflow-hidden rounded-lg border bg-white transition hover:shadow-md"
+            >
+              <div
+                className="w-1 flex-shrink-0"
+                style={{ backgroundColor: getSeverityColor(a.severity) }}
+              />
+              <div className="flex-1 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-semibold text-gray-900">
+                    {a.title || 'Untitled Alert'}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {a.ts ? new Date(a.ts).toLocaleString() : 'No date'}
+                  </span>
+                </div>
+                <div className="mb-2 text-sm text-gray-700">
+                  {a.description || 'No description'}
+                </div>
+                {(a.market || a.channel) && (
+                  <div className="flex gap-3 text-xs text-gray-500">
+                    {a.market && <span><strong>Market:</strong> {a.market}</span>}
+                    {a.channel && <span><strong>Channel:</strong> {a.channel}</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------------------- Page wrapper --------------------------- */
 
 export default function LiveFeed() {
@@ -644,6 +850,70 @@ export default function LiveFeed() {
 
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const [wsOpen, setWsOpen] = React.useState<boolean>(false);
+  const [loadingAlerts, setLoadingAlerts] = React.useState<boolean>(true);
+
+  // Fetch initial alerts from API
+  React.useEffect(() => {
+    if (!token || !apiBase) return;
+
+    let abort = false;
+    setLoadingAlerts(true);
+
+    (async () => {
+      try {
+        // If mock mode is enabled, use generated data
+        if (ENABLE_MOCK_ALERTS) {
+          await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate network delay
+          if (!abort) {
+            setAlerts(generateMockAlerts(15));
+            setLoadingAlerts(false);
+          }
+          return;
+        }
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const res = await fetch(`${apiBase}/alerts`, { headers });
+        if (!res.ok) {
+          // If endpoint doesn't exist (404), silently continue with empty state
+          if (res.status === 404) {
+            console.log("Alerts endpoint not yet available - waiting for real-time events");
+            if (!abort) setLoadingAlerts(false);
+            return;
+          }
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (!abort) {
+          const alertsList: Alert[] = (data.alerts || data || [])
+            .slice(0, 50) // Limit to most recent 50
+            .map((a: any) => ({
+              id: String(a.id ?? Date.now()),
+              ts: typeof a.ts === "string" ? a.ts : new Date().toISOString(),
+              title: String(a.title ?? "Alert"),
+              description: String(a.description ?? ""),
+              severity: (a.severity ?? "low") as Alert["severity"],
+              market: String(a.market ?? "SG"),
+              channel: String(a.channel ?? ""),
+            }));
+          setAlerts(alertsList);
+        }
+      } catch (e) {
+        console.error("Failed to load alerts:", e);
+        // Don't set error state - just continue with empty alerts
+      } finally {
+        if (!abort) setLoadingAlerts(false);
+      }
+    })();
+
+    return () => {
+      abort = true;
+    };
+  }, [apiBase, token]);
 
   React.useEffect(() => {
     if (!token || !wsBase) return;
@@ -750,7 +1020,7 @@ export default function LiveFeed() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {/* Real-time alerts */}
-      <section className="rounded-2xl border bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border bg-white p-4 shadow-sm md:col-span-2">
         <h2 className="mb-1 text-lg font-semibold">
           Real-time Alerts (In-Progress) <LiveBadge />
         </h2>
@@ -764,44 +1034,7 @@ export default function LiveFeed() {
             {wsOpen ? "live: connected" : "live: reconnecting"}
           </span>
         </p>
-        <div className="flex max-h-80 flex-col gap-3 overflow-auto pr-2">
-          {alerts.length === 0 ? (
-            <div className="flex h-24 items-center justify-center text-sm text-gray-500">
-              This visualisation is currently in working progress and is
-              currently unavailable
-            </div>
-          ) : (
-            alerts.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-start gap-3 rounded-xl border p-3"
-              >
-                <span
-                  className={`mt-1 inline-flex h-3 w-3 rounded-full ${
-                    a.severity === "high"
-                      ? "bg-red-500"
-                      : a.severity === "medium"
-                      ? "bg-amber-500"
-                      : "bg-emerald-500"
-                  }`}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">{a.title}</div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(a.ts).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {a.market}
-                    {a.channel ? ` • ${a.channel}` : ""}
-                  </div>
-                  <div className="text-sm">{a.description}</div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        <AlertFeed alerts={alerts} loading={loadingAlerts} />
       </section>
 
       {/* Live Google Trends */}
