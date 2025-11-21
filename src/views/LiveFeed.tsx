@@ -639,7 +639,8 @@ function TrendsTrends() {
 /* ---------------------------- Mock Data Generator (for testing) --------------------------- */
 
 // Set this to true to generate mock alerts for testing the UI
-const ENABLE_MOCK_ALERTS = true;
+// Once the alerts API is deployed and working, set this to false
+const ENABLE_MOCK_ALERTS = false;
 
 function generateMockAlerts(count: number = 10): Alert[] {
   const titles = [
@@ -697,15 +698,6 @@ function AlertFeed({ alerts, loading }: { alerts: Alert[]; loading?: boolean }) 
     console.log('AlertFeed received alerts:', alerts.length, alerts);
   }, [alerts]);
 
-  // Calculate stats
-  const stats = React.useMemo(() => {
-    const total = alerts.length;
-    const stockOuts = alerts.filter(a => a.title.toLowerCase().includes('stock')).length;
-    const priceJumps = alerts.filter(a => a.title.toLowerCase().includes('price')).length;
-    const trendSpikes = alerts.filter(a => a.title.toLowerCase().includes('trend')).length;
-    return { total, stockOuts, priceJumps, trendSpikes };
-  }, [alerts]);
-
   // Filter alerts
   const filteredAlerts = React.useMemo(() => {
     let filtered = [...alerts];
@@ -736,26 +728,6 @@ function AlertFeed({ alerts, loading }: { alerts: Alert[]; loading?: boolean }) 
 
   return (
     <div className="space-y-4">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border bg-white p-3">
-          <div className="text-xs text-gray-500">Total Alerts</div>
-          <div className="text-2xl font-semibold text-gray-900">{stats.total}</div>
-        </div>
-        <div className="rounded-lg border bg-white p-3">
-          <div className="text-xs text-gray-500">Stock Outs</div>
-          <div className="text-2xl font-semibold text-red-500">{stats.stockOuts}</div>
-        </div>
-        <div className="rounded-lg border bg-white p-3">
-          <div className="text-xs text-gray-500">Price Jumps</div>
-          <div className="text-2xl font-semibold text-orange-500">{stats.priceJumps}</div>
-        </div>
-        <div className="rounded-lg border bg-white p-3">
-          <div className="text-xs text-gray-500">Trend Spikes</div>
-          <div className="text-2xl font-semibold text-green-500">{stats.trendSpikes}</div>
-        </div>
-      </div>
-
       {/* Filters Bar */}
       <div className="flex flex-wrap gap-4 rounded-lg border bg-white p-3">
         <div className="flex items-center gap-2">

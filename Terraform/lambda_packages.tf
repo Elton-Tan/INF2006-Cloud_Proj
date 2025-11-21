@@ -112,6 +112,13 @@ data "archive_file" "social_scrape_zip" {
   output_path = "${path.module}/dist/social_scrape.zip"
 }
 
+# ===== ZIP ALERTS LAMBDA =====
+data "archive_file" "alerts_read_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/alerts_read"
+  output_path = "${path.module}/dist/alerts_read.zip"
+}
+
 # =========================
 # Functions (Python 3.12)  #
 # =========================
@@ -762,5 +769,34 @@ resource "aws_lambda_function" "social_scrape" {
   }
 }
 
- 
+# ALERTS READ
+resource "aws_lambda_function" "alerts_read" {
+  function_name = "${var.project}-${var.env}-alerts-read"
+  role          = data.aws_iam_role.labrole.arn
+  runtime       = "python3.12"
+  handler       = "handler.lambda_handler"
+  filename      = data.archive_file.alerts_read_zip.output_path
+  timeout       = 10
+  memory_size   = 256
+
+  source_code_hash = filebase64sha256(data.archive_file.alerts_read_zip.output_path)
+
+  layers = [
+    aws_lambda_layer_version.mysql_layer.arn
+  ]
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = {
+      REGION        = var.region
+      DB_SECRET_ARN = local.lambda_env.DB_SECRET_ARN
+    }
+  }
+}
+
+
 

@@ -132,7 +132,8 @@ locals {
     "GET /social/influencers" = aws_apigatewayv2_integration.social_influencers.id
     "GET /social/hashtags"    = aws_apigatewayv2_integration.social_hashtags.id
     "GET /social/sentiment"   = aws_apigatewayv2_integration.social_sentiment.id
-    
+    "GET /alerts"             = aws_apigatewayv2_integration.alerts_read.id
+
   }
 
   # Add public routes if any (empty by default)
@@ -179,6 +180,7 @@ locals {
     social_influencers = aws_lambda_function.social_influencers.function_name
     social_hashtags    = aws_lambda_function.social_hashtags.function_name
     social_sentiment   = aws_lambda_function.social_sentiment.function_name
+    alerts_read        = aws_lambda_function.alerts_read.function_name
   }
 }
 
@@ -221,6 +223,14 @@ resource "aws_apigatewayv2_integration" "social_sentiment" {
   api_id                 = aws_apigatewayv2_api.http.id
   integration_type       = "AWS_PROXY"
   integration_uri        = aws_lambda_function.social_sentiment.invoke_arn
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 29000
+}
+
+resource "aws_apigatewayv2_integration" "alerts_read" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.alerts_read.invoke_arn
   payload_format_version = "2.0"
   timeout_milliseconds   = 29000
 }
