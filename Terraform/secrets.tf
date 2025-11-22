@@ -37,27 +37,23 @@ resource "aws_secretsmanager_secret_version" "social_scraper" {  # ← Different
   })
 }
 
-
-
 resource "aws_secretsmanager_secret" "facebook_app_id" {  # ← Different name!
   name = "${var.project}/facebook_app_id"  # ← Different secret name!
 }
 
 resource "aws_secretsmanager_secret_version" "facebook_app_id" {  # ← Different name!
-  secret_id     = aws_secretsmanager_secret.facebook_app.id
+  secret_id     = aws_secretsmanager_secret.facebook_app_id.id
   secret_string = jsonencode({ 
     "api_key" = var.facebook_app_id  # Uses same variable but different key name
   })
 }
-
-
 
 resource "aws_secretsmanager_secret" "instagram_app_id" {  # ← Different name!
   name = "${var.project}/instagram_app_id"  # ← Different secret name!
 }
 
 resource "aws_secretsmanager_secret_version" "instagram_app_id" {  # ← Different name!
-  secret_id     = aws_secretsmanager_secret.instagram_app.id
+  secret_id     = aws_secretsmanager_secret.instagram_app_id.id
   secret_string = jsonencode({ 
     "api_key" = var.instagram_app_id  # Uses same variable but different key name
   })
