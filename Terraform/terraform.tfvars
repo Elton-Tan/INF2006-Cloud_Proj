@@ -6,6 +6,8 @@ ssh_public_key           = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE3bTMVJc9oEZygz
 db_username              = "spirulina_app"
 db_name                  = "spirulinadb"
 scrapingbee_secret_value = "REPLACE_SECRET_IN_SECRET_MANAGER_LATER"
+facebook_app_id = "REPLACE_SECRET_IN_SECRET_MANAGER_LATER"
+instagram_app_id = "REPLACE_SECRET_IN_SECRET_MANAGER_LATER"
 cloudfront_url           = "https://dfp7iv1t22kle.cloudfront.net/"
 awswrangler_layer_arn    = "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312:19"
 
