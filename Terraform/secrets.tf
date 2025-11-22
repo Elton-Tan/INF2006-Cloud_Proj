@@ -24,27 +24,6 @@ resource "aws_secretsmanager_secret_version" "scraper" {
   secret_string = jsonencode({ "Scrapper-API" = var.scrapingbee_secret_value })
 }
 
-resource "aws_secretsmanager_secret" "facebook_app" {
-  name = "${var.project}/facebook"
-}
-
-resource "aws_secretsmanager_secret_version" "facebook_app" {
-  secret_id     = aws_secretsmanager_secret.facebook_app.id
-  secret_string = jsonencode({ "Facebook-App-ID" = var.facebook_app_id })
-}
-
-
-resource "aws_secretsmanager_secret" "instagram_app" {
-  name = "${var.project}/facebook"
-}
-
-resource "aws_secretsmanager_secret_version" "instagram_app" {
-  secret_id     = aws_secretsmanager_secret.instagram_app.id
-  secret_string = jsonencode({ "Facebook-App-ID" = var.instagram_app_id })
-}
-
-
-
 
 # ✅ NEW: Social scraper API secret (for your Instagram scraping)
 resource "aws_secretsmanager_secret" "social_scraper" {  # ← Different name!
