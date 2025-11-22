@@ -1,28 +1,6 @@
 import os
 import json
 import logging
-import urllib.parse
-import urllib.request
-import urllib.error
-import base64
-import time
-
-# ---- Config ----
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.getLogger().setLevel(LOG_LEVEL)
-log = logging.getLogger(__name__)
-
-# Environment Variables
-FB_GRAPH_BASE = os.getenv("FB_GRAPH_BASE", "https://graph.facebook.com/v19.0")
-FB_PAGE_ID = os.environ.get("FB_PAGE_ID")
-IG_USER_ID = os.environ.get("IG_USER_ID")  # <--- New Variable
-FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
-
-# --- Helper Functions ---
-
-def build_s3_url(bucket: str, key: str) -> str:
-    """Builds a public S3 URL"""
-    quoted_key = urllib.parse.quote(key)
     return f"https://{bucket}.s3.amazonaws.com/{quoted_key}"
 
 def graph_request(path: str, params: dict, method: str = "POST") -> dict:

@@ -98,7 +98,7 @@ resource "aws_iam_role_policy" "agent_lambda_permissions" {
           "sqs:GetQueueUrl"
         ]
         Resource = [
-          aws_sqs_queue.agent_jobs_queue.arn
+          aws_sqs_queue.agent_job_queue.arn
         ]
       },
       # Secrets Manager access
@@ -110,7 +110,8 @@ resource "aws_iam_role_policy" "agent_lambda_permissions" {
         Resource = [
           aws_secretsmanager_secret.gemini_api_key.arn,
           aws_secretsmanager_secret.cognito_oauth.arn,
-          var.rds_secret_arn
+          var.rds_secret_arn,
+          var.fb_page_access_token_arn
         ]
       },
       # Bedrock access for KB retrieval and model invocation
@@ -177,8 +178,8 @@ resource "aws_lambda_function" "set_agent_permission" {
 
   environment {
     variables = {
-      DB_SECRET = var.rds_secret_arn
-      REGION    = var.region
+      DB_SECRET_ARN = var.rds_secret_arn
+      REGION        = var.region
     }
   }
 
@@ -266,7 +267,7 @@ resource "aws_lambda_function" "agent_monitoring_api" {
   environment {
     variables = {
       COGNITO_OAUTH_SECRET_ARN = aws_secretsmanager_secret.cognito_oauth.arn
-      JOBS_QUEUE_URL           = aws_sqs_queue.agent_jobs_queue.url
+      JOBS_QUEUE_URL           = aws_sqs_queue.agent_job_queue.url
       JOBS_TABLE               = aws_dynamodb_table.agent_jobs.name
     }
   }
@@ -369,7 +370,7 @@ resource "aws_cloudwatch_log_group" "agent_worker" {
 
 # SQS trigger for agent_worker
 resource "aws_lambda_event_source_mapping" "agent_worker_sqs" {
-  event_source_arn = aws_sqs_queue.agent_jobs_queue.arn
+  event_source_arn = aws_sqs_queue.agent_job_queue.arn
   function_name    = aws_lambda_function.agent_worker.arn
   batch_size       = 1
   enabled          = true
@@ -402,10 +403,7 @@ output "agent_images_output_bucket" {
   value       = aws_s3_bucket.agent_images_output.id
 }
 
-output "agent_jobs_queue_url" {
-  description = "SQS queue URL for agent jobs"
-  value       = aws_sqs_queue.agent_jobs_queue.url
-}
+# Output removed (defined in agent_sqs_jobs.tf)
 
 output "agent_jobs_table_name" {
   description = "DynamoDB table name for agent jobs"

@@ -30,6 +30,7 @@ variable "private_subnet_b_cidr" {
 variable "cloudfront_url" {
   type = string
 } # e.g. "https://d84l1y8p4kdic.cloudfront.net/"
+
 variable "ssh_public_key" {
   description = "Your SSH public key for the bastion (contents of id_rsa.pub or ed25519.pub)"
   type        = string
@@ -271,4 +272,44 @@ variable "waf_blocked_threshold" {
   description = "WAF BlockedRequests sum threshold (per 5 minutes)"
   type        = number
   default     = 100
+}
+
+variable "fb_page_id" {
+  description = "Facebook Page ID"
+  type        = string
+}
+
+variable "ig_user_id" {
+  description = "Instagram User ID"
+  type        = string
+}
+
+variable "rds_secret_arn" {
+  description = "ARN of the secret containing RDS credentials"
+  type        = string
+}
+
+variable "fb_page_access_token_arn" {
+  description = "ARN of the secret containing the FB Page Access Token"
+  type        = string
+}
+
+variable "private_subnet_ids" {
+  description = "List of private subnet IDs for Lambda functions that need VPC access to RDS"
+  type        = list(string)
+}
+
+variable "lambda_security_group_ids" {
+  description = "List of security group IDs for Lambda functions"
+  type        = list(string)
+}
+
+variable "instagram_app_id" {
+  description = "Instagram App ID"
+  type        = string
+}
+
+variable "facebook_app_id" {
+  description = "Facebook App ID"
+  type        = string
 }

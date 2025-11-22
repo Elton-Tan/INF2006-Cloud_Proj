@@ -1,158 +1,109 @@
 # ============================================
 # API Gateway Routes for Agent Functions
-# ============================================
-# Routes:
-# - GET  /agent/permission      -> get-agent-permission
-# - POST /agent/permission      -> set-agent-permission (implied from naming)
-# - POST /agent/monitoring/start -> agent_monitoring_api
-# - GET  /agent/status          -> agent_monitoring_api (status check)
+# Includes core agent routes and the post-social route.
 # ============================================
 
-# ---------- HTTP API Gateway Routes ----------
 # Assuming you already have an HTTP API Gateway created
 # Reference: aws_apigatewayv2_api.http from apigw_http.tf
 
-# Integration: get-agent-permission (GET /agent/permission)
+# NOTE: The aws_lambda_function.post_social_lambda MUST be defined in agent_lambdas.tf (or post_social.tf).
+
+# --- Route Helper Locals ---
+locals {
+  http_api_id   = aws_apigatewayv2_api.http.id
+  authorizer_id = aws_apigatewayv2_authorizer.jwt.id
+  execution_arn = aws_apigatewayv2_api.http.execution_arn
+}
+
+# --- 1. Core Permission Routes (GET/POST /agent/permission) ---
+
+# GET /agent/permission
 resource "aws_apigatewayv2_integration" "get_agent_permission" {
-  api_id             = aws_apigatewayv2_api.http.id
-  integration_type   = "AWS_PROXY"
-  integration_method = "POST"
-  integration_uri    = aws_lambda_function.get_agent_permission.invoke_arn
+  api_id                 = local.http_api_id
+  integration_type       = "AWS_PROXY"
+  integration_method     = "POST" # Lambda invocation is always POST, but the route can be GET
+  integration_uri        = aws_lambda_function.get_agent_permission.invoke_arn
   payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "get_agent_permission" {
-  api_id    = aws_apigatewayv2_api.http.id
+  api_id    = local.http_api_id
   route_key = "GET /agent/permission"
   target    = "integrations/${aws_apigatewayv2_integration.get_agent_permission.id}"
 
   authorization_type = "JWT"
-  authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
+  authorizer_id      = local.authorizer_id
 }
 
-# Lambda permission for API Gateway to invoke get-agent-permission
 resource "aws_lambda_permission" "get_agent_permission_apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
+  statement_id  = "AllowAPIGatewayInvokeGetPermission"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.get_agent_permission.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+  source_arn    = "${local.execution_arn}/*/*"
 }
 
-# Integration: set-agent-permission (POST /agent/permission)
+# POST /agent/permission
 resource "aws_apigatewayv2_integration" "set_agent_permission" {
-  api_id             = aws_apigatewayv2_api.http.id
-  integration_type   = "AWS_PROXY"
-  integration_method = "POST"
-  integration_uri    = aws_lambda_function.set_agent_permission.invoke_arn
+  api_id                 = local.http_api_id
+  integration_type       = "AWS_PROXY"
+  integration_method     = "POST"
+  integration_uri        = aws_lambda_function.set_agent_permission.invoke_arn
   payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "set_agent_permission" {
-  api_id    = aws_apigatewayv2_api.http.id
+  api_id    = local.http_api_id
   route_key = "POST /agent/permission"
   target    = "integrations/${aws_apigatewayv2_integration.set_agent_permission.id}"
 
   authorization_type = "JWT"
-  authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
+  authorizer_id      = local.authorizer_id
 }
 
 resource "aws_lambda_permission" "set_agent_permission_apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
+  statement_id  = "AllowAPIGatewayInvokeSetPermission"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.set_agent_permission.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+  source_arn    = "${local.execution_arn}/*/*"
 }
 
-# Integration: agent_monitoring_api - start (POST /agent/monitoring/start)
-resource "aws_apigatewayv2_integration" "agent_monitoring_start" {
-  api_id             = aws_apigatewayv2_api.http.id
+
+# --- 2. Monitoring and Status Routes ---
+# (Assuming these are handled elsewhere or if needed can be added here similarly)
+
+
+# --- 3. NEW: POST /ad (Post Social) ---
+
+# Note: HTTP API (v2) does not use aws_apigatewayv2_resource. It uses routes directly.
+# The "path_part" concept is for REST APIs (v1). For HTTP APIs, we just define the route key.
+
+# Integration: Links /ad path to post_social_lambda
+resource "aws_apigatewayv2_integration" "post_social_integration" {
+  api_id             = local.http_api_id
   integration_type   = "AWS_PROXY"
   integration_method = "POST"
-  integration_uri    = aws_lambda_function.agent_monitoring_api.invoke_arn
+  # Target the post-social Lambda (defined in post_social.tf)
+  integration_uri        = aws_lambda_function.post_social_lambda.invoke_arn
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_route" "agent_monitoring_start" {
-  api_id    = aws_apigatewayv2_api.http.id
-  route_key = "POST /agent/monitoring/start"
-  target    = "integrations/${aws_apigatewayv2_integration.agent_monitoring_start.id}"
-
+# Route: POST /ad
+resource "aws_apigatewayv2_route" "post_social_route" {
+  api_id    = local.http_api_id
+  route_key = "POST /ad"
+  target    = "integrations/${aws_apigatewayv2_integration.post_social_integration.id}"
+  # Securing the endpoint with the existing JWT authorizer
   authorization_type = "JWT"
-  authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
+  authorizer_id      = local.authorizer_id
 }
 
-resource "aws_lambda_permission" "agent_monitoring_start_apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
+# Permission: Allows API Gateway to invoke the Lambda
+resource "aws_lambda_permission" "post_social_apigw_permission" {
+  statement_id  = "AllowAPIGatewayInvokePostSocial"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.agent_monitoring_api.function_name
+  function_name = aws_lambda_function.post_social_lambda.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
-}
-
-# Integration: agent_monitoring_api - status (GET /agent/status)
-resource "aws_apigatewayv2_integration" "agent_status" {
-  api_id             = aws_apigatewayv2_api.http.id
-  integration_type   = "AWS_PROXY"
-  integration_method = "POST"
-  integration_uri    = aws_lambda_function.agent_monitoring_api.invoke_arn
-  payload_format_version = "2.0"
-}
-
-resource "aws_apigatewayv2_route" "agent_status" {
-  api_id    = aws_apigatewayv2_api.http.id
-  route_key = "GET /agent/status"
-  target    = "integrations/${aws_apigatewayv2_integration.agent_status.id}"
-
-  authorization_type = "JWT"
-  authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
-}
-
-# Note: Lambda permission already granted above for agent_monitoring_api
-
-# ---------- Optional: Direct invoke route for agentic-flow ----------
-# This is optional if you want to expose the agentic-flow function directly via API
-
-resource "aws_apigatewayv2_integration" "agentic_flow" {
-  api_id             = aws_apigatewayv2_api.http.id
-  integration_type   = "AWS_PROXY"
-  integration_method = "POST"
-  integration_uri    = aws_lambda_function.agentic_flow.invoke_arn
-  payload_format_version = "2.0"
-}
-
-resource "aws_apigatewayv2_route" "agentic_flow" {
-  api_id    = aws_apigatewayv2_api.http.id
-  route_key = "POST /agent/generate"
-  target    = "integrations/${aws_apigatewayv2_integration.agentic_flow.id}"
-
-  authorization_type = "JWT"
-  authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
-}
-
-resource "aws_lambda_permission" "agentic_flow_apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.agentic_flow.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
-}
-
-# ---------- Outputs ----------
-
-output "agent_api_base_url" {
-  description = "Base URL for agent API endpoints"
-  value       = "https://${aws_apigatewayv2_api.http.id}.execute-api.${var.region}.amazonaws.com"
-}
-
-output "agent_api_endpoints" {
-  description = "Agent API endpoints"
-  value = {
-    get_permission    = "GET /agent/permission"
-    set_permission    = "POST /agent/permission"
-    monitoring_start  = "POST /agent/monitoring/start"
-    status            = "GET /agent/status"
-    generate          = "POST /agent/generate"
-  }
+  source_arn    = "${local.execution_arn}/*/*"
 }
