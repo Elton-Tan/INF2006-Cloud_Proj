@@ -17,12 +17,14 @@ def lambda_handler(event, context):
         hashtags = db.get_trending_hashtags(limit)
         
         result = []
-        for row in hashtags:  # ✅ row is a dict
+        for row in hashtags:  
             result.append({
                 'hashtag': row['hashtag'],
                 'post_count': int(row['post_count']) if row['post_count'] else 0,
                 'total_engagement': int(row['total_engagement']) if row['total_engagement'] else 0,
-                'avg_engagement': float(row['avg_engagement']) if row['avg_engagement'] else 0.0
+                'avg_engagement': float(row['avg_engagement']) if row['avg_engagement'] else 0.0,
+                'velocity': float(row.get('velocity', 1.0)),  
+                'trending_score': float(row.get('trending_score', 0.0))  
             })
         
         return {

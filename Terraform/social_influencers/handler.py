@@ -31,6 +31,7 @@ def lambda_handler(event, context):
                 'handle': row['handle'],
                 'posts': int(row['posts']) if row['posts'] else 0,
                 'avg_engagement': float(row['avg_engagement']) if row['avg_engagement'] else 0.0,
+                'engagement_rate': float(row.get('engagement_rate', 0.0)), 
                 'influence_score': float(row['influence_score']) if row['influence_score'] else 0.0,
                 'products_mentioned': safe_json_loads(row['products_mentioned'], []),
                 'brands_mentioned': safe_json_loads(row['brands_mentioned'], []),

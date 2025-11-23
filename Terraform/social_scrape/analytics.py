@@ -11,6 +11,15 @@ import pickle
 import re 
 from collections import defaultdict
 import os
+from datetime import datetime
+import time
+
+try:
+    from rapidfuzz import fuzz
+    HAS_RAPIDFUZZ = True
+except ImportError:
+    HAS_RAPIDFUZZ = False
+    print("Warning: rapidfuzz not installed, using basic brand matching")
 
 class SocialAnalytics:
     def __init__(self, model_dir='/tmp/models'):
@@ -29,10 +38,37 @@ class SocialAnalytics:
     
         self.sentiment_analyzer = SentimentIntensityAnalyzer()
 
-        self.beauty_brands = ['sephora', 'ulta', 'glossier', 'fenty', 'rare beauty', 
-                             'cerave', 'neutrogena', 'the ordinary', 'drunk elephant']
+        self.beauty_brands = {
+            'sephora': ['sephora', 'sephor', 'sephorah', '@sephora', '#sephora'],
+            'ulta': ['ulta', 'ultabeauty', '@ultabeauty', '#ulta'],
+            'glossier': ['glossier', 'glossy', '@glossier'],
+            'fenty': ['fenty', 'fentybeauty', 'fenty beauty', '@fentybeauty'],
+            'rare beauty': ['rare beauty', 'rarebeauty', '@rarebeauty'],
+            'cerave': ['cerave', 'cera ve', '@cerave'],
+            'neutrogena': ['neutrogena', '@neutrogena'],
+            'the ordinary': ['the ordinary', 'theordinary', '@theordinary', 'ordinary'],
+            'drunk elephant': ['drunk elephant', 'drunkelephant', '@drunkelephant']
+        }
         self.beauty_products = ['serum', 'moisturizer', 'cleanser', 'foundation', 
-                               'lipstick', 'mascara', 'toner', 'sunscreen', 'concealer']
+                               'lipstick', 'mascara', 'toner', 'sunscreen', 'concealer', 'Spirulina']
+        
+
+        # ✅ NEW: Sarcasm indicators
+        self.sarcasm_indicators = {
+            'emojis': ['🙄', '😒', '💀', '😬', '🤡'],
+            'phrases': ['totally', 'obviously', 'sure', 'yeah right', 'great', 'love how', 'perfect']
+        }
+
+        self.negative_beauty_terms = [
+            'expensive', 'overpriced', 'waste', 'broke out', 'breakout', 'irritated',
+            'irritation', 'worst', 'horrible', 'terrible', 'disappointed', 'regret',
+            'allergic', 'reaction', 'rash', 'burning', 'stinging'
+        ]
+        
+        self.positive_beauty_terms = [
+            'holy grail', 'amazing', 'love', 'obsessed', 'glowing', 'flawless',
+            'perfect', 'recommend', 'repurchase', 'favorite', 'best'
+        ]
         
         # Load pre-trained models
         print("Loading ML models...")
@@ -69,16 +105,46 @@ class SocialAnalytics:
         
         for post in posts:
             content = post.get('content', '')
-            if content and len(content) > 10:
-                try:
+            if not content or len(content) < 10:
+                continue
+            try:
                     # Use VADER instead of TextBlob
                     scores = self.sentiment_analyzer.polarity_scores(content)
                     compound = scores['compound']  # -1 to 1
+
+                    content_lower = content.lower()
+
+                    # ✅ Sarcasm detection
+                    sarcasm_score = 0
+                    for emoji in self.sarcasm_indicators['emojis']:
+                        if emoji in content:
+                            sarcasm_score += 1
+                    
+                    for phrase in self.sarcasm_indicators['phrases']:
+                        if phrase in content_lower:
+                            sarcasm_score += 0.5
+                    
+                    is_sarcastic = sarcasm_score >= 1.5
+                    
+                    # ✅ Domain-specific adjustments
+                    negative_count = sum(1 for term in self.negative_beauty_terms if term in content_lower)
+                    positive_count = sum(1 for term in self.positive_beauty_terms if term in content_lower)
+                    
+                    # Adjust compound score
+                    compound += (positive_count * 0.15) - (negative_count * 0.2)
+                    
+                    # Flip if sarcastic
+                    if is_sarcastic and compound > 0:
+                        compound *= -0.8  # Flip but reduce magnitude (sarcasm uncertainty)
+                    
+                    # Clamp to [-1, 1]
+                    compound = max(-1, min(1, compound))
+
                     
                     # Map compound score to classification
-                    if compound >= 0.05:
+                    if compound >= 0.1:
                         classification = 'positive'
-                    elif compound <= -0.05:
+                    elif compound <= -0.1:
                         classification = 'negative'
                     else:
                         classification = 'neutral'
@@ -88,10 +154,11 @@ class SocialAnalytics:
                         'label': classification,
                         'score': abs(compound),
                         'classification': classification,
+                        'is_sarcastic': is_sarcastic,
                         'engagement': post.get('like_count', 0) + post.get('comment_count', 0)
                     }
                     results.append(result)
-                except Exception as e:
+            except Exception as e:
                     print(f"Error analyzing sentiment for post {post.get('post_id')}: {e}")
     
         return results
@@ -99,7 +166,7 @@ class SocialAnalytics:
 
     # ===== NAMED ENTITY RECOGNITION =====
     def extract_entities_ml(self, posts):
-        """Extract products, brands using keyword matching"""
+        """Extract products, brands with fuzzy brand  matching"""
         entity_mentions = []
         
         for post in posts:
@@ -109,14 +176,14 @@ class SocialAnalytics:
                 
             products = []
             brands = []
-            
-            for brand in self.beauty_brands:
-                if brand in content:
-                    brands.append(brand.title())
-            
+
             for product in self.beauty_products:
                 if product in content:
                     products.append(product.title())
+            if HAS_RAPIDFUZZ:
+                brands = self._detect_brands_fuzzy(content)
+            else: 
+                brands = self._detect_brands_exact(content)
             
             products = list(set(products))
             brands = list(set(brands))
@@ -130,6 +197,36 @@ class SocialAnalytics:
                 })
         
         return entity_mentions
+    
+    def _detect_brands_fuzzy(self, content):
+        """Fuzzy brand matching with rapidfuzz"""
+        detected = set()
+        words = re.findall(r'[@#]?\w+', content.lower())
+        
+        for brand_key, variations in self.beauty_brands.items():
+            for word in words:
+                # Exact match on variations
+                if word in variations:
+                    detected.add(brand_key.title())
+                    break
+                
+                # Fuzzy match (for typos)
+                for variation in variations:
+                    if len(word) > 4 and fuzz.ratio(word, variation) > 85:
+                        detected.add(brand_key.title())
+                        break
+        
+        return list(detected)
+    
+    def _detect_brands_exact(self, content):
+        """Fallback exact matching"""
+        detected = set()
+        for brand_key, variations in self.beauty_brands.items():
+            for variation in variations:
+                if variation in content:
+                    detected.add(brand_key.title())
+                    break
+        return list(detected)
     
     # ===== TOPIC MODELING =====
     def discover_topics_lda(self, posts, n_topics=5):
@@ -323,31 +420,56 @@ class SocialAnalytics:
         hashtag_stats = defaultdict(lambda: {
             'count': 0,
             'total_engagement': 0,
-            'posts': []
+            'posts': [],
+            'timestamps': []
         })
         
         for post in posts:
             content = post.get('content', '')
             engagement = post.get('like_count', 0) + post.get('comment_count', 0)
-            
+            timestamp = post.get('timestamp', int(time.time()))
+
             hashtags = re.findall(r'#(\w+)', content.lower())
             
             for tag in hashtags:
                 hashtag_stats[tag]['count'] += 1
                 hashtag_stats[tag]['total_engagement'] += engagement
                 hashtag_stats[tag]['posts'].append(post.get('post_id'))
-        
+                hashtag_stats[tag]['timestamps'].append(timestamp)
+                
+        now = time.time()
+        trending = []
         trending = []
         for tag, stats in hashtag_stats.items():
+
+            # Time-based segmentation
+            recent_24h = [i for i, ts in enumerate(stats['timestamps']) if now - ts < 86400]
+            recent_7d = [i for i, ts in enumerate(stats['timestamps']) if now - ts < 604800]
+            
+            count_24h = len(recent_24h)
+            count_7d = len(recent_7d)
+            
+            # Calculate velocity (growth rate)
+            if count_7d > 0:
+                daily_avg_7d = count_7d / 7
+                velocity = count_24h / max(daily_avg_7d, 0.1)  # Avoid division by zero
+            else:
+                velocity = 1.0
+            
+            # ✅ Trending score = velocity * total_engagement
+            trending_score = velocity * stats['total_engagement'] * 0.01
+
             trending.append({
                 'hashtag': f'#{tag}',
                 'post_count': stats['count'],
                 'total_engagement': stats['total_engagement'],
                 'avg_engagement': stats['total_engagement'] / stats['count'] if stats['count'] > 0 else 0,
+                'velocity': round(velocity, 2),
+                'trending_score': round(trending_score, 2),
                 'sample_posts': stats['posts'][:5]
             })
         
-        trending.sort(key=lambda x: x['total_engagement'], reverse=True)
+        trending.sort(key=lambda x: x['trending_score'], reverse=True)
         
         return trending[:50]
     
@@ -361,7 +483,8 @@ class SocialAnalytics:
             'brands_mentioned': set(),
             'hashtags_used': set(),
             'platforms': set(),
-            'post_ids': []
+            'post_ids': [],
+            'timestamps':[]
         })
         
         for post in posts:
@@ -371,35 +494,54 @@ class SocialAnalytics:
             
             engagement = post.get('like_count', 0) + post.get('comment_count', 0)
             content = post.get('content', '').lower()
+            timestamp = post.get('timestamp', int(time.time()))
             
             influencers[author]['posts'] += 1
             influencers[author]['total_engagement'] += engagement
             influencers[author]['platforms'].add(post.get('platform', 'unknown'))
             influencers[author]['post_ids'].append(post.get('post_id'))
-            
+            influencers[author]['timestamps'].append(timestamp)
+
             for product in self.beauty_products:
                 if product in content:
                     influencers[author]['products_mentioned'].add(product.title())
+          
+            if HAS_RAPIDFUZZ:
+                brands = self._detect_brands_fuzzy(content)
+            else:
+                brands = self._detect_brands_exact(content)
             
-            for brand in self.beauty_brands:
-                if brand in content:
-                    influencers[author]['brands_mentioned'].add(brand.title())
+            for brand in brands:
+                influencers[author]['brands_mentioned'].add(brand)
             
             hashtags = re.findall(r'#(\w+)', content)
             influencers[author]['hashtags_used'].update(hashtags)
         
         scored_influencers = []
+        now = time.time()
+
         for author, stats in influencers.items():
             if stats['posts'] < 2:
                 continue
             
             avg_engagement = stats['total_engagement'] / stats['posts']
             
+            estimated_followers = avg_engagement / 0.03  # Assume 3% engagement rate
+            engagement_rate = avg_engagement / max(estimated_followers, 1)
+            post_consistency = min(stats['posts'] / 30, 1.0)
+            content_quality = avg_engagement
+            if stats['timestamps']:
+                days_since_last = (now - max(stats['timestamps'])) / 86400
+                recency_factor = max(0.3, 1 - (days_since_last / 90))  # Decay over 90 days
+            else:
+                recency_factor = 0.5
+            
             influence_score = (
-                avg_engagement * 0.6 +
-                stats['posts'] * 100 * 0.25 +
-                len(stats['products_mentioned']) * 50 * 0.1 +
-                len(stats['hashtags_used']) * 10 * 0.05
+                engagement_rate * 10000 * 0.40 +      # Engagement rate (most important)
+                post_consistency * 500 * 0.25 +       # Consistency
+                content_quality * 0.20 +              # Content quality
+                len(stats['brands_mentioned']) * 50 * 0.10 +  # Brand authority
+                recency_factor * 200 * 0.05  
             )
             
             scored_influencers.append({
@@ -407,6 +549,7 @@ class SocialAnalytics:
                 'posts': stats['posts'],
                 'total_engagement': stats['total_engagement'],
                 'avg_engagement': round(avg_engagement, 1),
+                'engagement_rate': round(engagement_rate * 100, 2),  # As percentage
                 'influence_score': round(influence_score, 2),
                 'products_mentioned': list(stats['products_mentioned'])[:5],
                 'brands_mentioned': list(stats['brands_mentioned'])[:5],
