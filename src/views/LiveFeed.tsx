@@ -642,15 +642,115 @@ function TrendsTrends() {
 
 /* ---------------------------- Page wrapper --------------------------- */
 
+/* ---------------------------- Page wrapper --------------------------- */
+
 export default function LiveFeed() {
   const { apiBase, token, wsBase } = useAuth();
   const bus = useBus();
 
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const [wsOpen, setWsOpen] = React.useState<boolean>(false);
+  const [loadingAlerts, setLoadingAlerts] = React.useState<boolean>(true);
 
+  const mapSeverity = React.useCallback((raw: any): Alert["severity"] => {
+    const s = String(raw || "").toLowerCase();
+    if (s === "critical" || s === "high") return "high";
+    if (s === "warning" || s === "medium") return "medium";
+    return "low";
+  }, []);
+
+  // Initial load: GET {apiBase}/alert
   React.useEffect(() => {
-    if (!token || !wsBase) return;
+    if (!apiBase) return;
+
+    let abort = false;
+
+    const loadAlerts = async () => {
+      setLoadingAlerts(true);
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const res = await fetch(`${apiBase}/alert`, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        const raw = Array.isArray(data) ? data : data.alerts || [];
+
+        const mapped: Alert[] = raw
+          .filter((a: any) => !a.is_read) // only unread
+          .map((a: any) => {
+            const productName = a.product_name
+              ? String(a.product_name)
+              : "Alert";
+            const typeLabel = a.type ? String(a.type).replace(/_/g, " ") : "";
+            const title = typeLabel
+              ? `${productName} – ${typeLabel}`
+              : productName;
+
+            return {
+              id: String(a.id ?? Date.now()),
+              ts:
+                typeof a.timestamp === "string"
+                  ? a.timestamp
+                  : typeof a.ts === "string"
+                  ? a.ts
+                  : new Date().toISOString(),
+              title,
+              description: String(a.message ?? ""),
+              severity: mapSeverity(a.severity),
+              market: String(a.platform ?? ""),
+              channel: String(a.type ?? ""),
+            };
+          });
+
+        if (!abort) setAlerts(mapped);
+      } catch (e) {
+        console.error("Failed to load alerts:", e);
+        if (!abort) setAlerts([]);
+      } finally {
+        if (!abort) setLoadingAlerts(false);
+      }
+    };
+
+    void loadAlerts();
+    return () => {
+      abort = true;
+    };
+  }, [apiBase, token, mapSeverity]);
+
+  // Mark single alert as read: POST {apiBase}/alert/{id}/read
+  const handleMarkRead = React.useCallback(
+    async (id: string) => {
+      if (!apiBase) {
+        setAlerts((prev) => prev.filter((a) => a.id !== id));
+        return;
+      }
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        await fetch(`${apiBase}/alert/${encodeURIComponent(id)}/read`, {
+          method: "POST",
+          headers,
+        });
+      } catch (e) {
+        console.error("Failed to mark alert as read:", e);
+      } finally {
+        // Optimistic remove
+        setAlerts((prev) => prev.filter((a) => a.id !== id));
+      }
+    },
+    [apiBase, token]
+  );
+
+  // WebSocket
+  React.useEffect(() => {
+    if (!token || !wsBase || !bus) return;
 
     let ws: WebSocket | null = null;
     let attempts = 0;
@@ -660,10 +760,12 @@ export default function LiveFeed() {
     const connect = () => {
       try {
         const url = buildWsUrl(wsBase, token);
+        console.log("[WS] connecting to", url);
         ws = new WebSocket(url);
         attempts += 1;
 
         ws.onopen = () => {
+          console.log("[WS] open");
           setWsOpen(true);
           heartbeat = window.setInterval(() => {
             try {
@@ -682,42 +784,57 @@ export default function LiveFeed() {
           if (!msg || typeof msg !== "object") return;
 
           if (msg.type === "trends.updated") {
-            bus?.dispatchEvent(
+            bus.dispatchEvent(
               new CustomEvent("trends:updated", { detail: msg })
             );
           } else if (msg.type === "prices.updated") {
-            bus?.dispatchEvent(
+            bus.dispatchEvent(
               new CustomEvent("prices:updated", { detail: msg })
             );
           } else if (msg.type === "alerts.created") {
-            const a: Alert | null =
-              msg.alert && typeof msg.alert === "object"
-                ? {
-                    id: String(msg.alert.id ?? Date.now()),
+            const raw =
+              msg.alert && typeof msg.alert === "object" ? msg.alert : null;
+            const a: Alert | null = raw
+              ? (() => {
+                  const productName = raw.product_name
+                    ? String(raw.product_name)
+                    : "Alert";
+                  const typeLabel = raw.type
+                    ? String(raw.type).replace(/_/g, " ")
+                    : "";
+                  const title = typeLabel
+                    ? `${productName} – ${typeLabel}`
+                    : productName;
+
+                  return {
+                    id: String(raw.id ?? Date.now()),
                     ts:
-                      typeof msg.alert.ts === "string"
-                        ? msg.alert.ts
+                      typeof raw.timestamp === "string"
+                        ? raw.timestamp
+                        : typeof raw.ts === "string"
+                        ? raw.ts
                         : new Date().toISOString(),
-                    title: String(msg.alert.title ?? "Alert"),
-                    description: String(msg.alert.description ?? ""),
-                    severity: (msg.alert.severity ??
-                      "low") as Alert["severity"],
-                    market: String(msg.alert.market ?? "SG"),
-                    channel: String(msg.alert.channel ?? ""),
-                  }
-                : null;
+                    title,
+                    description: String(raw.message ?? ""),
+                    severity: mapSeverity(raw.severity),
+                    market: String(raw.platform ?? ""),
+                    channel: String(raw.type ?? ""),
+                  };
+                })()
+              : null;
             if (a) {
               setAlerts((prev) => [a, ...prev].slice(0, 50));
-              bus?.dispatchEvent(
+              bus.dispatchEvent(
                 new CustomEvent("alerts:created", { detail: a })
               );
             }
           } else if (msg.type === "watchlist.row_upserted") {
-            bus?.dispatchEvent(new Event("prices:updated"));
+            bus.dispatchEvent(new Event("prices:updated"));
           }
         };
 
-        ws.onclose = () => {
+        ws.onclose = (ev) => {
+          console.log("[WS] close", ev.code, ev.reason);
           setWsOpen(false);
           if (heartbeat) {
             clearInterval(heartbeat);
@@ -730,12 +847,14 @@ export default function LiveFeed() {
           ) as unknown as number;
         };
 
-        ws.onerror = () => {
+        ws.onerror = (err) => {
+          console.error("[WS] error", err);
           try {
             ws?.close();
           } catch {}
         };
-      } catch {
+      } catch (err) {
+        console.error("[WS] connect threw", err);
         const delay = Math.min(1000 * Math.max(1, attempts), 10000);
         reconnectTimer = window.setTimeout(connect, delay) as unknown as number;
       }
@@ -749,14 +868,14 @@ export default function LiveFeed() {
         ws?.close();
       } catch {}
     };
-  }, [wsBase, token, bus]);
+  }, [wsBase, token, bus, mapSeverity]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {/* Real-time alerts */}
       <section className="rounded-2xl border bg-white p-4 shadow-sm">
         <h2 className="mb-1 text-lg font-semibold">
-          Real-time Alerts (In-Progress) <LiveBadge />
+          Real-time Alerts <LiveBadge />
         </h2>
         <p className="mb-3 text-sm text-gray-500">
           Examples: competitor ad posts, stockouts, price drops.
@@ -769,10 +888,13 @@ export default function LiveFeed() {
           </span>
         </p>
         <div className="flex max-h-80 flex-col gap-3 overflow-auto pr-2">
-          {alerts.length === 0 ? (
+          {loadingAlerts ? (
             <div className="flex h-24 items-center justify-center text-sm text-gray-500">
-              This visualisation is currently in working progress and is
-              currently unavailable
+              Loading alerts...
+            </div>
+          ) : alerts.length === 0 ? (
+            <div className="flex h-24 items-center justify-center text-sm text-gray-500">
+              No active alerts. New alerts will appear here in real-time.
             </div>
           ) : (
             alerts.map((a) => (
@@ -790,17 +912,21 @@ export default function LiveFeed() {
                   }`}
                 />
                 <div className="flex-1">
-                  <div className="flex items-center justify-between">
+                  <div className="mb-1 flex items-center justify-between">
                     <div className="font-medium">{a.title}</div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(a.ts).toLocaleString()}
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      {a.ts && <span>{new Date(a.ts).toLocaleString()}</span>}
+                      <button
+                        onClick={() => handleMarkRead(a.id)}
+                        className="rounded border px-2 py-0.5 text-[11px] text-gray-600 hover:bg-gray-50"
+                      >
+                        Mark as read
+                      </button>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {a.market}
-                    {a.channel ? ` • ${a.channel}` : ""}
+                  <div className="text-sm text-gray-700">
+                    {a.description || "No description"}
                   </div>
-                  <div className="text-sm">{a.description}</div>
                 </div>
               </div>
             ))
