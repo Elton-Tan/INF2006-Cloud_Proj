@@ -741,7 +741,7 @@ resource "aws_lambda_function" "social_scrape" {
     aws_lambda_layer_version.requests_layer.arn,                  # Has pandas/numpy
     aws_lambda_layer_version.sklearn_layer.arn,  # ✅ Your custom layer
     aws_lambda_layer_version.nltk_layer.arn,     # ✅ Your custom layer
-
+    aws_lambda_layer_version.rapidfuzz_layer.arn,
 
 
     # "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312:13", 

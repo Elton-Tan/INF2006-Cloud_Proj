@@ -125,3 +125,17 @@ resource "aws_lambda_layer_version" "nltk_layer" {
   compatible_runtimes = ["python3.12"]
   source_code_hash    = filebase64sha256("${path.module}/nltk_layer.zip")
 }
+
+# rapidfuzz layer
+data "archive_file" "rapidfuzz_layer_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/layers/rapidfuzz_layer"
+  output_path = "${path.module}/rapidfuzz_layer.zip"
+}
+
+resource "aws_lambda_layer_version" "rapidfuzz_layer" {
+  layer_name          = "${var.project}-rapidfuzz"
+  filename            = data.archive_file.rapidfuzz_layer_zip.output_path
+  compatible_runtimes = ["python3.12"]
+  description         = "rapidfuzz for fuzzy string matching"
+}

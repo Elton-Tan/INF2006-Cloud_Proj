@@ -1,0 +1,1 @@
+{"statusCode": 200, "body": "{\"message\": \"Scrape completed successfully\", \"posts_processed\": 60, \"sentiment_analyzed\": 60, \"entities_extracted\": 39, \"hashtags_found\": 11, \"influencers_identified\": 5, \"brands_tracked\": 5}"}

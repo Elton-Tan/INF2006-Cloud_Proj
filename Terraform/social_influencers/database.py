@@ -61,6 +61,8 @@ class SocialMediaDB:
                     post_count INT,
                     total_engagement INT,
                     avg_engagement FLOAT,
+                    velocity FLOAT,
+                    trending_score FLOAT,
                     discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     INDEX idx_hashtag (hashtag)
                 )
@@ -76,6 +78,7 @@ class SocialMediaDB:
                     posts INT,
                     total_engagement INT,
                     avg_engagement FLOAT,
+                    engagement_rate FLOAT,
                     influence_score FLOAT,
                     products_mentioned TEXT,
                     brands_mentioned TEXT,
@@ -362,13 +365,15 @@ class SocialMediaDB:
             for tag in hashtags:
                 cursor.execute('''
                     INSERT INTO hashtag_trends 
-                    (hashtag, post_count, total_engagement, avg_engagement)
-                    VALUES (%s, %s, %s, %s)
+                    (hashtag, post_count, total_engagement, avg_engagement, velocity, trending_score)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                 ''', (
                     tag['hashtag'],
                     tag['post_count'],
                     tag['total_engagement'],
-                    tag['avg_engagement']
+                    tag['avg_engagement'],
+                    tag.get('velocity', 1.0),  # ✅ NEW
+                    tag.get('trending_score', 0.0)  # ✅ NEW
                 ))
             conn.commit()
         except Exception as e:
@@ -386,13 +391,14 @@ class SocialMediaDB:
             for inf in influencers:
                 cursor.execute('''
                     INSERT INTO influencers 
-                    (handle, posts, total_engagement, avg_engagement, influence_score,
+                    (handle, posts, total_engagement, avg_engagement, engagement_rate, influence_score,
                      products_mentioned, brands_mentioned, top_hashtags, platforms)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         posts = VALUES(posts),
                         total_engagement = VALUES(total_engagement),
                         avg_engagement = VALUES(avg_engagement),
+                        engagement_rate = VALUES(engagement_rate),
                         influence_score = VALUES(influence_score),
                         products_mentioned = VALUES(products_mentioned),
                         brands_mentioned = VALUES(brands_mentioned),
@@ -403,6 +409,7 @@ class SocialMediaDB:
                     inf['posts'],
                     inf['total_engagement'],
                     inf['avg_engagement'],
+                    inf.get('engagement_rate', 0.0),  
                     inf['influence_score'],
                     json.dumps(inf['products_mentioned']),
                     json.dumps(inf['brands_mentioned']),
@@ -527,7 +534,7 @@ class SocialMediaDB:
         
         try:
             cursor.execute('''
-                SELECT handle, posts, avg_engagement, influence_score,
+                SELECT handle, posts, avg_engagement, engagement_rate, influence_score,
                        products_mentioned, brands_mentioned, top_hashtags, platforms
                 FROM influencers 
                 ORDER BY influence_score DESC 
@@ -545,9 +552,9 @@ class SocialMediaDB:
         
         try:
             cursor.execute('''
-                SELECT hashtag, post_count, total_engagement, avg_engagement
+                SELECT hashtag, post_count, total_engagement, avg_engagement, velocity, trending_score
                 FROM hashtag_trends 
-                ORDER BY total_engagement DESC 
+                ORDER BY trending_score DESC 
                 LIMIT %s
             ''', (limit,))
             results = cursor.fetchall()
