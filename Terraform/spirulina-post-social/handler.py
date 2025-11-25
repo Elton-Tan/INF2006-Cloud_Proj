@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-    return f"https://{bucket}.s3.amazonaws.com/{quoted_key}"
+
 
 def graph_request(path: str, params: dict, method: str = "POST") -> dict:
     """Standard wrapper for Graph API calls using urllib"""

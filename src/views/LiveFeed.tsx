@@ -878,7 +878,6 @@ export default function LiveFeed() {
           Real-time Alerts <LiveBadge />
         </h2>
         <p className="mb-3 text-sm text-gray-500">
-          Examples: competitor ad posts, stockouts, price drops.
           <span
             className={`ml-2 text-xs ${
               wsOpen ? "text-emerald-600" : "text-amber-600"
@@ -912,18 +911,24 @@ export default function LiveFeed() {
                   }`}
                 />
                 <div className="flex-1">
-                  <div className="mb-1 flex items-center justify-between">
-                    <div className="font-medium">{a.title}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="flex items-start justify-between gap-2">
+                    {/* title can wrap and take remaining width */}
+                    <div className="flex-1 font-medium mr-2 min-w-0 text-sm">
+                      {a.title}
+                    </div>
+
+                    {/* this block keeps its size so the button isn't compressed */}
+                    <div className="flex shrink-0 items-center gap-2 text-xs text-gray-500">
                       {a.ts && <span>{new Date(a.ts).toLocaleString()}</span>}
                       <button
                         onClick={() => handleMarkRead(a.id)}
-                        className="rounded border px-2 py-0.5 text-[11px] text-gray-600 hover:bg-gray-50"
+                        className="rounded border px-2 py-1 text-[11px] text-gray-600 hover:bg-gray-50 whitespace-nowrap"
                       >
                         Mark as read
                       </button>
                     </div>
                   </div>
+
                   <div className="text-sm text-gray-700">
                     {a.description || "No description"}
                   </div>
