@@ -11,7 +11,7 @@
 [this will take sometime to create....]
 9. Once all the services are set up, go back to Visual Studio Code and look for a folder called build
 10. Go to a S3 bucket (set as private), and upload the whole build folder into the S3. 
-11. Once complete, navigate to AWS cloudfront and attach a cloudfront to the S3 bucket (note the URL after attachment)
+11. Once complete, navigate to AWS cloudfront and attach a cloudfront to the S3 bucket (note the URL after attachment) -> this just checks whether the frontend is okay - you will realise the functionality is not working
 12. Go to secrets manager again, you will see a secret facebook_app_id and instagram_app_id
 [Follow the following steps]
 13. Go to https://developers.facebook.com/
@@ -28,4 +28,27 @@
 23. DO NOT select anonymous access. Select the $3 subscription model (if not u will be charged $200) - when prompted, create a new user and give it a username
 24. Now go to IAM Identity Access center. U can see the username
 25. Now when u visit the app, to access Amazon Q, u will provide the login details (click on chat bubble > it will prompt login > login with the details)
+[After that, to get the functionality working]
+26. Once everything is working, copy your Amazon Q URL
+27. Go under the file config.ts
+28. replace the Q_URL variable with your own Amazon Q URL
+29. Go back to amazon console and go to API gateway
+30. Select HTTP
+31 copy the URL and replace API_BASE url with your own
+32 now go to websocket and replace WS_BASE with your own url
+33. Finally, replace for redirectUri, replace that variable with the URL u obtained in step 11
+34. In the console, run npm start build
+35. You now have a new build folder
+36. Go to the S3 bucket u created in step 10
+37. replace the old build folder with new one just by re uploading it
+[Cognito]
+38. Navigate to cognito
+39. A userpool is created via terraform but u need to create a user
+40. Click on the userpool
+41. Select User
+42. Select create user and choose an email and password
+43. Once okay, revisit the URL in step 11
+44. Login with ur newly created acc
+45. U shud now see the webpage
+
 
