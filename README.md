@@ -86,23 +86,26 @@ Visual Studio Code: Download it [here](https://code.visualstudio.com/download)
 34. Select the one with protocol HTTP, such as:
 <img width="797" height="82" alt="image" src="https://github.com/user-attachments/assets/e905ff24-0c64-4571-923a-1efc52f1883f" />
 
-31 copy the URL and replace API_BASE url with your own in config.ts
-32 now go to websocket (the one with protocol websocket) and replace WS_BASE with your own url
-35. Finally, replace for redirectUri, replace that variable with the URL u obtained in step 15
+35 copy the URL and replace API_BASE url with your own in config.ts
+36 now go to websocket (the one with protocol websocket) and replace WS_BASE with your own url
+
+> after you have copied all the API gateway URL, go back to http and click <img width="70" height="30" alt="image" src="https://github.com/user-attachments/assets/2dbe3519-6c38-4d59-99d2-b8d954079675" /> at the top right hand corder (same for websocket)
+
+37. Finally, replace for redirectUri, replace that variable with the URL u obtained in step 15
 
 ## Back to Vscode Console
-36. In the console, run `npm start build`
-37. You now have a new build folder
-38. Go to the S3 bucket u created in step 14
-39. replace the old build folder with new one just by re uploading it
+38. In the console, run `npm start build`
+39. You now have a new build folder
+40. Go to the S3 bucket u created in step 14
+41. replace the old build folder with new one just by re uploading it
 
 
 ## Cognito
-40. Navigate to cognito
-41. A userpool is created via terraform but u need to create a user
-42. Click on the userpool
-43. Select User
-44. Select create user and choose an email and password
-45. Once okay, revisit the URL in step 11
-46. Login with ur newly created acc
-47. U shud now see the webpage
+42. Navigate to cognito
+43. A userpool is created via terraform but u need to create a user
+44. Click on the userpool
+45. Select User
+46. Select create user and choose an email and password
+47. Once okay, revisit the URL in step 11
+48. Login with ur newly created acc
+49. U shud now see the webpage
