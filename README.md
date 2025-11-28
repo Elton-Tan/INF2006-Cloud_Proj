@@ -1,4 +1,4 @@
-# Getting Started Reproduction and Deployment
+# Getting Started with Reproduction and Deployment
 
 ## Before we commence:
 You need to ensure you have:
@@ -18,7 +18,7 @@ Visual Studio Code: Download it [here](https://code.visualstudio.com/download)
 ## ScrappingBee Setup
 2.  Sign up for an account in ScrappingBEE via this website: https://app.scrapingbee.com
 3.  Once signup, login and you can see the API-KEY in the dashboard
-4.  Open up secrets.tf and replace scrappingBEE API value with YOPUR OWN API key
+4.  Open up secrets.tf and replace scrappingBEE API value with YOUR OWN API key
 
 ## AWS Console;
 5.  Install the terraform packages using `npm install terraform`
